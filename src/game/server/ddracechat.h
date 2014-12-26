@@ -49,12 +49,28 @@ CHAT_COMMAND("top5points", "?i", CFGFLAG_CHAT|CFGFLAG_SERVER, ConTopPoints, this
 #endif
 
 // iDDNet
-CHAT_COMMAND("dummy", "", CFGFLAG_CHAT|CFGFLAG_SERVER, ConDummy, this, "Spawns one more dummy")
-CHAT_COMMAND("dummy_delete", "", CFGFLAG_CHAT|CFGFLAG_SERVER, ConDummyDelete, this, "Deletes one more dummy")
-CHAT_COMMAND("delete", "", CFGFLAG_CHAT|CFGFLAG_SERVER, ConDummyDelete, this, "Deletes one more dummy")
-
-CHAT_COMMAND("d", "", CFGFLAG_CHAT|CFGFLAG_SERVER, ConDummy, this, "Spawns one more dummy")
-CHAT_COMMAND("dd", "", CFGFLAG_CHAT|CFGFLAG_SERVER, ConDummyDelete, this, "Deletes one more dummy")
+CHAT_COMMAND("dummy", "", CFGFLAG_CHAT, ConDummy, this, "Creates your own Dummy if it doesn\'t exist")
+CHAT_COMMAND("dummy_del", "", CFGFLAG_CHAT, ConDummyDelete, this, "Removes your Dummy")
+CHAT_COMMAND("dummy_change", "", CFGFLAG_CHAT, ConDummyChange, this, "Swap you with your dummy")
+CHAT_COMMAND("dummy_hammer", "", CFGFLAG_CHAT, ConDummyHammer, this, "Your Dummy looks up and hitting with hammer(vertical hammerfly)")
+CHAT_COMMAND("dummy_hammerfly", "", CFGFLAG_CHAT, ConDummyHammerFly, this, "Your Dummy looks at you and hitting with hammer(horizontal hammerfly)")
+CHAT_COMMAND("control_dummy", "", CFGFLAG_CHAT, ConDummyControl, this, "Go to spectators and control your dummy")
+CHAT_COMMAND("dummy_copy_move", "", CFGFLAG_CHAT, ConDummyCopyMove, this, "Dummy copies all your movement.")
+//the same but in another interpretation
+CHAT_COMMAND("d", "", CFGFLAG_CHAT, ConDummy, this, "Creates your own Dummy if it doesn\'t exist")
+CHAT_COMMAND("dummy_delete", "", CFGFLAG_CHAT, ConDummyDelete, this, "Removes your Dummy")
+CHAT_COMMAND("delete", "", CFGFLAG_CHAT, ConDummyDelete, this, "Removes your Dummy")
+CHAT_COMMAND("dd", "", CFGFLAG_CHAT, ConDummyDelete, this, "Removes your Dummy")
+CHAT_COMMAND("dummy_swap", "", CFGFLAG_CHAT, ConDummyChange, this, "Swap you with your dummy")
+CHAT_COMMAND("ds", "", CFGFLAG_CHAT, ConDummyChange, this, "Swap you with your dummy")
+CHAT_COMMAND("dc", "", CFGFLAG_CHAT, ConDummyChange, this, "Swap you with your dummy")
+CHAT_COMMAND("dh", "", CFGFLAG_CHAT, ConDummyHammer, this, "Your Dummy looks up and hitting with hammer(vertical hammerfly)")
+CHAT_COMMAND("dhf", "", CFGFLAG_CHAT, ConDummyHammerFly, this, "Your Dummy looks at you and hitting with hammer(horizontal hammerfly)")
+CHAT_COMMAND("cd", "", CFGFLAG_CHAT, ConDummyControl, this, "Go to spectators and control your dummy")
+CHAT_COMMAND("dcm", "", CFGFLAG_CHAT, ConDummyCopyMove, this, "Dummy copies all your movement. Smth like multiclient.")
+//and speacially for Learath2:
+CHAT_COMMAND("r", "", CFGFLAG_CHAT, ConRescue, this, "/r-rescue")
+CHAT_COMMAND("rescue", "", CFGFLAG_CHAT, ConRescue, this, "/r-rescue")
 
 #undef CHAT_COMMAND
 
