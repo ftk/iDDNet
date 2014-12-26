@@ -1306,16 +1306,16 @@ void CGameContext::ConDummy(IConsole::IResult *pResult, void *pUserData)
 
 void CGameContext::ConDummyDelete(IConsole::IResult *pResult, void *pUserData)
 {
-	CGameContext *pSelf = (CGameContext *) pUserData;
-	CPlayer *pPlayer = pSelf->m_apPlayers[pResult->m_ClientID];
-	for(int i = 0; i < g_Config.m_SvMaxClients; i++)
-	{
-		if(!pSelf->m_apPlayers[i] || !pSelf->m_apPlayers[i]->m_IsDummy)
-			continue;
-		
-		pSelf->Server()->DummyLeave(i/*, "Any Reason?"*/);
-			return;
-	}
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	if(!CheckClientID(pResult->m_ClientID)) return;
+	int ClientID = pResult->m_ClientID;
+	CPlayer *pPlayer = pSelf->m_apPlayers[pResult->m_ClientID];	
+	int DummyID = pPlayer->m_DummyID;
+	if (!pPlayer->m_HasDummy || !pSelf ->m_apPlayers[DummyID] || !pSelf ->m_apPlayers[DummyID]->m_IsDummy)
+		return;
+	pSelf->Server()->DummyLeave(DummyID/*, "Any Reason?"*/);
+	pPlayer->m_HasDummy = false;
+	pPlayer->m_DummyID = -1;
 }
 
 //comming soon..
