@@ -102,6 +102,7 @@ public:
 			STATE_POSTSPOOFCHECK,
 			STATE_READY,
 			STATE_INGAME,
+			STATE_DUMMY,// iDDNet
 
 			SNAPRATE_INIT=0,
 			SNAPRATE_FULL,
@@ -239,6 +240,10 @@ public:
 	void UpdateServerInfo();
 
 	void PumpNetwork();
+	
+	// iDDNet
+	void DummyJoin(int DummyID, const char *pDummyName, const char *pDummyClan, int Country);
+	void DummyLeave(int DummyID, const char *pDummyName = 0);
 
 	char *GetMapName();
 	int LoadMap(const char *pMapName);

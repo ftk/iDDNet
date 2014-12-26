@@ -175,6 +175,9 @@ public:
 	void SendWeaponPickup(int ClientID, int Weapon);
 	void SendBroadcast(const char *pText, int ClientID);
 
+	//DDNet
+	void NewDummy(int DummyID, bool CustomColor = false, int ColorBody = 12895054, int ColorFeet = 12895054, const char *pSkin = "pinky", const char *pName = "Dummy", const char *pClan = "[iDDNet]", int Country = -1);
+	
 	void List(int ClientID, const char* filter);
 
 	//
@@ -315,6 +318,10 @@ private:
 	static void ConFreezeHammer(IConsole::IResult *pResult, void *pUserData);
 	static void ConUnFreezeHammer(IConsole::IResult *pResult, void *pUserData);
 
+	// iDDNet
+	static void ConDummy(IConsole::IResult *pResult, void *pUserData);
+	static void ConDummyDelete(IConsole::IResult *pResult, void *pUserData);
+	
 	enum
 	{
 		MAX_MUTES=32,

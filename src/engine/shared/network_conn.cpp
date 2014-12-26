@@ -197,6 +197,17 @@ void CNetConnection::Disconnect(const char *pReason)
 	Reset();
 }
 
+// iDDNet
+void CNetConnection::DummyConnect()
+{
+	m_State = NET_CONNSTATE_DUMMY;
+}
+
+void CNetConnection::DummyDrop()
+{
+	m_State = NET_CONNSTATE_OFFLINE;
+}
+
 int CNetConnection::Feed(CNetPacketConstruct *pPacket, NETADDR *pAddr)
 {
 	int64 Now = time_get();
@@ -311,7 +322,7 @@ int CNetConnection::Update()
 		SetError("Timeout Protection over");
 	}
 
-	if(State() == NET_CONNSTATE_OFFLINE || State() == NET_CONNSTATE_ERROR)
+	if(State() == NET_CONNSTATE_OFFLINE || State() == NET_CONNSTATE_ERROR || State() == NET_CONNSTATE_DUMMY) // iDDNet
 		return 0;
 
 	m_TimeoutSituation = false;

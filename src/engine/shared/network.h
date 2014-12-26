@@ -58,6 +58,7 @@ enum
 	NET_CONNSTATE_PENDING=2,
 	NET_CONNSTATE_ONLINE=3,
 	NET_CONNSTATE_ERROR=4,
+	NET_CONNSTATE_DUMMY=5,// iDDNet
 
 	NET_PACKETFLAG_CONTROL=1,
 	NET_PACKETFLAG_CONNLESS=2,
@@ -196,6 +197,10 @@ public:
 	int AckSequence() const { return m_Ack; }
 	int SeqSequence() const { return m_Sequence; }
 	void SetTimedOut(const NETADDR *pAddr, int Sequence, int Ack);
+	
+	// iDDNet
+	void DummyConnect();
+	void DummyDrop();
 };
 
 class CConsoleNetConnection
@@ -296,6 +301,10 @@ public:
 
 	int ResetErrorString(int ClientID);
 	const char *ErrorString(int ClientID);
+	
+	// iDDNet
+	void DummyInit(int DummyID);
+	void DummyDelete(int DummyID);
 };
 
 class CNetConsole
