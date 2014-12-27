@@ -62,6 +62,7 @@ bool CCharacter::Spawn(CPlayer *pPlayer, vec2 Pos)
 	Teams()->OnCharacterSpawn(GetPlayer()->GetCID());
 
 	DDRaceInit();
+	iDDNetInit();
 	
 	m_TuneZone = GameServer()->Collision()->IsTune(GameServer()->Collision()->GetMapIndex(Pos));
 	m_TuneZoneOld = -1; // no zone leave msg on spawn
@@ -320,6 +321,8 @@ void CCharacter::HandleWeaponSwitch()
 
 void CCharacter::FireWeapon()
 {
+	if(GetPlayer()->m_IsDummy && !GetPlayer()->m_DummyCopiesMove && !m_DoHammerFly)
+		return;
 	if(m_ReloadTimer != 0)
 		return;
 
@@ -718,6 +721,7 @@ void CCharacter::Tick()
 		return;
 
 	DDRaceTick();
+	iDDNetTick();
 	
 	m_Core.m_Input = m_Input;
 	m_Core.Tick(true, false);
@@ -1935,11 +1939,25 @@ void CCharacter::DDRacePostCoreTick()
 	// handle Anti-Skip tiles
 	std::list < int > Indices = GameServer()->Collision()->GetMapIndices(m_PrevPos, m_Pos);
 	if(!Indices.empty())
+	{
+		// iDDNet
+		int DummyID = m_pPlayer->m_DummyID; //if character is dummy, DummyID contains id of his owner
+		if(DummyID >=0)
+		{
+			CCharacter* pDummyChar = GameServer()->GetPlayerChar(DummyID);
+			//this huge condition blocks handling tiles between owner and dummy on /dc
+			if((GetPlayer()->m_IsDummy || GetPlayer()->m_HasDummy) &&
+				GameServer()->m_apPlayers[DummyID] && pDummyChar &&
+				!(pDummyChar->m_Pos == m_Pos) &&
+				(pDummyChar->m_PrevPos == m_Pos || m_PrevPos == pDummyChar->m_Pos))
+				return;
+		}
 		for(std::list < int >::iterator i = Indices.begin(); i != Indices.end(); i++)
 		{
 			HandleTiles(*i);
 			//dbg_msg("Running","%d", *i);
 		}
+	}
 	else
 	{
 		HandleTiles(CurrentIndex);
@@ -2064,5 +2082,119 @@ void CCharacter::DDRaceInit()
 				}
 			}
 		}
+	}
+}
+
+// iDDNet
+void CCharacter::iDDNetInit()
+{
+	m_DoHammerFly = HF_NONE;
+	m_RescueUnfreeze = 0;
+	m_SavedPos = vec2(0, 0);
+}
+void CCharacter::iDDNetTick()
+{
+	SavePos();
+	RescueUnfreeze();
+	
+	//for dummy only
+	if(!GetPlayer()->m_IsDummy)
+		return;
+	if(!GetPlayer()->m_DummyCopiesMove && (!m_DoHammerFly || m_DoHammerFly==HF_NONE))
+	{
+		if(GetActiveWeapon() == WEAPON_HAMMER) SetActiveWeapon(WEAPON_GUN);
+		ResetDummy();
+	}
+	if(m_DoHammerFly > HF_NONE)
+		DoHammerFly();
+}
+void CCharacter::SavePos()
+{
+	if(g_Config.m_SvRescue && m_Pos)
+	{
+		if(!m_FreezeTime && IsGrounded() && m_Pos==m_PrevPos && m_RescueUnfreeze == 0 && m_TileIndex != TILE_FREEZE && m_TileFIndex != TILE_FREEZE)
+		{
+			m_SavedPos=m_Pos;
+		}
+	}
+}
+void CCharacter::RescueUnfreeze()
+{
+	if (m_RescueUnfreeze == 2)
+	{
+		m_RescueUnfreeze = 0;
+		//m_Core.m_Vel = vec2(0,0);
+		UnFreeze();
+	}
+	if (m_RescueUnfreeze == 1)
+		m_RescueUnfreeze = 2;
+}
+void CCharacter::Rescue() //for Learath2
+{
+	if(m_SavedPos && m_FreezeTime && !(m_SavedPos== vec2(0,0)) && m_FreezeTime!=0)
+	{
+			m_PrevPos = m_SavedPos;//TIGROW edit
+			Core()->m_Pos = m_SavedPos;
+			m_RescueUnfreeze = 1;
+			GameServer()->CreatePlayerSpawn(Core()->m_Pos);
+			UnFreeze();
+	} 
+	else if(!m_SavedPos ||  m_SavedPos== vec2(0,0))
+		GameServer()->SendChatTarget(GetPlayer()->GetCID(),"No position saved since start");
+	else if (!GetPlayer()->m_IsDummy) 
+		GameServer()->SendChatTarget(GetPlayer()->GetCID(),"You are not freezed");
+}
+void CCharacter::ResetSavedPos()
+{
+	m_SavedPos = vec2(0,0);	
+}
+void CCharacter::ResetDummy()
+{
+	m_Input.m_TargetX = 100;
+	m_Input.m_TargetY = 0;
+	m_Input.m_Fire = 0;
+	m_LatestInput.m_Fire = 0;
+}
+void CCharacter::DoHammerFly()
+{
+	if(GetPlayer()->m_DummyCopiesMove) //under control
+		return;
+	if (GetActiveWeapon() != WEAPON_HAMMER)
+		SetActiveWeapon(WEAPON_HAMMER);
+	if(m_DoHammerFly==HF_VERTICAL)
+	{
+		m_LatestInput.m_TargetX = 0; //look up
+		m_LatestInput.m_TargetY = -100;
+		m_Input.m_TargetX = 0;
+		m_Input.m_TargetY = -100;
+		m_Input.m_Fire = 1;
+		m_LatestInput.m_Fire = 1;
+	}
+	else if(m_DoHammerFly == HF_HORIZONTAL)
+	{
+		//the character of dummy's owner, we put owner's ID to dummy's CPlayer::m_DummyID when ran chat cmd
+		CCharacter* pOwnerChr = GameServer()->m_apPlayers[GetPlayer()->m_DummyID]->GetCharacter();
+		if(!pOwnerChr) return;
+		//final target pos
+		vec2 AimPos = pOwnerChr->m_Pos - m_Pos;
+
+		//follow owner
+		m_LatestInput.m_TargetX = AimPos.x;
+		m_LatestInput.m_TargetY = AimPos.y;
+		m_Input.m_TargetX = AimPos.x;
+		m_Input.m_TargetY = AimPos.y;
+
+		//no need in shoot if we are not under the owner or owner is far away
+		if (m_Pos.y <= pOwnerChr->m_Pos.y || distance(m_Pos, pOwnerChr->m_Pos)>100)
+		{
+			m_Input.m_Fire = 0;
+			m_LatestInput.m_Fire = 0;
+			return;
+		}
+
+		//also dummy should hammer on touch, so that's what TODO next
+
+		m_Input.m_Fire = 1;
+		m_LatestInput.m_Fire = 1;
 	}
 }

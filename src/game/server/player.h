@@ -184,7 +184,8 @@ public:
 	//if we are real player (owner)
 	int m_DummyID; // our dummy
 	bool m_HasDummy;
-
+	bool m_DummyCopiesMove;
+	
 	//delay
 	int64 m_Last_Dummy; //for control frequency of using /d
 	int64 m_Last_DummyChange; //for control frequency of using /dc

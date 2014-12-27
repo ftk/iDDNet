@@ -56,6 +56,13 @@ void CPlayer::Reset()
 	}
 	idMap[0] = m_ClientID;
 
+	// iDDNet
+	m_DummyID = -1; 
+	m_HasDummy = false;
+	m_DummyCopiesMove = false;
+	m_Last_Dummy = 0;
+	m_Last_DummyChange = 0;
+	
 	// DDRace
 
 	m_LastCommandPos = 0;
@@ -299,6 +306,13 @@ void CPlayer::Snap(int SnappingClient)
 
 	if(m_ClientID == SnappingClient)
 		pPlayerInfo->m_Local = 1;
+		
+	// iDDNet : by Pikotee : show aim in /cd mode
+	if(GameServer()->m_apPlayers[SnappingClient]->m_DummyID == m_ClientID && m_DummyCopiesMove)
+	{
+		if(GameServer()->m_apPlayers[SnappingClient]->m_Paused == PAUSED_SPEC || GameServer()->m_apPlayers[SnappingClient]->m_Paused >= PAUSED_PAUSED)
+			pPlayerInfo->m_Local = 1;
+	}
 
 	if(m_ClientID == SnappingClient && (m_Team == TEAM_SPECTATORS || m_Paused))
 	{
@@ -342,6 +356,21 @@ void CPlayer::FakeSnap(int SnappingClient)
 
 void CPlayer::OnDisconnect(const char *pReason)
 {
+	if(m_HasDummy)
+	{
+		Server()->DummyLeave(m_DummyID/*, "Any Reason?"*/);
+		m_HasDummy = false;
+		m_DummyID = -1;
+	}
+	else if(m_IsDummy)
+	{
+		if(GameServer()->m_apPlayers[m_DummyID]) //m_DummyID is owner's id here
+		{
+			GameServer()->m_apPlayers[m_DummyID]->m_HasDummy = false;
+			GameServer()->m_apPlayers[m_DummyID]->m_DummyID = -1;
+		}
+	}
+
 	KillCharacter();
 
 	if(Server()->ClientIngame(m_ClientID))
@@ -446,6 +475,10 @@ void CPlayer::ThreadKillCharacter(int Weapon)
 
 void CPlayer::KillCharacter(int Weapon)
 {
+	if(m_HasDummy && !m_IsDummy)
+	{
+		GameServer()->m_apPlayers[m_DummyID]->KillCharacter(Weapon);
+	}
 	if(m_pCharacter)
 	{
 		if (m_RespawnTick > Server()->Tick())
@@ -531,6 +564,15 @@ void CPlayer::TryRespawn()
 	m_pCharacter->Spawn(this, SpawnPos);
 	GameServer()->CreatePlayerSpawn(SpawnPos, m_pCharacter->Teams()->TeamMask(m_pCharacter->Team(), -1, m_ClientID));
 
+	// iDDNet	
+	if (m_IsDummy && m_DummyID>=0)
+	{
+		int OwnerID = m_DummyID;
+		//set owner's team
+		if (GameServer()->m_apPlayers[OwnerID]->GetCharacter()) //MAP94 edit
+			((CGameControllerDDRace*)GameServer()->m_pController)->m_Teams.SetCharacterTeam(m_ClientID, GameServer()->m_apPlayers[OwnerID]->GetCharacter()->Team());
+	}
+	
 	if(g_Config.m_SvTeam == 3)
 	{
 		int NewTeam = 0;

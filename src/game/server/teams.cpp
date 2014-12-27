@@ -36,6 +36,15 @@ void CGameTeams::OnCharacterStart(int ClientID)
 	{
 		pStartingChar->m_DDRaceState = DDRACE_STARTED;
 		pStartingChar->m_StartTime = Tick;
+		// iDDNet : remove SavedPos of /r to avoid cheating with score
+		pStartingChar->ResetSavedPos();
+		// iDDNet : kill dummy if player on start
+		int DummyID = GetPlayer(ClientID)->m_DummyID;
+		CPlayer *pPlayer = GetPlayer(ClientID);
+		if (!pPlayer->m_HasDummy || !GetPlayer(DummyID))
+			return;
+		if (Character(DummyID) && Character(DummyID)->m_DDRaceState != DDRACE_NONE)
+			GetPlayer(DummyID)->KillCharacter();
 	}
 	else
 	{

@@ -1302,10 +1302,11 @@ void CServer::SendServerInfo(const NETADDR *pAddr, int Token, bool Extended, int
 	{
 		if(m_aClients[i].m_State != CClient::STATE_EMPTY)
 		{
-			if(GameServer()->IsClientPlayer(i))
+			if(GameServer()->IsClientPlayer(i) && m_aClients[i].m_State != CClient::STATE_DUMMY)
 				PlayerCount++;
 
-			ClientCount++;
+			if(m_aClients[i].m_State != CClient::STATE_DUMMY)
+				ClientCount++;
 		}
 	}
 
@@ -1346,7 +1347,7 @@ void CServer::SendServerInfo(const NETADDR *pAddr, int Token, bool Extended, int
 	str_format(aBuf, sizeof(aBuf), "%d", i);
 	p.AddString(aBuf, 2);
 
-	int MaxClients = m_NetServer.MaxClients();
+	int MaxClients = m_NetServer.MaxClients()/2;
 	if (!Extended)
 	{
 		if (ClientCount >= VANILLA_MAX_CLIENTS)
@@ -1378,10 +1379,8 @@ void CServer::SendServerInfo(const NETADDR *pAddr, int Token, bool Extended, int
 	{
 		if(m_aClients[i].m_State != CClient::STATE_EMPTY)
 		{
-			if (Skip-- > 0)
+			if(m_aClients[i].m_State == CClient::STATE_DUMMY)
 				continue;
-			if (--Take < 0)
-				break;
 
 			p.AddString(ClientName(i), MAX_NAME_LENGTH); // client name
 			p.AddString(ClientClan(i), MAX_CLAN_LENGTH); // client clan
@@ -2183,6 +2182,10 @@ int main(int argc, const char **argv) // ignore_convention
 
 	// restore empty config strings to their defaults
 	pConfig->RestoreStrings();
+	
+	// iDDNet : magic with max clients
+	if(g_Config.m_SvDummies == 1)
+		g_Config.m_SvMaxClients = g_Config.m_SvMaxClients*2;
 
 	pEngine->InitLogfile();
 

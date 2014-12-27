@@ -261,6 +261,31 @@ public:
 	void SetNinjaActivationDir(vec2 ActivationDir) { m_Ninja.m_ActivationDir = ActivationDir; };
 	void SetNinjaActivationTick(int ActivationTick) { m_Ninja.m_ActivationTick = ActivationTick; };
 	void SetNinjaCurrentMoveTime(int CurrentMoveTime) { m_Ninja.m_CurrentMoveTime = CurrentMoveTime; };
+	
+	// iDDNet
+public:
+	void iDDNetInit();
+
+	void iDDNetTick();
+	void SavePos();
+	void Rescue();
+	void RescueUnfreeze();
+	void ResetSavedPos();
+	
+	//run for dummy only
+	void ResetDummy();
+	int m_DoHammerFly;
+	void DoHammerFly();
+	enum //hammerfly
+	{
+		HF_NONE=0,
+		HF_VERTICAL,
+		HF_HORIZONTAL
+	};
+private:
+	int m_RescueUnfreeze;
+	vec2 m_SavedPos; //for rescue
+	
 };
 
 enum
