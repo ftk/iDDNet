@@ -346,7 +346,7 @@ function build(settings)
 		engine, client, game_editor, zlib, pnglite, wavpack,
 		client_link_other, client_osxlaunch, jsonparser)
 
-	server_exe = Link(server_settings, "DDNet-Server", engine, server,
+	server_exe = Link(server_settings, "iDDNet-Server", engine, server,
 		game_shared, game_server, zlib, server_link_other)
 
 	serverlaunch = {}

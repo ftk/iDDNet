@@ -1305,8 +1305,8 @@ void CGameContext::ConDummy(IConsole::IResult *pResult, void *pUserData)
 		str_format(dummy_name, sizeof(dummy_name), "[D] %s", pSelf->Server()->ClientName(ClientID));
 		pSelf->NewDummy(free_slot_id, //id 
 						pPlayer->m_TeeInfos.m_UseCustomColor, //custom color
-						pPlayer->m_TeeInfos.m_ColorBody, //body color
-						pPlayer->m_TeeInfos.m_ColorFeet, //feet color
+						pPlayer->m_TeeInfos.m_ColorFeet, //body color
+						pPlayer->m_TeeInfos.m_ColorBody, //feet color
 						pPlayer->m_TeeInfos.m_SkinName, //skin
 						dummy_name, //name
 						"", //clan
@@ -1338,9 +1338,10 @@ void CGameContext::ConDummyDelete(IConsole::IResult *pResult, void *pUserData)
 void CGameContext::ConRescue(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
+	CPlayer *pPlayer = pSelf->m_apPlayers[pResult->m_ClientID];
 	int TargetID;
 	if(g_Config.m_SvDummies && pSelf->m_apPlayers[pResult->m_ClientID]->m_HasDummy && str_comp_nocase(pResult->GetString(0), "d") == 0)
-		TargetID = 15-pResult->m_ClientID;
+		TargetID = pPlayer->m_DummyID;
 	else
 		TargetID = pResult->m_ClientID;
 

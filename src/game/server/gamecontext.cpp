@@ -618,7 +618,7 @@ void CGameContext::OnTick()
 				bool aVoteChecked[MAX_CLIENTS] = {0};
 				for(int i = 0; i < MAX_CLIENTS; i++)
 				{
-					if(g_Config.m_SvDummies && i>=8) //don't wait for dummy votes
+					if(g_Config.m_SvDummies && m_apPlayers[i]->m_IsDummy) //don't wait for dummy votes
 						continue;
 					if(!m_apPlayers[i] ||
 							(g_Config.m_SvSpectatorVotes == 0 &&
@@ -1277,6 +1277,11 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 					SendChatTarget(ClientID, "You can't kick yourself");
 					return;
 				}
+				if(m_apPlayers[KickID]->m_IsDummy)
+				{
+					SendChatTarget(ClientID, "You can't kick dummies");
+					return;
+				}
 				//if(Server()->IsAuthed(KickID))
 				if(m_apPlayers[KickID]->m_Authed > 0 && m_apPlayers[KickID]->m_Authed >= pPlayer->m_Authed)
 				{
@@ -1330,6 +1335,11 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 				if(SpectateID == ClientID)
 				{
 					SendChatTarget(ClientID, "You can't move yourself");
+					return;
+				}
+				if(m_apPlayers[SpectateID]->m_IsDummy)
+				{
+					SendChatTarget(ClientID, "You can't move dummies to spectators");
 					return;
 				}
 
