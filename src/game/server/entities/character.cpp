@@ -1561,7 +1561,7 @@ void CCharacter::HandleTiles(int Index)
 		m_NeededFaketuning |= FAKETUNE_NOHOOK;
 		GameServer()->SendTuningParams(m_pPlayer->GetCID(), m_TuneZone); // update tunings
 	}
-	if(((m_TileIndex == TILE_SOLO_START) || (m_TileFIndex == TILE_SOLO_START)) && !Teams()->m_Core.GetSolo(m_pPlayer->GetCID()))
+	if(((m_TileIndex == TILE_SOLO_START) || (m_TileFIndex == TILE_SOLO_START)) && !m_Solo)
 	{
 		GameServer()->SendChatTarget(GetPlayer()->GetCID(), "You are now in a solo part.");
 		SetSolo(true); m_Solo = true;
@@ -1570,7 +1570,7 @@ void CCharacter::HandleTiles(int Index)
 		else
 			m_RescueFlags |= RESCUEFLAG_SOLOIN;
 	}
-	else if(((m_TileIndex == TILE_SOLO_END) || (m_TileFIndex == TILE_SOLO_END)) && Teams()->m_Core.GetSolo(m_pPlayer->GetCID()))
+	else if(((m_TileIndex == TILE_SOLO_END) || (m_TileFIndex == TILE_SOLO_END)) && m_Solo)
 	{
 		GameServer()->SendChatTarget(GetPlayer()->GetCID(), "You are now out of the solo part.");
 		SetSolo(false); m_Solo = false;
@@ -1957,6 +1957,11 @@ void CCharacter::DDRacePostCoreTick()
 
 	if ((m_Super || m_SuperJump) && m_Core.m_Jumped > 1)
 		m_Core.m_Jumped = 1;
+
+	if(m_Solo)
+		SetSolo(true);
+	else
+		SetSolo(false);
 
 	int CurrentIndex = GameServer()->Collision()->GetMapIndex(m_Pos);
 	HandleSkippableTiles(CurrentIndex);
