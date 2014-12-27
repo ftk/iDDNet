@@ -1335,80 +1335,90 @@ void CGameContext::ConDummyDelete(IConsole::IResult *pResult, void *pUserData)
 	pPlayer->m_DummyID = -1;
 }
 
-//comming soon..
 void CGameContext::ConRescue(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
-	if(!CheckClientID(pResult->m_ClientID)) return;
-	int ClientID = pResult->m_ClientID;
-	if (!g_Config.m_SvRescue) 
+	int TargetID;
+	if(g_Config.m_SvDummies && pSelf->m_apPlayers[pResult->m_ClientID]->m_HasDummy && str_comp_nocase(pResult->GetString(0), "d") == 0)
+		TargetID = 15-pResult->m_ClientID;
+	else
+		TargetID = pResult->m_ClientID;
+
+	CCharacter* pChr = pSelf->m_apPlayers[TargetID]->GetCharacter();
+
+	if(!g_Config.m_SvRescue)
 	{
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "rescue", "Rescue is not activated on the server. Set in config sv_rescue 1 to enable.");
+		pSelf->SendChatTarget(pResult->m_ClientID, "Rescue is not activated.");
 		return;
 	}
-	
-	//rescue for Learath2:	
-	CPlayer *pPlayer = pSelf->m_apPlayers[pResult->m_ClientID];
-	if(pPlayer && pPlayer->GetTeam()!=TEAM_SPECTATORS && !pPlayer->m_Paused)
+
+	if(!pChr || !pChr->IsAlive() || pChr->m_FreezeTime == 0)
+		return;
+
+	if(pChr->m_SavedPos == vec2(0,0))
 	{
-		if(pPlayer->GetCharacter()) pPlayer->GetCharacter()->Rescue();
+		pSelf->SendChatTarget(pResult->m_ClientID, "No position saved!");
+		return;
 	}
-	
-	//rescue for dummy
-	if(pPlayer && pPlayer->m_HasDummy && CheckClientID(pPlayer->m_DummyID))
+
+	// reset players' hook
+	for(int i = 0; i < MAX_CLIENTS; i++)
 	{
-		int DummyID = pPlayer->m_DummyID;
-		if(!pSelf->m_apPlayers[DummyID] || !pSelf->m_apPlayers[DummyID]->m_IsDummy || !pSelf->GetPlayerChar(DummyID))
-			return;
-		if(pSelf->m_apPlayers[DummyID]->m_DummyCopiesMove)
-			pSelf->GetPlayerChar(DummyID)->Rescue();
+		if(pSelf->m_apPlayers[i])
+		{
+			CCharacter* pChr2 = pSelf->m_apPlayers[i]->GetCharacter();
+			//who hooks me?
+			if(pChr2 && pChr2->Core()->m_HookedPlayer == TargetID)
+			{
+				//Release hook
+				pChr2->Core()->m_HookedPlayer = -1;
+				pChr2->Core()->m_HookState = HOOK_RETRACTED;
+				pChr2->Core()->m_HookPos = pChr2->Core()->m_Pos;
+			}
+		}
+	}
+	if(g_Config.m_SvRescueEffects)
+	{
+		//Blood effect
+		pChr->GameServer()->CreateDeath(pChr->m_Pos, TargetID);
+		//Spawn effect
+		pChr->GameServer()->CreatePlayerSpawn(pChr->m_SavedPos);
+	}
+	//Teleport player
+	pChr->Core()->m_Pos = pChr->m_PrevPos = pChr->m_Pos = pChr->m_SavedPos;
+	pChr->Core()->m_Vel = vec2(0.f, 0.f); // reset momentum
+
+	if(pChr->m_RescueFlags)
+		ApplyRescueFlags(TargetID, pChr);
+
+	if(pChr->m_FreezeTime && pChr->m_TileIndex != TILE_FREEZE && pChr->m_TileFIndex != TILE_FREEZE && pChr->Core()->m_Pos == pChr->m_SavedPos)
+	{
+		pChr->m_DeepFreeze = false;
+		pChr->UnFreeze();
 	}
 }
 void CGameContext::ConDummyChange(IConsole::IResult *pResult, void *pUserData)
 {
-CGameContext *pSelf = (CGameContext *)pUserData;
-	if(!CheckClientID(pResult->m_ClientID)) return;
+	CGameContext *pSelf = (CGameContext *)pUserData;
+
+	if(!CheckClientID(pResult->m_ClientID))
+		return;
 	int ClientID = pResult->m_ClientID;
 	CPlayer *pPlayer = pSelf->m_apPlayers[pResult->m_ClientID];
-	if(!pPlayer) return;	
-	if(pPlayer->m_HasDummy == false || !CheckClientID(pPlayer->m_DummyID) || !pSelf->m_apPlayers[pPlayer->m_DummyID] || !pSelf->m_apPlayers[pPlayer->m_DummyID]->m_IsDummy)
-	{
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "dc", "You don\'t have dummy.Type '/d' in chat to get it.");
+	if(!pPlayer)
+		return;	
+	CCharacter * pChar1 = pSelf->GetPlayerChar(ClientID);
+	CCharacter * pChar2 = pSelf->GetPlayerChar(pPlayer->m_DummyID);
+	if(!pChar1 || !pChar2 || pChar1->Team() != pChar2->Team() || !pPlayer->m_HasDummy)
 		return;
-	}
-	int DummyID = pPlayer->m_DummyID;
-	if(!pSelf->GetPlayerChar(DummyID) || !pSelf->GetPlayerChar(ClientID)) return;
-	if(pPlayer->GetTeam()==TEAM_SPECTATORS || pSelf->m_apPlayers[DummyID]->GetTeam()==TEAM_SPECTATORS || !pPlayer->m_Paused == CPlayer::PAUSED_NONE) return;
-	CCharacter* pOwnerChr = pPlayer->GetCharacter();
-	CCharacter* pDummyChr = pSelf->m_apPlayers[pPlayer->m_DummyID]->GetCharacter();
-	
-	//forbid to cheat with score
-	if(pDummyChr->m_TileIndex == TILE_END || pDummyChr->m_TileFIndex == TILE_END)
-		return;
-	
+
 	if(pPlayer->m_Last_DummyChange + pSelf->Server()->TickSpeed() * g_Config.m_SvDummyChangeDelay/2 <= pSelf->Server()->Tick()) 
 	{
-		if(pDummyChr->m_TileFIndex == TILE_FREEZE || pDummyChr->m_TileIndex == TILE_FREEZE)
-		{
-			pOwnerChr->m_FreezeTime = pDummyChr->m_FreezeTime;
-		}
-		vec2 tmp_pos = pSelf->m_apPlayers[DummyID]->m_ViewPos;
-		pSelf->CreatePlayerSpawn(pDummyChr->Core()->m_Pos);
-		pDummyChr->m_PrevPos = pOwnerChr->Core()->m_Pos;//TIGROW edit
-		pDummyChr->Core()->m_Pos = pPlayer->m_ViewPos;
-		pSelf->CreatePlayerSpawn(pOwnerChr->Core()->m_Pos);
-		pOwnerChr->m_PrevPos = tmp_pos;//TIGROW edit
-		pOwnerChr->Core()->m_Pos = tmp_pos;
-		pPlayer->m_Last_DummyChange = pSelf->Server()->Tick();
-		pDummyChr->m_DDRaceState = DDRACE_STARTED; //important
-
-		// solo
-		bool CharSolo = pOwnerChr->Teams()->m_Core.GetSolo(ClientID);
-		bool DummySolo = pDummyChr->Teams()->m_Core.GetSolo(DummyID);
-
-		pOwnerChr->Teams()->m_Core.SetSolo(ClientID, DummySolo);
-		pDummyChr->Teams()->m_Core.SetSolo(DummyID, CharSolo);
-		
+		CPlayerRescueState state1 = GetPlayerState(pChar1),
+		state2 = GetPlayerState(pChar2);
+		// swap
+		ApplyPlayerState(state2, pChar1);
+		ApplyPlayerState(state1, pChar2);
 	}
 	else
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "dc", "You can\'t /dummy_change that often.");
@@ -1526,6 +1536,33 @@ void CGameContext::ConDummyCopyMove(IConsole::IResult *pResult, void *pUserData)
 		pSelf->m_apPlayers[DummyID]->m_PlayerFlags = 0;
 	else if(pSelf->GetPlayerChar(DummyID)) //to avoid cheating with score
 		pSelf->GetPlayerChar(DummyID)->m_DDRaceState = DDRACE_STARTED; //important
+}
+
+void CGameContext::ConDisconnectRescue(IConsole::IResult *pResult, void *pUserData)
+{ 
+	CGameContext *pSelf = (CGameContext *) pUserData;
+	CPlayer *pPlayer = pSelf->m_apPlayers[pResult->m_ClientID];
+	
+	int TargetID;
+	if(g_Config.m_SvDummies && pSelf->m_apPlayers[pResult->m_ClientID]->m_HasDummy && str_comp_nocase(pResult->GetString(0), "d") == 0)
+		TargetID = pPlayer->m_DummyID;
+	else
+		TargetID = pResult->m_ClientID;
+		
+	CCharacter * pChar = pSelf->GetPlayerChar(TargetID);
+
+	if(!pChar)
+		return;
+		
+	auto iterator = pSelf->m_SavedPlayers.find(pSelf->Server()->ClientName(TargetID));
+	if(iterator == pSelf->m_SavedPlayers.end())
+		return;
+    
+	CPlayerRescueState& state = iterator->second;
+	if(state.Pos == vec2(0.f, 0.f))
+		return;
+	ApplyPlayerState(state, pChar);
+	pSelf->m_SavedPlayers.erase(iterator);
 }
 
 void CGameContext::ConProtectedKill(IConsole::IResult *pResult, void *pUserData){

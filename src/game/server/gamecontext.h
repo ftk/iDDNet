@@ -15,6 +15,9 @@
 #include "gameworld.h"
 #include "player.h"
 
+#include <map>
+#include <string>
+
 #include "score.h"
 #ifdef _MSC_VER
 typedef __int32 int32_t;
@@ -328,6 +331,9 @@ private:
 	static void ConDummyControl(IConsole::IResult *pResult, void *pUserData);
 	static void ConDummyCopyMove(IConsole::IResult *pResult, void *pUserData);
 	
+	//mkRace
+	static void ConDisconnectRescue(IConsole::IResult *pResult, void *pUserData);
+	
 	enum
 	{
 		MAX_MUTES=32,
@@ -368,6 +374,35 @@ public:
 
 	int m_ChatResponseTargetID;
 	int m_ChatPrintCBIndex;
+	
+	//mkRace
+	struct CPlayerRescueState
+	{
+		vec2 Pos;
+		vec2 PrevPos;
+		vec2 SavedPos;
+		int RescueFlags;
+		int StartTime;
+		int DDRaceState;
+		unsigned WFlags;
+		bool EndlessHook;
+		bool DeepFreeze;
+		bool Solo;
+		bool Jetpack;
+		int Hit;
+		int CpTick;
+		int CpActive;
+		int CpLastBroadcast;
+		int TeleCheckpoint;
+		float CpCurrent[25];
+		int FreezeTime;
+		CNetObj_CharacterCore Core;
+	};
+	std::map<std::string, CPlayerRescueState> m_SavedPlayers;
+
+	static CPlayerRescueState GetPlayerState(CCharacter * pChar);
+	static void ApplyPlayerState(const CPlayerRescueState& state, CCharacter * pChar);
+	static void ApplyRescueFlags(int TargetID, CCharacter * pChar);
 };
 
 inline int64_t CmaskAll() { return -1LL; }

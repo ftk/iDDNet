@@ -279,11 +279,14 @@ void CCharacter::HandleWeaponSwitch()
 		WantedWeapon = m_QueuedWeapon;
 
 	bool Anything = false;
-	 for(int i = 0; i < NUM_WEAPONS - 1; ++i)
-		 if(m_aWeapons[i].m_Got)
-			 Anything = true;
-	 if(!Anything)
-		 return;
+	for(int i = 0; i < NUM_WEAPONS - 1; ++i)
+		if(m_aWeapons[i].m_Got)
+		{
+			Anything = true;
+			break;
+		}
+	if(!Anything)
+		return;
 	// select Weapon
 	int Next = CountInput(m_LatestPrevInput.m_NextWeapon, m_LatestInput.m_NextWeapon).m_Presses;
 	int Prev = CountInput(m_LatestPrevInput.m_PrevWeapon, m_LatestInput.m_PrevWeapon).m_Presses;
@@ -346,8 +349,8 @@ void CCharacter::FireWeapon()
 	if(!WillFire)
 		return;
 
-	// check for ammo
-	if(!m_aWeapons[m_Core.m_ActiveWeapon].m_Ammo)
+	// check if in freeze (allow gun to be fired anyway)
+	if(!m_aWeapons[m_Core.m_ActiveWeapon].m_Ammo && m_Core.m_ActiveWeapon != WEAPON_GUN)
 	{
 		/*// 125ms is a magical limit of how fast a human can click
 		m_ReloadTimer = 125 * Server()->TickSpeed() / 1000;
@@ -1106,9 +1109,7 @@ void CCharacter::Snap(int SnappingClient)
 	{
 		pCharacter->m_Health = m_Health;
 		pCharacter->m_Armor = m_Armor;
-		if(m_aWeapons[m_Core.m_ActiveWeapon].m_Ammo > 0)
-			//pCharacter->m_AmmoCount = m_aWeapons[m_Core.m_ActiveWeapon].m_Ammo;
-			pCharacter->m_AmmoCount = (!m_FreezeTime)?m_aWeapons[m_Core.m_ActiveWeapon].m_Ammo:0;
+		pCharacter->m_AmmoCount = (!m_FreezeTime)?abs(m_aWeapons[m_Core.m_ActiveWeapon].m_Ammo):0;
 	}
 
 	if(GetPlayer()->m_Afk || GetPlayer()->m_Paused)
@@ -1436,8 +1437,8 @@ void CCharacter::HandleTiles(int Index)
 		{
 			Teams()->OnCharacterStart(m_pPlayer->GetCID());
 			m_CpActive = -2;
-		} else {
-
+			m_SavedPos = vec2(0,0);
+			m_RescueFlags = RESCUEFLAG_NONE;
 		}
 
 
@@ -1457,16 +1458,28 @@ void CCharacter::HandleTiles(int Index)
 	{
 		GameServer()->SendChatTarget(GetPlayer()->GetCID(), "Endless hook has been activated");
 		m_EndlessHook = true;
+		if(m_RescueFlags & RESCUEFLAG_NOEHOOK)
+			m_RescueFlags &= ~RESCUEFLAG_NOEHOOK;
+		else
+			m_RescueFlags |= RESCUEFLAG_EHOOK;
 	}
 	else if(((m_TileIndex == TILE_EHOOK_END) || (m_TileFIndex == TILE_EHOOK_END)) && m_EndlessHook)
 	{
 		GameServer()->SendChatTarget(GetPlayer()->GetCID(), "Endless hook has been deactivated");
 		m_EndlessHook = false;
+		if(m_RescueFlags & RESCUEFLAG_EHOOK)
+			m_RescueFlags &= ~RESCUEFLAG_EHOOK;
+		else
+			m_RescueFlags |= RESCUEFLAG_NOEHOOK;
 	}
 	if(((m_TileIndex == TILE_HIT_START) || (m_TileFIndex == TILE_HIT_START)) && m_Hit != HIT_ALL)
 	{
 		GameServer()->SendChatTarget(GetPlayer()->GetCID(), "You can hit others");
 		m_Hit = HIT_ALL;
+		if(m_RescueFlags & RESCUEFLAG_NOHIT)
+			m_RescueFlags &= ~RESCUEFLAG_NOHIT;
+		else
+			m_RescueFlags |= RESCUEFLAG_HIT;
 	}
 	else if(((m_TileIndex == TILE_NPC_START) || (m_TileFIndex == TILE_NPC_START)) && !m_Core.m_Collision)
 	{
@@ -1503,6 +1516,10 @@ void CCharacter::HandleTiles(int Index)
 	{
 		GameServer()->SendChatTarget(GetPlayer()->GetCID(), "You can't hit others");
 		m_Hit = DISABLE_HIT_GRENADE|DISABLE_HIT_HAMMER|DISABLE_HIT_RIFLE|DISABLE_HIT_SHOTGUN;
+		if(m_RescueFlags & RESCUEFLAG_HIT)
+			m_RescueFlags &= ~RESCUEFLAG_HIT;
+		else
+			m_RescueFlags |= RESCUEFLAG_NOHIT;
 	}
 	else if(((m_TileIndex == TILE_NPC_END) || (m_TileFIndex == TILE_NPC_END)) && m_Core.m_Collision)
 	{
@@ -1547,12 +1564,20 @@ void CCharacter::HandleTiles(int Index)
 	if(((m_TileIndex == TILE_SOLO_START) || (m_TileFIndex == TILE_SOLO_START)) && !Teams()->m_Core.GetSolo(m_pPlayer->GetCID()))
 	{
 		GameServer()->SendChatTarget(GetPlayer()->GetCID(), "You are now in a solo part.");
-		SetSolo(true);
+		SetSolo(true); m_Solo = true;
+		if(m_RescueFlags & RESCUEFLAG_SOLOOUT)
+			m_RescueFlags &= ~RESCUEFLAG_SOLOOUT;
+		else
+			m_RescueFlags |= RESCUEFLAG_SOLOIN;
 	}
 	else if(((m_TileIndex == TILE_SOLO_END) || (m_TileFIndex == TILE_SOLO_END)) && Teams()->m_Core.GetSolo(m_pPlayer->GetCID()))
 	{
 		GameServer()->SendChatTarget(GetPlayer()->GetCID(), "You are now out of the solo part.");
-		SetSolo(false);
+		SetSolo(false); m_Solo = false;
+		if(m_RescueFlags & RESCUEFLAG_SOLOIN)
+			m_RescueFlags &= ~RESCUEFLAG_SOLOIN;
+		else
+			m_RescueFlags |= RESCUEFLAG_SOLOOUT;
 	}
 	if(((m_TileIndex == TILE_STOP && m_TileFlags == ROTATION_270) || (m_TileIndexL == TILE_STOP && m_TileFlagsL == ROTATION_270) || (m_TileIndexL == TILE_STOPS && (m_TileFlagsL == ROTATION_90 || m_TileFlagsL ==ROTATION_270)) || (m_TileIndexL == TILE_STOPA) || (m_TileFIndex == TILE_STOP && m_TileFFlags == ROTATION_270) || (m_TileFIndexL == TILE_STOP && m_TileFFlagsL == ROTATION_270) || (m_TileFIndexL == TILE_STOPS && (m_TileFFlagsL == ROTATION_90 || m_TileFFlagsL == ROTATION_270)) || (m_TileFIndexL == TILE_STOPA) || (m_TileSIndex == TILE_STOP && m_TileSFlags == ROTATION_270) || (m_TileSIndexL == TILE_STOP && m_TileSFlagsL == ROTATION_270) || (m_TileSIndexL == TILE_STOPS && (m_TileSFlagsL == ROTATION_90 || m_TileSFlagsL == ROTATION_270)) || (m_TileSIndexL == TILE_STOPA)) && m_Core.m_Vel.x > 0)
 	{
@@ -2061,6 +2086,7 @@ void CCharacter::DDRaceInit()
 	m_EndlessHook = g_Config.m_SvEndlessDrag;
 	m_Hit = g_Config.m_SvHit ? HIT_ALL : DISABLE_HIT_GRENADE|DISABLE_HIT_HAMMER|DISABLE_HIT_RIFLE|DISABLE_HIT_SHOTGUN;
 	m_SuperJump = false;
+	m_Solo = false;
 	m_Jetpack = false;
 	m_Core.m_Jumps = 2;
 	m_FreezeHammer = false;
@@ -2110,12 +2136,28 @@ void CCharacter::iDDNetTick()
 }
 void CCharacter::SavePos()
 {
-	if(g_Config.m_SvRescue && m_Pos)
+	if(m_LastRescueSave || m_FreezeTime || m_DeepFreeze)
+			return;
+	// calculate offset tiles because of random position saving at m_Pos
+	int MapIndexRescueR = GameServer()->Collision()->GetPureMapIndex(vec2(m_Pos.x + 2, m_Pos.y));
+	int MapIndexRescueL = GameServer()->Collision()->GetPureMapIndex(vec2(m_Pos.x - 2, m_Pos.y));
+
+	int m_TileIndexRescueOffsetR = GameServer()->Collision()->GetTileIndex(MapIndexRescueR);
+	int m_TileFIndexRescueOffsetR = GameServer()->Collision()->GetFTileIndex(MapIndexRescueR);
+	int m_TileIndexRescueOffsetL = GameServer()->Collision()->GetTileIndex(MapIndexRescueL);
+	int m_TileFIndexRescueOffsetL = GameServer()->Collision()->GetFTileIndex(MapIndexRescueL);
+
+	// check if the rescue pos should be saved
+	if (m_TileIndexRescueOffsetR != TILE_FREEZE
+			&& m_TileFIndexRescueOffsetR != TILE_FREEZE
+			&& m_TileIndexRescueOffsetL != TILE_FREEZE
+			&& m_TileFIndexRescueOffsetL != TILE_FREEZE
+			// nearly the same like IsGrounded(), but with less tolerance
+			&& (GameServer()->Collision()->CheckPoint(m_Pos.x+m_ProximityRadius/2, m_Pos.y+m_ProximityRadius/2+1) || GameServer()->Collision()->CheckPoint(m_Pos.x-m_ProximityRadius/2, m_Pos.y+m_ProximityRadius/2+1)))
 	{
-		if(!m_FreezeTime && IsGrounded() && m_Pos==m_PrevPos && m_RescueUnfreeze == 0 && m_TileIndex != TILE_FREEZE && m_TileFIndex != TILE_FREEZE)
-		{
-			m_SavedPos=m_Pos;
-		}
+		m_SavedPos = m_Pos;
+		m_RescueFlags = RESCUEFLAG_NONE;
+		m_LastRescueSave = g_Config.m_SvRescueSaveFrequency; // not every point will be stored
 	}
 }
 void CCharacter::RescueUnfreeze()
@@ -2128,6 +2170,8 @@ void CCharacter::RescueUnfreeze()
 	}
 	if (m_RescueUnfreeze == 1)
 		m_RescueUnfreeze = 2;
+		
+	if(m_LastRescueSave > 0) m_LastRescueSave--;
 }
 void CCharacter::Rescue() //for Learath2
 {

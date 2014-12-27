@@ -618,7 +618,8 @@ void CGameContext::OnTick()
 				bool aVoteChecked[MAX_CLIENTS] = {0};
 				for(int i = 0; i < MAX_CLIENTS; i++)
 				{
-					//if(!m_apPlayers[i] || m_apPlayers[i]->GetTeam() == TEAM_SPECTATORS || aVoteChecked[i])	// don't count in votes by spectators
+					if(g_Config.m_SvDummies && i>=8) //don't wait for dummy votes
+						continue;
 					if(!m_apPlayers[i] ||
 							(g_Config.m_SvSpectatorVotes == 0 &&
 									m_apPlayers[i]->GetTeam() == TEAM_SPECTATORS) ||
@@ -975,6 +976,14 @@ void CGameContext::OnClientConnected(int ClientID)
 void CGameContext::OnClientDrop(int ClientID, const char *pReason)
 {
 	AbortVoteKickOnDisconnect(ClientID);
+	// save position
+	{
+		CCharacter * pChar = GetPlayerChar(ClientID);
+		if(pChar && (!pChar->Team() || (pChar->Team() >= 10 && pChar->Team() <= 15)))
+		{
+		        m_SavedPlayers[Server()->ClientName(ClientID)] = GetPlayerState(pChar);
+		}
+	}
 	m_apPlayers[ClientID]->OnDisconnect(pReason);
 	delete m_apPlayers[ClientID];
 	m_apPlayers[ClientID] = 0;
@@ -2911,4 +2920,143 @@ void CGameContext::List(int ClientID, const char* filter)
 		SendChatTarget(ClientID, buf);
 	str_format(buf, sizeof(buf), "%d players online", total);
 	SendChatTarget(ClientID, buf);
+}
+
+CGameContext::CPlayerRescueState CGameContext::GetPlayerState(CCharacter * pChar)
+{
+	CPlayerRescueState state;
+
+#define ST_PARAM(var) state. var = pChar->m_ ## var 
+	ST_PARAM(Pos);
+	ST_PARAM(PrevPos);
+	ST_PARAM(SavedPos);
+	ST_PARAM(RescueFlags);
+	ST_PARAM(StartTime);
+	ST_PARAM(DDRaceState);
+	ST_PARAM(EndlessHook);
+	ST_PARAM(DeepFreeze);
+	ST_PARAM(Solo);
+	ST_PARAM(Jetpack);
+	ST_PARAM(Hit);
+	ST_PARAM(CpTick);
+	ST_PARAM(CpActive);
+	ST_PARAM(CpLastBroadcast);
+	ST_PARAM(TeleCheckpoint);
+	ST_PARAM(FreezeTime);
+#undef ST_PARAM
+
+	pChar->Core()->Write(&state.Core);
+
+	mem_copy(state.CpCurrent, pChar->m_CpCurrent, sizeof(state.CpCurrent));
+
+	state.WFlags = 0;
+	for(int i = WEAPON_HAMMER; i <= WEAPON_RIFLE; i++)
+		if(pChar->GetWeaponGot(i))
+			state.WFlags |= (1U << i);
+	return state;
+}
+
+void CGameContext::ApplyPlayerState(const CPlayerRescueState& state, CCharacter * pChar)
+{
+#define ST_PARAM(var) pChar->m_ ## var = state. var
+	ST_PARAM(Pos);
+	ST_PARAM(PrevPos);
+	ST_PARAM(SavedPos);
+	ST_PARAM(RescueFlags);
+	ST_PARAM(StartTime);
+	ST_PARAM(DDRaceState);
+	ST_PARAM(EndlessHook);
+	ST_PARAM(DeepFreeze);
+	ST_PARAM(Solo);
+	ST_PARAM(Jetpack);
+	ST_PARAM(Hit);
+	ST_PARAM(CpTick);
+	ST_PARAM(CpActive);
+	ST_PARAM(CpLastBroadcast);
+	ST_PARAM(TeleCheckpoint);
+	ST_PARAM(FreezeTime);
+#undef ST_PARAM
+
+	pChar->Core()->Read(&state.Core);
+
+	mem_copy(pChar->m_CpCurrent, state.CpCurrent, sizeof(state.CpCurrent));
+
+	pChar->m_Super = false;
+	pChar->ResetInput();
+	pChar->SetWeaponGot(WEAPON_NINJA, false);
+	pChar->SetWeapon(WEAPON_GUN);
+	
+	for(int i = WEAPON_HAMMER; i <= WEAPON_RIFLE; i++)
+	{
+		pChar->SetWeaponGot(i, false);
+		pChar->SetWeaponAmmo(i, 0);
+		if(state.WFlags & (1U << i))
+			pChar->GiveWeapon(i, -1);
+	}
+}
+
+void CGameContext::ApplyRescueFlags(int TargetID, CCharacter * pChar)
+{
+	// disarm player
+	if(pChar->m_RescueFlags & RESCUEFLAG_DISARM)
+	{
+		bool disarmed = false;
+		for(int i = WEAPON_SHOTGUN; i < NUM_WEAPONS; i++)
+		{
+			if(pChar->GetWeaponGot(i) && i != WEAPON_NINJA)
+			{
+				pChar->SetWeaponGot(i, false);
+				pChar->SetWeaponAmmo(i, 0);
+				disarmed = true;
+			}
+		}
+		if(disarmed)
+			pChar->GameServer()->SendChatTarget(TargetID, "You have been disarmed");
+	}
+	// solo fix
+	if(pChar->m_RescueFlags & RESCUEFLAG_SOLOOUT && !pChar->m_Solo)
+	{
+		pChar->GameServer()->SendChatTarget(TargetID, "You are now in a solo part");
+		pChar->m_Solo = true;
+	}
+	else if(pChar->m_RescueFlags & RESCUEFLAG_SOLOIN && pChar->m_Solo)
+	{
+		pChar->GameServer()->SendChatTarget(TargetID, "You are now out of the solo part");
+		pChar->m_Solo = false;
+	}
+	// hit fix
+	if(pChar->m_RescueFlags & RESCUEFLAG_NOHIT)
+	{
+		pChar->GameServer()->SendChatTarget(TargetID, "You can hit others");
+		pChar->m_Hit = CCharacter::HIT_ALL;
+	}
+	else if(pChar->m_RescueFlags & RESCUEFLAG_HIT)
+	{
+		pChar->GameServer()->SendChatTarget(TargetID, "You can't hit others");
+		pChar->m_Hit = CCharacter::DISABLE_HIT_GRENADE|CCharacter::DISABLE_HIT_HAMMER|
+			CCharacter::DISABLE_HIT_RIFLE|CCharacter::DISABLE_HIT_SHOTGUN;
+	}
+	// endless hook fix
+	if(pChar->m_RescueFlags & RESCUEFLAG_NOEHOOK && !pChar->m_EndlessHook)
+	{
+		pChar->GameServer()->SendChatTarget(TargetID, "Endless hook has been activated");
+		pChar->m_EndlessHook = true;
+	}
+	else if(pChar->m_RescueFlags & RESCUEFLAG_EHOOK && pChar->m_EndlessHook)
+	{
+		pChar->GameServer()->SendChatTarget(TargetID, "Endless hook has been deactivated");
+		pChar->m_EndlessHook = false;
+	}
+	// jetpack fix
+	if(pChar->m_RescueFlags & RESCUEFLAG_JETPACK_START && !pChar->m_Jetpack)
+	{
+		pChar->GameServer()->SendChatTarget(TargetID, "Jetpack ON");
+		pChar->m_Jetpack = true;
+	}
+	else if(pChar->m_RescueFlags & RESCUEFLAG_JETPACK_END && pChar->m_Jetpack)
+	{
+		pChar->GameServer()->SendChatTarget(TargetID, "Jetpack OFF");
+		pChar->m_Jetpack = false;
+	}
+	pChar->m_RescueFlags = RESCUEFLAG_NONE;
 }

@@ -39,12 +39,19 @@ void CGameTeams::OnCharacterStart(int ClientID)
 		// iDDNet : remove SavedPos of /r to avoid cheating with score
 		pStartingChar->ResetSavedPos();
 		// iDDNet : kill dummy if player on start
-		int DummyID = GetPlayer(ClientID)->m_DummyID;
-		CPlayer *pPlayer = GetPlayer(ClientID);
-		if (!pPlayer->m_HasDummy || !GetPlayer(DummyID))
-			return;
-		if (Character(DummyID) && Character(DummyID)->m_DDRaceState != DDRACE_NONE)
-			GetPlayer(DummyID)->KillCharacter();
+
+		if(g_Config.m_SvDummies && g_Config.m_SvDummy)
+		{
+			int DummyID = GetPlayer(ClientID)->m_DummyID;
+			
+			CPlayer *pPlayer = GetPlayer(ClientID);
+			CGameContext *pSelf = (CGameContext *)GameServer();
+			
+			if (!pPlayer->m_HasDummy || !GetPlayer(DummyID))
+				return;
+			if (Character(DummyID) && Character(DummyID)->m_DDRaceState != DDRACE_NONE)
+				GetPlayer(DummyID)->KillCharacter();
+		}
 	}
 	else
 	{

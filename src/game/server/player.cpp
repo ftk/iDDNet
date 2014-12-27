@@ -392,10 +392,6 @@ void CPlayer::OnDisconnect(const char *pReason)
 
 void CPlayer::OnPredictedInput(CNetObj_PlayerInput *NewInput)
 {
-	// skip the input if chat is active
-	if((m_PlayerFlags&PLAYERFLAG_CHATTING) && (NewInput->m_PlayerFlags&PLAYERFLAG_CHATTING))
-		return;
-
 	AfkVoteTimer(NewInput);
 
 	m_NumInputs++;
@@ -419,20 +415,6 @@ void CPlayer::OnDirectInput(CNetObj_PlayerInput *NewInput)
 	if (AfkTimer(NewInput->m_TargetX, NewInput->m_TargetY))
 		return; // we must return if kicked, as player struct is already deleted
 	AfkVoteTimer(NewInput);
-
-	if(NewInput->m_PlayerFlags&PLAYERFLAG_CHATTING)
-	{
-	// skip the input if chat is active
-		if(m_PlayerFlags&PLAYERFLAG_CHATTING)
-		return;
-
-		// reset input
-		if(m_pCharacter)
-			m_pCharacter->ResetInput();
-
-		m_PlayerFlags = NewInput->m_PlayerFlags;
-		return;
-	}
 
 	m_PlayerFlags = NewInput->m_PlayerFlags;
 

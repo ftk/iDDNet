@@ -68,9 +68,10 @@ CHAT_COMMAND("dh", "", CFGFLAG_CHAT, ConDummyHammer, this, "Your Dummy looks up 
 CHAT_COMMAND("dhf", "", CFGFLAG_CHAT, ConDummyHammerFly, this, "Your Dummy looks at you and hitting with hammer(horizontal hammerfly)")
 CHAT_COMMAND("cd", "", CFGFLAG_CHAT, ConDummyControl, this, "Go to spectators and control your dummy")
 CHAT_COMMAND("dcm", "", CFGFLAG_CHAT, ConDummyCopyMove, this, "Dummy copies all your movement. Smth like multiclient.")
-//and speacially for Learath2:
-CHAT_COMMAND("r", "", CFGFLAG_CHAT, ConRescue, this, "/r-rescue")
-CHAT_COMMAND("rescue", "", CFGFLAG_CHAT, ConRescue, this, "/r-rescue")
+
+//mkRace
+CHAT_COMMAND("r", "?s", CFGFLAG_CHAT, ConRescue, this, "/r-rescue, \'/r d\' for dummy rescue.")
+CHAT_COMMAND("dr", "?s", CFGFLAG_CHAT|CFGFLAG_SERVER, ConDisconnectRescue, this, "Rescue to location before disconnect, \'/dr d\' for dummy rescue.")
 
 #undef CHAT_COMMAND
 

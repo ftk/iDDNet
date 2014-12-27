@@ -322,6 +322,9 @@ MACRO_CONFIG_INT(SvDummyHammer, sv_dummy_hammer, 1, 0, 1, CFGFLAG_SERVER, "Allow
 MACRO_CONFIG_INT(SvDummyDelay, sv_dummy_delay, 1, 0, 720, CFGFLAG_SERVER, "Time in seconds between using /d. For disable dummyfly.")
 MACRO_CONFIG_INT(SvDummyChangeDelay, sv_dummy_change_delay, 0, 0, 360, CFGFLAG_SERVER, "Time in seconds between using /dc")
 
+MACRO_CONFIG_INT(SvRescueSaveFrequency, sv_rescue_save_frequency, 7, 0, 70, CFGFLAG_SERVER, "/r saving positions frequency")
+MACRO_CONFIG_INT(SvRescueEffects, sv_rescue_effect, 0, 0, 1, CFGFLAG_SERVER, "Turns rescue effects on/off")
+
 // these might need some fine tuning
 MACRO_CONFIG_INT(SvChatPenalty, sv_chat_penalty, 250, 50, 1000, CFGFLAG_SERVER, "chat score will be increased by this on every message, and decremented by 1 on every tick.")
 MACRO_CONFIG_INT(SvChatThreshold, sv_chat_threshold, 1000, 50, 10000 , CFGFLAG_SERVER, "if chats core exceeds this, the player will be muted for sv_spam_mute_duration seconds")

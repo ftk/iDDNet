@@ -53,6 +53,7 @@ public:
 
 	void SetWeapon(int W);
 	void SetSolo(bool Solo);
+	bool m_Solo;
 	void HandleWeaponSwitch();
 	void DoWeaponSwitch();
 
@@ -272,6 +273,10 @@ public:
 	void RescueUnfreeze();
 	void ResetSavedPos();
 	
+	int m_LastRescueSave;
+	int m_RescueFlags;
+	vec2 m_SavedPos; //for rescue
+	
 	//run for dummy only
 	void ResetDummy();
 	int m_DoHammerFly;
@@ -284,7 +289,6 @@ public:
 	};
 private:
 	int m_RescueUnfreeze;
-	vec2 m_SavedPos; //for rescue
 	
 };
 
@@ -294,6 +298,20 @@ enum
 	DDRACE_STARTED,
 	DDRACE_CHEAT, // no time and won't start again unless ordered by a mod or death
 	DDRACE_FINISHED
+};
+
+enum
+{
+	RESCUEFLAG_NONE = 0,
+	RESCUEFLAG_DISARM = (1u << 0),
+	RESCUEFLAG_SOLOIN = (1u << 1),
+	RESCUEFLAG_SOLOOUT = (1u << 2),
+	RESCUEFLAG_HIT = (1u << 3),
+	RESCUEFLAG_NOHIT = (1u << 4),
+	RESCUEFLAG_EHOOK = (1u << 5),
+	RESCUEFLAG_NOEHOOK = (1u << 6),
+	RESCUEFLAG_JETPACK_START = (1u << 7),
+	RESCUEFLAG_JETPACK_END = (1u << 8),
 };
 
 #endif
