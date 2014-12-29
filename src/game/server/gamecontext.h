@@ -389,6 +389,7 @@ public:
 		bool DeepFreeze;
 		bool Solo;
 		bool Jetpack;
+		bool SuperJump;
 		int Hit;
 		int CpTick;
 		int CpActive;
