@@ -235,6 +235,9 @@ public:
 
 	void LimitForce(vec2 *Force);
 	void ApplyForce(vec2 Force);
+	
+	//iDDNet
+	void HandleFly();
 
 private:
 

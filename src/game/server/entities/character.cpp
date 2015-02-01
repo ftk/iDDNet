@@ -693,6 +693,8 @@ void CCharacter::OnDirectInput(CNetObj_PlayerInput *pNewInput)
 		HandleWeaponSwitch();
 		FireWeapon();
 	}
+	if(pNewInput->m_Jump&1 && m_Super && m_Fly) //XXLmod
+		HandleFly();
 
 	mem_copy(&m_LatestPrevInput, &m_LatestInput, sizeof(m_LatestInput));
 }
@@ -2246,4 +2248,10 @@ void CCharacter::DoHammerFly()
 		m_Input.m_Fire = 1;
 		m_LatestInput.m_Fire = 1;
 	}
+}
+
+//iDDNet
+void CCharacter::HandleFly()
+{
+	m_Core.HandleFly();
 }

@@ -353,9 +353,6 @@ void CConsole::ExecuteLineStroked(int Stroke, const char *pStr, int ClientID)
 						if(Result.GetVictim() == CResult::VICTIM_ME)
 							Result.SetVictim(ClientID);
 
-						if(pCommand->m_Flags&CMDFLAG_TEST && !g_Config.m_SvTestingCommands)
-							return;
-
 						if (Result.HasVictim())
 						{
 							if(Result.GetVictim() == CResult::VICTIM_ALL)
@@ -371,9 +368,6 @@ void CConsole::ExecuteLineStroked(int Stroke, const char *pStr, int ClientID)
 						}
 						else
 						pCommand->m_pfnCallback(&Result, pCommand->m_pUserData);
-
-						if (pCommand->m_Flags&CMDFLAG_TEST)
-							m_Cheated = true;
 					}
 				}
 			}

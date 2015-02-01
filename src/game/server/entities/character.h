@@ -273,6 +273,9 @@ public:
 	void RescueUnfreeze();
 	void ResetSavedPos();
 	
+	void HandleFly();
+	bool m_Fly;
+	
 	int m_LastRescueSave;
 	int m_RescueFlags;
 	vec2 m_SavedPos; //for rescue

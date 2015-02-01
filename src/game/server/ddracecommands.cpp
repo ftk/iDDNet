@@ -529,3 +529,20 @@ void CGameContext::ConUnFreezeHammer(IConsole::IResult *pResult, void *pUserData
 
 	pChr->m_FreezeHammer = false;
 }
+
+void CGameContext::ConToggleFly(IConsole::IResult *pResult, void *pUserData)
+{
+	if(!CheckClientID(pResult->m_ClientID)) return;
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	CPlayer *pPlayer = pSelf->m_apPlayers[pResult->m_ClientID];
+	if(!pPlayer)
+		return;
+	CCharacter* pChr = pPlayer->GetCharacter();
+	if(!pChr)
+		return;
+	if(pChr->m_Super)
+	{
+		pChr->m_Fly = !pChr->m_Fly;
+		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "info", (pChr->m_Fly) ? "Fly enabled" : "Fly disabled");
+	}
+}
