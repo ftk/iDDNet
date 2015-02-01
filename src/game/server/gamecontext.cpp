@@ -893,7 +893,7 @@ void CGameContext::OnClientEnter(int ClientID)
 	// LoadScoreThreaded() instead
 	Score()->LoadScore(ClientID);
 
-	if(((CServer *) Server())->m_aPrevStates[ClientID] < CServer::CClient::STATE_INGAME)
+	if(((CServer *) Server())->m_aPrevStates[ClientID] < CServer::CClient::STATE_INGAME && !m_apPlayers[ClientID]->m_IsDummy)
 	{
 		char aBuf[512];
 		str_format(aBuf, sizeof(aBuf), "'%s' entered and joined the %s", Server()->ClientName(ClientID), m_pController->GetTeamName(m_apPlayers[ClientID]->GetTeam()));

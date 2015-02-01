@@ -373,18 +373,16 @@ void CPlayer::OnDisconnect(const char *pReason)
 
 	KillCharacter();
 
-	if(Server()->ClientIngame(m_ClientID))
-	{
-		char aBuf[512];
-		if(pReason && *pReason)
-			str_format(aBuf, sizeof(aBuf), "'%s' has left the game (%s)", Server()->ClientName(m_ClientID), pReason);
-		else
-			str_format(aBuf, sizeof(aBuf), "'%s' has left the game", Server()->ClientName(m_ClientID));
-		GameServer()->SendChat(-1, CGameContext::CHAT_ALL, aBuf);
-
-		str_format(aBuf, sizeof(aBuf), "leave player='%d:%s'", m_ClientID, Server()->ClientName(m_ClientID));
-		GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "game", aBuf);
-	}
+	if(!m_IsDummy)
+		if(Server()->ClientIngame(m_ClientID))
+		{
+			char aBuf[512];
+			if(pReason && *pReason)
+				str_format(aBuf, sizeof(aBuf), "'%s' has left the game (%s)", Server()->ClientName(m_ClientID), pReason);
+			else
+				str_format(aBuf, sizeof(aBuf), "'%s' has left the game", Server()->ClientName(m_ClientID));
+			GameServer()->SendChat(-1, CGameContext::CHAT_ALL, aBuf);
+		}
 
 	CGameControllerDDRace* Controller = (CGameControllerDDRace*)GameServer()->m_pController;
 	Controller->m_Teams.SetForceCharacterTeam(m_ClientID, 0);
@@ -496,7 +494,7 @@ void CPlayer::SetTeam(int Team, bool DoChatMsg)
 		return;
 
 	char aBuf[512];
-	if(DoChatMsg)
+	if(DoChatMsg && !m_IsDummy)
 	{
 		str_format(aBuf, sizeof(aBuf), "'%s' joined the %s", Server()->ClientName(m_ClientID), GameServer()->m_pController->GetTeamName(Team));
 		GameServer()->SendChat(-1, CGameContext::CHAT_ALL, aBuf);
