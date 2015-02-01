@@ -71,7 +71,9 @@ CHAT_COMMAND("dcm", "", CFGFLAG_CHAT, ConDummyCopyMove, this, "Dummy copies all 
 
 //mkRace
 CHAT_COMMAND("r", "?s", CFGFLAG_CHAT, ConRescue, this, "/r-rescue, \'/r d\' for dummy rescue.")
+CHAT_COMMAND("rescue", "?s", CFGFLAG_CHAT, ConRescue, this, "/r-rescue, \'/r d\' for dummy rescue.")
 CHAT_COMMAND("dr", "?s", CFGFLAG_CHAT|CFGFLAG_SERVER, ConDisconnectRescue, this, "Rescue to location before disconnect, \'/dr d\' for dummy rescue.")
+CHAT_COMMAND("disconnect_rescue", "?s", CFGFLAG_CHAT|CFGFLAG_SERVER, ConDisconnectRescue, this, "Rescue to location before disconnect, \'/dr d\' for dummy rescue.")
 
 #undef CHAT_COMMAND
 
