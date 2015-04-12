@@ -116,7 +116,7 @@ server_link_other = {}
 server_sql_depends = {}
 
 if family == "windows" then
-	if platform == "win32" then
+	if platform == "win32" or config.compiler.driver == "gcc" then
 		table.insert(client_depends, CopyToDirectory(".", "other\\freetype\\lib32\\freetype.dll"))
 		table.insert(client_depends, CopyToDirectory(".", "other\\sdl\\lib32\\SDL.dll"))
 	else
@@ -402,6 +402,12 @@ release_settings.config_ext = ""
 release_settings.debug = 0
 release_settings.optimize = 1
 release_settings.cc.defines:Add("CONF_RELEASE")
+if config.compiler.driver == "gcc" then
+	release_settings.cc.flags:Add("-std=gnu++0x", "-fno-exceptions")
+	if family == "windows" then
+		release_settings.link.flags:Add("-static-libstdc++", "-static-libgcc")
+	end
+end
 
 release_sql_settings = NewSettings()
 release_sql_settings.config_name = "sql_release"
