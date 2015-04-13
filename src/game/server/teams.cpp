@@ -462,7 +462,7 @@ void CGameTeams::OnTeamFinish(CPlayer** Players, unsigned int Size)
 
 void CGameTeams::OnFinish(CPlayer* Player)
 {
-	if (!Player || !Player->IsPlaying())
+	if (!Player || !Player->IsPlaying() || Player->m_IsDummy)
 		return;
 	//TODO:DDRace:btd: this ugly
 	float time = (float) (Server()->Tick() - GetStartTime(Player))
