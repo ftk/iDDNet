@@ -672,6 +672,9 @@ void CCharacter::OnPredictedInput(CNetObj_PlayerInput *pNewInput)
 
 	// copy new input
 	mem_copy(&m_Input, pNewInput, sizeof(m_Input));
+	if(m_FreezeTime > 0 || m_FreezeTime == -1) 
+		mem_copy(&m_FreezedInput, pNewInput, sizeof(m_Input)); 
+
 	m_NumInputs++;
 
 	// it is not allowed to aim in the center
@@ -1907,9 +1910,6 @@ void CCharacter::SendZoneMsgs()
 void CCharacter::DDRaceTick()
 {
 	m_Armor=(m_FreezeTime >= 0)?10-(m_FreezeTime/15):0;
-	if(m_Input.m_Direction != 0 || m_Input.m_Jump != 0)
-		m_LastMove = Server()->Tick();
-
 	if(m_FreezeTime > 0 || m_FreezeTime == -1)
 	{
 		if (m_FreezeTime % Server()->TickSpeed() == Server()->TickSpeed() - 1 || m_FreezeTime == -1)
@@ -2037,6 +2037,7 @@ bool CCharacter::UnFreeze()
 			m_Core.m_ActiveWeapon = WEAPON_GUN;
 		m_FreezeTime = 0;
 		m_FreezeTick = 0;
+		m_Input = m_FreezedInput;
 		if (m_Core.m_ActiveWeapon==WEAPON_HAMMER) m_ReloadTimer = 0;
 		return true;
 	}
