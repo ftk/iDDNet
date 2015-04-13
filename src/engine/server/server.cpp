@@ -1807,13 +1807,15 @@ void CServer::ConStatus(IConsole::IResult *pResult, void *pUser)
 		if(pThis->m_aClients[i].m_State != CClient::STATE_EMPTY)
 		{
 			net_addr_str(pThis->m_NetServer.ClientAddr(i), aAddrStr, sizeof(aAddrStr), true);
-			if(pThis->m_aClients[i].m_State == CClient::STATE_INGAME || pThis->m_aClients[i].m_State == CClient::STATE_DUMMY) // iDDNet
+			if(pThis->m_aClients[i].m_State == CClient::STATE_INGAME)
 			{
 				const char *pAuthStr = pThis->m_aClients[i].m_Authed == CServer::AUTHED_ADMIN ? "(Admin)" :
 										pThis->m_aClients[i].m_Authed == CServer::AUTHED_MOD ? "(Mod)" : "";
-				str_format(aBuf, sizeof(aBuf), "id=%d addr=%s name='%s' score=%d client=%d %s", i, pThis->m_aClients[i].m_State == CClient::STATE_DUMMY?"Dummy":aAddrStr,
+				str_format(aBuf, sizeof(aBuf), "id=%d addr=%s name='%s' score=%d client=%d %s", i, aAddrStr,
 					pThis->m_aClients[i].m_aName, pThis->m_aClients[i].m_Score, ((CGameContext *)(pThis->GameServer()))->m_apPlayers[i]->m_ClientVersion, pAuthStr);
 			}
+			else if (pThis->m_aClients[i].m_State == CClient::STATE_DUMMY) // iDDNet
+				str_format(aBuf, sizeof(aBuf), "id=%d name='%s' score=%d [DUMMY]" i, pThis->m_aClients[i].m_aName, pThis->m_aClients[i].m_Score;
 			else
 				str_format(aBuf, sizeof(aBuf), "id=%d addr=%s connecting", i, aAddrStr);
 			pThis->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "Server", aBuf);

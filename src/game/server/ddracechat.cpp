@@ -1533,10 +1533,6 @@ void CGameContext::ConDummyCopyMove(IConsole::IResult *pResult, void *pUserData)
 	else
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "dcm", "Dummy will copy all your actions now");
 	pSelf->m_apPlayers[DummyID]->m_DummyCopiesMove = (pSelf->m_apPlayers[DummyID]->m_DummyCopiesMove)?false:true;
-	if(!pSelf->m_apPlayers[DummyID]->m_DummyCopiesMove) //to avoid chat emote
-		pSelf->m_apPlayers[DummyID]->m_PlayerFlags = 0;
-	else if(pSelf->GetPlayerChar(DummyID)) //to avoid cheating with score
-		pSelf->GetPlayerChar(DummyID)->m_DDRaceState = DDRACE_STARTED; //important
 }
 
 void CGameContext::ConDisconnectRescue(IConsole::IResult *pResult, void *pUserData)
