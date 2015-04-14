@@ -281,7 +281,7 @@ public:
 	vec2 m_SavedPos; //for rescue
 	
 	//run for dummy only
-	void ResetDummy();
+	//void ResetDummy();
 	bool m_DoHammerFly;
 	void DoHammerFly();
 

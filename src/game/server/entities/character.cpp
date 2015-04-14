@@ -2134,11 +2134,12 @@ void CCharacter::iDDNetTick()
 	//for dummy only
 	if(!GetPlayer()->m_IsDummy)
 		return;
+	/*
 	if(!GetPlayer()->m_DummyCopiesMove && !m_DoHammerFly)
 	{
 		if(GetActiveWeapon() == WEAPON_HAMMER) SetActiveWeapon(WEAPON_GUN);
 		ResetDummy();
-	}
+	}*/
 	if(m_DoHammerFly)
 		DoHammerFly();
 }
