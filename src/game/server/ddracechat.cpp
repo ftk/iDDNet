@@ -1301,15 +1301,16 @@ void CGameContext::ConDummy(IConsole::IResult *pResult, void *pUserData)
 			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "dummy", "Dummy was\'t created due to absence of free slots. Ask admin to set in config sv_dummies 1 and restart server, or just kick anybody ;)");  
 			return;
 		}
-		char dummy_name[512];
+		char dummy_name[512],dummy_clan[512];
 		str_format(dummy_name, sizeof(dummy_name), "[D] %s", pSelf->Server()->ClientName(ClientID));
+		str_copy(dummy_clan, pSelf->Server()->ClientClan(ClientID), MAX_CLAN_LENGTH);
 		pSelf->NewDummy(free_slot_id, //id 
 						pPlayer->m_TeeInfos.m_UseCustomColor, //custom color
 						pPlayer->m_TeeInfos.m_ColorFeet, //body color
 						pPlayer->m_TeeInfos.m_ColorBody, //feet color
 						pPlayer->m_TeeInfos.m_SkinName, //skin
 						dummy_name, //name
-						"", //clan
+						dummy_clan, //clan
 						pSelf->Server()->ClientCountry(ClientID));
 		if(pSelf->m_apPlayers[free_slot_id])
 		{
