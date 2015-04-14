@@ -1815,7 +1815,7 @@ void CServer::ConStatus(IConsole::IResult *pResult, void *pUser)
 					pThis->m_aClients[i].m_aName, pThis->m_aClients[i].m_Score, ((CGameContext *)(pThis->GameServer()))->m_apPlayers[i]->m_ClientVersion, pAuthStr);
 			}
 			else if (pThis->m_aClients[i].m_State == CClient::STATE_DUMMY) // iDDNet
-				str_format(aBuf, sizeof(aBuf), "id=%d name='%s' score=%d [DUMMY]" i, pThis->m_aClients[i].m_aName, pThis->m_aClients[i].m_Score);
+				str_format(aBuf, sizeof(aBuf), "id=%d name='%s' score=%d [DUMMY]", i, pThis->m_aClients[i].m_aName, pThis->m_aClients[i].m_Score);
 			else
 				str_format(aBuf, sizeof(aBuf), "id=%d addr=%s connecting", i, aAddrStr);
 			pThis->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "Server", aBuf);
