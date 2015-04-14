@@ -1424,35 +1424,8 @@ void CGameContext::ConDummyChange(IConsole::IResult *pResult, void *pUserData)
 	else
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "dc", "You can\'t /dummy_change that often.");
 }
-void CGameContext::ConDummyHammer(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	if(!CheckClientID(pResult->m_ClientID)) return;
-	int ClientID = pResult->m_ClientID;
-	CPlayer *pPlayer = pSelf->m_apPlayers[pResult->m_ClientID];
-	if(!pPlayer) return;
-	if (!g_Config.m_SvDummyHammer)
-	{
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "dh", "Control dummy is not activated on the server. Set in config sv_dummy_hammer 1 to enable.");
-		return;
-	}
-	if(pPlayer->m_HasDummy == false || !CheckClientID(pPlayer->m_DummyID) || !pSelf->m_apPlayers[pPlayer->m_DummyID] || !pSelf->m_apPlayers[pPlayer->m_DummyID]->m_IsDummy)
-	{
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "dh", "You don\'t have dummy.Type '/d' in chat to get it.");
-		return;
-	}
-	int DummyID = pPlayer->m_DummyID;
-	if(!pSelf->GetPlayerChar(DummyID))
-	{
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "dh", "Dummy is not alive yet. Wait when i spawn again and retry.");
-		return;
-	}
-	CCharacter *pDumChr = pSelf->GetPlayerChar(DummyID);
-	pDumChr->m_DoHammerFly = (pDumChr->m_DoHammerFly==CCharacter::HF_VERTICAL)?(pDumChr->m_DoHammerFly==CCharacter::HF_NONE):(pDumChr->m_DoHammerFly=CCharacter::HF_VERTICAL);
-}
 void CGameContext::ConDummyHammerFly(IConsole::IResult *pResult, void *pUserData)
 {
-	//horizontal
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	if(!CheckClientID(pResult->m_ClientID)) return;
 	int ClientID = pResult->m_ClientID;
@@ -1475,7 +1448,7 @@ void CGameContext::ConDummyHammerFly(IConsole::IResult *pResult, void *pUserData
 		return;
 	}
 	CCharacter *pDumChr = pSelf->GetPlayerChar(DummyID);
-	pDumChr->m_DoHammerFly = (pDumChr->m_DoHammerFly==CCharacter::HF_HORIZONTAL)?(pDumChr->m_DoHammerFly==CCharacter::HF_HORIZONTAL):(pDumChr->m_DoHammerFly=CCharacter::HF_HORIZONTAL);
+	pDumChr->m_DoHammerFly = (pDumChr->m_DoHammerFly==true)?(pDumChr->m_DoHammerFly==false):(pDumChr->m_DoHammerFly=true);
 }
 void CGameContext::ConDummyControl(IConsole::IResult *pResult, void *pUserData)
 {

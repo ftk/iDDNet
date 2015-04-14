@@ -2122,7 +2122,7 @@ void CCharacter::DDRaceInit()
 // iDDNet
 void CCharacter::iDDNetInit()
 {
-	m_DoHammerFly = HF_NONE;
+	m_DoHammerFly = false;
 	m_RescueUnfreeze = 0;
 	m_SavedPos = vec2(0, 0);
 }
@@ -2134,12 +2134,12 @@ void CCharacter::iDDNetTick()
 	//for dummy only
 	if(!GetPlayer()->m_IsDummy)
 		return;
-	if(!GetPlayer()->m_DummyCopiesMove && (!m_DoHammerFly || m_DoHammerFly==HF_NONE))
+	if(!GetPlayer()->m_DummyCopiesMove && !m_DoHammerFly)
 	{
 		if(GetActiveWeapon() == WEAPON_HAMMER) SetActiveWeapon(WEAPON_GUN);
 		ResetDummy();
 	}
-	if(m_DoHammerFly > HF_NONE)
+	if(m_DoHammerFly)
 		DoHammerFly();
 }
 void CCharacter::SavePos()
@@ -2213,16 +2213,7 @@ void CCharacter::DoHammerFly()
 		return;
 	if (GetActiveWeapon() != WEAPON_HAMMER)
 		SetActiveWeapon(WEAPON_HAMMER);
-	if(m_DoHammerFly==HF_VERTICAL)
-	{
-		m_LatestInput.m_TargetX = 0; //look up
-		m_LatestInput.m_TargetY = -100;
-		m_Input.m_TargetX = 0;
-		m_Input.m_TargetY = -100;
-		m_Input.m_Fire = 1;
-		m_LatestInput.m_Fire = 1;
-	}
-	else if(m_DoHammerFly == HF_HORIZONTAL)
+	else if(m_DoHammerFly)
 	{
 		//the character of dummy's owner, we put owner's ID to dummy's CPlayer::m_DummyID when ran chat cmd
 		CCharacter* pOwnerChr = GameServer()->m_apPlayers[GetPlayer()->m_DummyID]->GetCharacter();
