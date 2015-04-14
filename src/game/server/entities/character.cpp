@@ -2201,13 +2201,13 @@ void CCharacter::ResetSavedPos()
 {
 	m_SavedPos = vec2(0,0);	
 }
-void CCharacter::ResetDummy()
+/*void CCharacter::ResetDummy()
 {
 	m_Input.m_TargetX = 100;
 	m_Input.m_TargetY = 0;
 	m_Input.m_Fire = 0;
 	m_LatestInput.m_Fire = 0;
-}
+}*/
 void CCharacter::DoHammerFly()
 {
 	if(GetPlayer()->m_DummyCopiesMove) //under control
