@@ -908,7 +908,7 @@ void CGameContext::ConMe(IConsole::IResult *pResult, void *pUserData)
 
 	char aBuf[256 + 24];
 
-	str_format(aBuf, 256 + 24, "'%s' %s",
+	str_format(aBuf, 256 + 24, "%s %s",
 			pSelf->Server()->ClientName(pResult->m_ClientID),
 			pResult->GetString(0));
 	if (g_Config.m_SvSlashMe)
@@ -1363,6 +1363,13 @@ void CGameContext::ConRescue(IConsole::IResult *pResult, void *pUserData)
 		return;
 	}
 
+	if(pChr->m_DeepFreeze) 
+	{ 
+		pSelf->SendChatTarget(pResult->m_ClientID, "You are deepfreezed, undeepfreeze first!"); 
+		return; 
+	} 
+
+
 	// reset players' hook
 	for(int i = 0; i < MAX_CLIENTS; i++)
 	{
@@ -1390,12 +1397,11 @@ void CGameContext::ConRescue(IConsole::IResult *pResult, void *pUserData)
 	pChr->Core()->m_Pos = pChr->m_PrevPos = pChr->m_Pos = pChr->m_SavedPos;
 	pChr->Core()->m_Vel = vec2(0.f, 0.f); // reset momentum
 
-	if(pChr->m_RescueFlags)
-		ApplyRescueFlags(TargetID, pChr);
+	//RescueFlags
+	pSelf->ApplyRescueFlags(TargetID, pChr);
 
 	if(pChr->m_FreezeTime && pChr->m_TileIndex != TILE_FREEZE && pChr->m_TileFIndex != TILE_FREEZE && pChr->Core()->m_Pos == pChr->m_SavedPos)
 	{
-		pChr->m_DeepFreeze = false;
 		pChr->UnFreeze();
 	}
 }
