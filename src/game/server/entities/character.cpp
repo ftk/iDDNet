@@ -2123,6 +2123,7 @@ void CCharacter::DDRaceInit()
 void CCharacter::iDDNetInit()
 {
 	m_DoHammerFly = false;
+	m_DoHookFly = false;
 	m_RescueUnfreeze = 0;
 	m_SavedPos = vec2(0, 0);
 }
@@ -2142,6 +2143,9 @@ void CCharacter::iDDNetTick()
 	}*/
 	if(m_DoHammerFly)
 		DoHammerFly();
+
+	if(m_DoHookFly)
+		DoHookFly();
 }
 void CCharacter::SavePos()
 {
@@ -2241,6 +2245,36 @@ void CCharacter::DoHammerFly()
 		m_Input.m_Fire = 1;
 		m_LatestInput.m_Fire = 1;
 	}
+}
+
+void CCharacter::DoHookFly()
+{
+	if(GetPlayer()->m_DummyCopiesMove) //under control
+		return;
+
+	//the character of dummy's owner, we put owner's ID to dummy's CPlayer::m_DummyID when ran chat cmd
+	CCharacter* pOwnerChr = GameServer()->m_apPlayers[GetPlayer()->m_DummyID]->GetCharacter();
+	if(!pOwnerChr) return;
+	//final target pos
+	vec2 AimPos = pOwnerChr->m_Pos - m_Pos;
+
+	//follow owner
+	m_LatestInput.m_TargetX = AimPos.x;
+	m_LatestInput.m_TargetY = AimPos.y;
+	m_Input.m_TargetX = AimPos.x;
+	m_Input.m_TargetY = AimPos.y;
+
+	//release hook when above owner
+	if (m_Pos.y >= pOwnerChr->m_Pos.y || distance(m_Pos, pOwnerChr->m_Pos)<100)
+	{
+		m_Input.m_Hook = 0;
+		m_LatestInput.m_Hook = 0;
+		return;
+	}
+
+	//else do hook
+	m_Input.m_Hook = 1;
+	m_LatestInput.m_Hook = 1;
 }
 
 //iDDNet

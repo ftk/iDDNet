@@ -285,6 +285,10 @@ public:
 	bool m_DoHammerFly;
 	void DoHammerFly();
 
+	bool m_DoHookFly;
+	void DoHookFly();
+
+
 private:
 	int m_RescueUnfreeze;
 	

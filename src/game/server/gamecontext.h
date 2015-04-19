@@ -331,6 +331,8 @@ private:
 	static void ConDummyCopyMove(IConsole::IResult *pResult, void *pUserData);
 	static void ConToggleFly(IConsole::IResult *pResult, void *pUserData);
 	
+	static void ConDummyHook(IConsole::IResult *pResult, void *pUserData);
+
 	//mkRace
 	static void ConDisconnectRescue(IConsole::IResult *pResult, void *pUserData);
 	

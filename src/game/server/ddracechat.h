@@ -69,6 +69,8 @@ CHAT_COMMAND("dhf", "", CFGFLAG_CHAT, ConDummyHammerFly, this, "Your Dummy looks
 CHAT_COMMAND("cd", "", CFGFLAG_CHAT, ConDummyControl, this, "Go to spectators and control your dummy")
 CHAT_COMMAND("dcm", "", CFGFLAG_CHAT, ConDummyCopyMove, this, "Dummy copies all your movement. Smth like multiclient.")
 
+CHAT_COMMAND("dhook", "", CFGFLAG_CHAT, ConDummyHook, this, "Experimental Hook Fly")
+
 //mkRace
 CHAT_COMMAND("r", "?s", CFGFLAG_CHAT, ConRescue, this, "/r-rescue, \'/r d\' for dummy rescue.")
 CHAT_COMMAND("rescue", "?s", CFGFLAG_CHAT, ConRescue, this, "/r-rescue, \'/r d\' for dummy rescue.")
