@@ -1497,6 +1497,10 @@ void CCharacter::HandleTiles(int Index)
 	{
 		GameServer()->SendChatTarget(GetPlayer()->GetCID(),"You have unlimited air jumps");
 		m_SuperJump = true;
+		if(m_RescueFlags & RESCUEFLAG_SUPER_END)
+			m_RescueFlags &= ~RESCUEFLAG_SUPER_END;
+		else
+			m_RescueFlags |= RESCUEFLAG_SUPER_START;
 		if (m_Core.m_Jumps == 0)
 		{
 			m_NeededFaketuning &= ~FAKETUNE_NOJUMP;
@@ -1507,6 +1511,10 @@ void CCharacter::HandleTiles(int Index)
 	{
 		GameServer()->SendChatTarget(GetPlayer()->GetCID(),"You have a jetpack gun");
 		m_Jetpack = true;
+		if(m_RescueFlags & RESCUEFLAG_JETPACK_END)
+			m_RescueFlags &= ~RESCUEFLAG_JETPACK_END;
+		else
+			m_RescueFlags |= RESCUEFLAG_JETPACK_START;
 		m_NeededFaketuning |= FAKETUNE_JETPACK;
 		GameServer()->SendTuningParams(m_pPlayer->GetCID(), m_TuneZone); // update tunings
 	}
@@ -1537,6 +1545,10 @@ void CCharacter::HandleTiles(int Index)
 	{
 		GameServer()->SendChatTarget(GetPlayer()->GetCID(), "You don't have unlimited air jumps");
 		m_SuperJump = false;
+		if(m_RescueFlags & RESCUEFLAG_SUPER_START)
+			m_RescueFlags &= ~RESCUEFLAG_SUPER_START;
+		else
+			m_RescueFlags |= RESCUEFLAG_SUPER_END;
 		if (m_Core.m_Jumps == 0)
 		{
 			m_NeededFaketuning |= FAKETUNE_NOJUMP;
@@ -1556,6 +1568,10 @@ void CCharacter::HandleTiles(int Index)
 	{
 		GameServer()->SendChatTarget(GetPlayer()->GetCID(), "You lost your jetpack gun");
 		m_Jetpack = false;
+		if(m_RescueFlags & RESCUEFLAG_JETPACK_START)
+			m_RescueFlags &= ~RESCUEFLAG_JETPACK_START;
+		else
+			m_RescueFlags |= RESCUEFLAG_JETPACK_END;
 		m_NeededFaketuning &= ~FAKETUNE_JETPACK;
 		GameServer()->SendTuningParams(m_pPlayer->GetCID(), m_TuneZone); // update tunings
 	}
