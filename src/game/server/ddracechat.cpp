@@ -1464,6 +1464,11 @@ void CGameContext::ConDummyHook(IConsole::IResult *pResult, void *pUserData)
 	int ClientID = pResult->m_ClientID;
 	CPlayer *pPlayer = pSelf->m_apPlayers[pResult->m_ClientID];
 	if(!pPlayer) return;
+	if (!g_Config.m_SvDummyHook)
+	{
+		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "dhook", "Control dummy is not activated on the server. Set in config sv_dummy_hook 1 to enable.");
+		return;
+	}
 	if(pPlayer->m_HasDummy == false || !CheckClientID(pPlayer->m_DummyID) || !pSelf->m_apPlayers[pPlayer->m_DummyID] || !pSelf->m_apPlayers[pPlayer->m_DummyID]->m_IsDummy)
 	{
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "dhook", "You don\'t have dummy.Type '/d' in chat to get it.");
