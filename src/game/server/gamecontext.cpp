@@ -2955,16 +2955,36 @@ CGameContext::CPlayerRescueState CGameContext::GetPlayerState(CCharacter * pChar
 	ST_PARAM(CpLastBroadcast);
 	ST_PARAM(TeleCheckpoint);
 	ST_PARAM(FreezeTime);
+	ST_PARAM(FreezeTick);
+	ST_PARAM(NinjaJetpack);
+	ST_PARAM(TuneZone);
+	ST_PARAM(TuneZoneOld);
+	ST_PARAM(LastPenalty);
+	ST_PARAM(LastWeapon);
+	ST_PARAM(QueuedWeapon);
 #undef ST_PARAM
 
 	pChar->Core()->Write(&state.Core);
 
 	mem_copy(state.CpCurrent, pChar->m_CpCurrent, sizeof(state.CpCurrent));
 
-	state.WFlags = 0;
-	for(int i = WEAPON_HAMMER; i <= WEAPON_RIFLE; i++)
-		if(pChar->GetWeaponGot(i))
-			state.WFlags |= (1U << i);
+	for(int i = 0; i< NUM_WEAPONS; i++)
+	{
+		state.m_aWeapons[i].m_AmmoRegenStart = pChar->m_aWeapons[i].m_AmmoRegenStart;
+		state.m_aWeapons[i].m_Ammo = pChar->m_aWeapons[i].m_Ammo;
+		state.m_aWeapons[i].m_Ammocost = pChar->m_aWeapons[i].m_Ammocost;
+		state.m_aWeapons[i].m_Got = pChar->m_aWeapons[i].m_Got;
+	}
+
+	state.m_ActiveWeapon = pChar->m_Core.m_ActiveWeapon;
+	state.m_Jumped = pChar->m_Core.m_Jumped;
+	state.m_JumpedTotal = pChar->m_Core.m_JumpedTotal;
+	state.m_Jumps = pChar->m_Core.m_Jumps;
+
+	//state.WFlags = 0;
+	//for(int i = WEAPON_HAMMER; i <= WEAPON_RIFLE; i++)
+	//	if(pChar->GetWeaponGot(i))
+	//		state.WFlags |= (1U << i);
 	return state;
 }
 
@@ -2988,24 +3008,45 @@ void CGameContext::ApplyPlayerState(const CPlayerRescueState& state, CCharacter 
 	ST_PARAM(CpLastBroadcast);
 	ST_PARAM(TeleCheckpoint);
 	ST_PARAM(FreezeTime);
+	ST_PARAM(FreezeTick);
+	ST_PARAM(NinjaJetpack);
+	ST_PARAM(TuneZone);
+	ST_PARAM(TuneZoneOld);
+	ST_PARAM(LastPenalty);
+	ST_PARAM(LastWeapon);
+	ST_PARAM(QueuedWeapon);
 #undef ST_PARAM
-
-	pChar->Core()->Read(&state.Core);
 
 	mem_copy(pChar->m_CpCurrent, state.CpCurrent, sizeof(state.CpCurrent));
 
 	pChar->m_Super = false;
 	pChar->ResetInput();
-	pChar->SetWeaponGot(WEAPON_NINJA, false);
-	pChar->SetWeapon(WEAPON_GUN);
+	//pChar->SetWeaponGot(WEAPON_NINJA, false);
+	//pChar->SetWeapon(pChar->m_LastWeapon);
 	
-	for(int i = WEAPON_HAMMER; i <= WEAPON_RIFLE; i++)
+	/*for(int i = WEAPON_HAMMER; i <= WEAPON_RIFLE; i++)
 	{
 		pChar->SetWeaponGot(i, false);
 		pChar->SetWeaponAmmo(i, 0);
 		if(state.WFlags & (1U << i))
 			pChar->GiveWeapon(i, -1);
+	}*/
+
+	for(int i = 0; i< NUM_WEAPONS; i++)
+	{
+		pChar->m_aWeapons[i].m_AmmoRegenStart = state.m_aWeapons[i].m_AmmoRegenStart;
+		pChar->m_aWeapons[i].m_Ammo = state.m_aWeapons[i].m_Ammo;
+		pChar->m_aWeapons[i].m_Ammocost = state.m_aWeapons[i].m_Ammocost;
+		pChar->m_aWeapons[i].m_Got = state.m_aWeapons[i].m_Got;
 	}
+
+	pChar->m_Core.m_ActiveWeapon = state.m_ActiveWeapon;
+	pChar->m_Core.m_Jumped = state.m_Jumped;
+	pChar->m_Core.m_JumpedTotal = state.m_JumpedTotal;
+	pChar->m_Core.m_Jumps = state.m_Jumps;
+
+	pChar->Core()->Read(&state.Core);
+
 }
 
 void CGameContext::ApplyRescueFlags(int TargetID, CCharacter * pChar)

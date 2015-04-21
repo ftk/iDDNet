@@ -399,8 +399,30 @@ public:
 		int TeleCheckpoint;
 		float CpCurrent[25];
 		int FreezeTime;
+		int FreezeTick;
+		int NinjaJetpack;
+		int TuneZone;
+		int TuneZoneOld;
+		int LastPenalty;
+		int LastWeapon;
+		int QueuedWeapon;
+		int m_ActiveWeapon;
+		int m_Jumped;
+		int m_JumpedTotal;
+		int m_Jumps;
+		struct WeaponStat
+		{
+			int m_AmmoRegenStart;
+			int m_Ammo;
+			int m_Ammocost;
+			int m_Got;
+
+		} m_aWeapons[NUM_WEAPONS];
 		CNetObj_CharacterCore Core;
 	};
+
+	
+
 	std::map<std::string, CPlayerRescueState> m_SavedPlayers;
 
 	static CPlayerRescueState GetPlayerState(CCharacter * pChar);
