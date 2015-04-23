@@ -1,1 +1,1 @@
-Please visit ddnet.tw to report any bugs.
+﻿#Please visit ddnet.tw to report any bugs.
