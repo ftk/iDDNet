@@ -48,7 +48,7 @@ static const char *StrLtrim(const char *pStr)
 	{
 		const char *pStrOld = pStr;
 		int Code = str_utf8_decode(&pStr);
-		
+
 		// check if unicode is not empty
 		if(str_utf8_isspace(Code))
 		{
@@ -66,7 +66,7 @@ static void StrRtrim(char *pStr)
 	{
 		const char *pStrOld = p;
 		int Code = str_utf8_decode(&p);
-		
+
 		// check if unicode is not empty
 		if(str_utf8_isspace(Code))
 		{
@@ -1457,12 +1457,12 @@ void CServer::PumpNetwork()
 			}
 			if (lastask[i]<lastsent[i]-g_Config.m_SvMapWindow)
 				continue;
-	
+
 			int Chunk = lastsent[i]++;
 			unsigned int ChunkSize = 1024-128;
 			unsigned int Offset = Chunk * ChunkSize;
 			int Last = 0;
-	
+
 			// drop faulty map data requests
 			if(Chunk < 0 || Offset > m_CurrentMapSize)
 				continue;
@@ -1473,7 +1473,7 @@ void CServer::PumpNetwork()
 					ChunkSize = 0;
 				Last = 1;
 			}
-	
+
 			CMsgPacker Msg(NETMSG_MAP_DATA);
 			Msg.AddInt(Last);
 			Msg.AddInt(m_CurrentMapCrc);
@@ -1481,7 +1481,7 @@ void CServer::PumpNetwork()
 			Msg.AddInt(ChunkSize);
 			Msg.AddRaw(&m_pCurrentMapData[Offset], ChunkSize);
 			SendMsgEx(&Msg, MSGFLAG_FLUSH, i, true);
-	
+
 			if(g_Config.m_Debug)
 			{
 				char aBuf[256];
@@ -1673,12 +1673,21 @@ int CServer::Run()
 
 					for(int c = 0; c < MAX_CLIENTS; c++)
 					{
-						if(m_aClients[c].m_State <= CClient::STATE_AUTH)
-							continue;
+						if(m_aClients[c].m_State == CClient::STATE_DUMMY)
+						{
+							m_aClients[c].Reset();
+							m_aClients[c].m_State = CClient::STATE_EMPTY;
+							m_NetServer.Drop(c, "");
+						}
+						else
+						{
+							if(m_aClients[c].m_State <= CClient::STATE_AUTH)
+								continue;
 
-						SendMap(c);
-						m_aClients[c].Reset();
-						m_aClients[c].m_State = CClient::STATE_CONNECTING;
+							SendMap(c);
+							m_aClients[c].Reset();
+							m_aClients[c].m_State = CClient::STATE_CONNECTING;
+						}
 					}
 
 					m_GameStartTime = time_get();
@@ -2012,12 +2021,12 @@ void CServer::ConchainRconPasswordChange(IConsole::IResult *pResult, void *pUser
 				Msg.AddInt(0);	//authed
 				Msg.AddInt(0);	//cmdlist
 				pServer->SendMsgEx(&Msg, MSGFLAG_VITAL, i, true);
-				
+
 				pServer->m_aClients[i].m_Authed = AUTHED_NO;
 				pServer->m_aClients[i].m_LastAuthed = AUTHED_NO;
 				pServer->m_aClients[i].m_AuthTries = 0;
 				pServer->m_aClients[i].m_pRconCmdToSend = 0;
-				
+
 				pServer->SendRconLine(i, "Logged out by password change.");
 				char aBuf[64];
 				str_format(aBuf, sizeof(aBuf), "ClientID=%d logged out by password change", i);
@@ -2043,12 +2052,12 @@ void CServer::ConchainRconModPasswordChange(IConsole::IResult *pResult, void *pU
 				Msg.AddInt(0);	//authed
 				Msg.AddInt(0);	//cmdlist
 				pServer->SendMsgEx(&Msg, MSGFLAG_VITAL, i, true);
-				
+
 				pServer->m_aClients[i].m_Authed = AUTHED_NO;
 				pServer->m_aClients[i].m_LastAuthed = AUTHED_NO;
 				pServer->m_aClients[i].m_AuthTries = 0;
 				pServer->m_aClients[i].m_pRconCmdToSend = 0;
-				
+
 				pServer->SendRconLine(i, "Logged out by password change.");
 				char aBuf[64];
 				str_format(aBuf, sizeof(aBuf), "ClientID=%d logged out by password change", i);
@@ -2082,7 +2091,7 @@ void CServer::RegisterCommands()
 	Console()->Chain("sv_max_clients_per_ip", ConchainMaxclientsperipUpdate, this);
 	Console()->Chain("mod_command", ConchainModCommandUpdate, this);
 	Console()->Chain("console_output_level", ConchainConsoleOutputLevelUpdate, this);
-	
+
 	Console()->Chain("sv_rcon_password", ConchainRconPasswordChange, this);
 	Console()->Chain("sv_rcon_mod_password", ConchainRconModPasswordChange, this);
 
@@ -2184,7 +2193,7 @@ int main(int argc, const char **argv) // ignore_convention
 
 	// restore empty config strings to their defaults
 	pConfig->RestoreStrings();
-	
+
 	// iDDNet : magic with max clients
 	if(g_Config.m_SvDummies == 1)
 		g_Config.m_SvMaxClients = g_Config.m_SvMaxClients*2;
