@@ -324,8 +324,8 @@ void CCharacter::HandleWeaponSwitch()
 
 void CCharacter::FireWeapon()
 {
-	//if(GetPlayer()->m_IsDummy && !GetPlayer()->m_DummyCopiesMove && !m_DoHammerFly)
-	//	return;
+	if(GetPlayer()->m_IsDummy && !GetPlayer()->m_DummyCopiesMove && !m_DoHammerFly && m_Core.m_ActiveWeapon == WEAPON_HAMMER)
+		return;
 	if(m_ReloadTimer != 0)
 		return;
 
@@ -2248,6 +2248,9 @@ void CCharacter::DoHammerFly()
 		m_Input.m_TargetX = AimPos.x;
 		m_Input.m_TargetY = AimPos.y;
 
+		if (!m_aWeapons[m_Core.m_ActiveWeapon].m_Ammo) //frozen
+			return;
+
 		//no need in shoot if we are not under the owner or owner is far away
 		if (m_Pos.y <= pOwnerChr->m_Pos.y || distance(m_Pos, pOwnerChr->m_Pos)>100)
 		{
@@ -2258,7 +2261,7 @@ void CCharacter::DoHammerFly()
 
 		//also dummy should hammer on touch, so that's what TODO next
 
-		m_Input.m_Fire = 1;
+		m_Input.m_Fire = 0;
 		m_LatestInput.m_Fire = 1;
 	}
 }
@@ -2280,8 +2283,11 @@ void CCharacter::DoHookFly()
 	m_Input.m_TargetX = AimPos.x;
 	m_Input.m_TargetY = AimPos.y;
 
+	if (!m_aWeapons[m_Core.m_ActiveWeapon].m_Ammo) //frozen
+		return;
+
 	//release hook when above owner
-	if (m_Pos.y >= pOwnerChr->m_Pos.y || distance(m_Pos, pOwnerChr->m_Pos)<100)
+	if (m_Pos.y >= pOwnerChr->m_Pos.y || distance(m_Pos, pOwnerChr->m_Pos)<50 || distance(m_Pos, pOwnerChr->m_Pos)>GameServer()->m_World.m_Core.m_Tuning[0].m_HookLength)
 	{
 		m_Input.m_Hook = 0;
 		m_LatestInput.m_Hook = 0;
