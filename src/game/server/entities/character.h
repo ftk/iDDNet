@@ -97,17 +97,8 @@ private:
 	CEntity *m_apHitObjects[10];
 	int m_NumObjectsHit;
 
-	struct WeaponStat
-	{
-		int m_AmmoRegenStart;
-		int m_Ammo;
-		int m_Ammocost;
-		bool m_Got;
+	
 
-	} m_aWeapons[NUM_WEAPONS];
-
-	int m_LastWeapon;
-	int m_QueuedWeapon;
 
 	int m_ReloadTimer;
 	int m_AttackTick;
@@ -147,7 +138,7 @@ private:
 	} m_Ninja;
 
 	// the player core for the physics
-	CCharacterCore m_Core;
+	
 
 	// info for dead reckoning
 	int m_ReckoningTick; // tick that we are performing dead reckoning From
@@ -196,6 +187,17 @@ public:
 		DISABLE_HIT_GRENADE=4,
 		DISABLE_HIT_RIFLE=8
 	};
+	CCharacterCore m_Core;
+	struct WeaponStat
+	{
+		int m_AmmoRegenStart;
+		int m_Ammo;
+		int m_Ammocost;
+		bool m_Got;
+
+	} m_aWeapons[NUM_WEAPONS];
+	int m_LastWeapon;
+	int m_QueuedWeapon;
 	int m_Hit;
 	int m_TuneZone;
 	int m_TuneZoneOld;
