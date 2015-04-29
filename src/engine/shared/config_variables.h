@@ -319,7 +319,7 @@ MACRO_CONFIG_INT(SvRescue, sv_rescue, 1, 0, 1, CFGFLAG_SERVER, "Allow using chat
 MACRO_CONFIG_INT(SvControlDummy, sv_control_dummy, 1, 0, 1, CFGFLAG_SERVER, "Allow or not /control_dummy or /cd")
 MACRO_CONFIG_INT(SvDummyCopyMove, sv_dummy_copy_move, 1, 0, 1, CFGFLAG_SERVER, "Allow or not /dummy_copy_move or /dcm")
 MACRO_CONFIG_INT(SvDummyHammer, sv_dummy_hammer, 1, 0, 1, CFGFLAG_SERVER, "Allow or not /dummy_hammer or /dh")
-MACRO_CONFIG_INT(SvDummyHook, sv_dummy_hook, 0, 0, 1, CFGFLAG_SERVER, "Allow or not /dhook")
+MACRO_CONFIG_INT(SvDummyHook, sv_dummy_hook, 1, 0, 1, CFGFLAG_SERVER, "Allow or not /dhook")
 MACRO_CONFIG_INT(SvDummyDelay, sv_dummy_delay, 1, 0, 720, CFGFLAG_SERVER, "Time in seconds between using /d. For disable dummyfly.")
 MACRO_CONFIG_INT(SvDummyChangeDelay, sv_dummy_change_delay, 0, 0, 360, CFGFLAG_SERVER, "Time in seconds between using /dc")
 
