@@ -618,9 +618,6 @@ void CGameContext::OnTick()
 				bool aVoteChecked[MAX_CLIENTS] = {0};
 				for(int i = 0; i < MAX_CLIENTS; i++)
 				{
-					//TODO:
-					//if(g_Config.m_SvDummies && m_apPlayers[i]->m_IsDummy) //don't wait for dummy votes
-					//	continue;
 					if(!m_apPlayers[i] ||
 							(g_Config.m_SvSpectatorVotes == 0 &&
 									m_apPlayers[i]->GetTeam() == TEAM_SPECTATORS) ||
@@ -632,7 +629,7 @@ void CGameContext::OnTick()
 						GetPlayerChar(m_VoteCreator)->Team() != GetPlayerChar(i)->Team())
 						continue;
 
-					if (m_apPlayers[i]->m_Afk)
+					if (m_apPlayers[i]->m_Afk || m_apPlayers[i]->m_IsDummy)
 						continue;
 
 					int ActVote = m_apPlayers[i]->m_Vote;
