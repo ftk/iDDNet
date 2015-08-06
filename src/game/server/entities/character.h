@@ -112,14 +112,7 @@ private:
 	int m_LastAction;
 	int m_LastNoAmmoSound;
 
-	// these are non-heldback inputs
-	CNetObj_PlayerInput m_LatestPrevInput;
-	CNetObj_PlayerInput m_LatestInput;
 
-	// input
-	CNetObj_PlayerInput m_PrevInput;
-	CNetObj_PlayerInput m_Input;
-	CNetObj_PlayerInput m_FreezedInput;
 	int m_NumInputs;
 	int m_Jumped;
 
@@ -159,6 +152,17 @@ private:
 	void HandleTuneLayer();
 	void SendZoneMsgs();
 public:
+
+
+	// these are non-heldback inputs
+	CNetObj_PlayerInput m_LatestPrevInput;
+	CNetObj_PlayerInput m_LatestInput;
+
+	// input
+	CNetObj_PlayerInput m_PrevInput;
+	CNetObj_PlayerInput m_Input;
+	CNetObj_PlayerInput m_FreezedInput;
+	
 	CGameTeams* Teams();
 	void Pause(bool Pause);
 	bool Freeze(int Time);

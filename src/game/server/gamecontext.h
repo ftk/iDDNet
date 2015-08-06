@@ -410,6 +410,15 @@ public:
 		int m_Jumped;
 		int m_JumpedTotal;
 		int m_Jumps;
+
+		// these are non-heldback inputs
+		CNetObj_PlayerInput m_LatestPrevInput;
+		CNetObj_PlayerInput m_LatestInput;
+		// input
+		CNetObj_PlayerInput m_PrevInput;
+		CNetObj_PlayerInput m_Input;
+		CNetObj_PlayerInput m_FreezedInput;
+
 		struct WeaponStat
 		{
 			int m_AmmoRegenStart;
@@ -418,6 +427,7 @@ public:
 			int m_Got;
 
 		} m_aWeapons[NUM_WEAPONS];
+
 		CNetObj_CharacterCore Core;
 	};
 
