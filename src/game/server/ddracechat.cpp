@@ -1280,14 +1280,17 @@ void CGameContext::ConDummy(IConsole::IResult *pResult, void *pUserData)
 		{
 			if(pPlayer->m_Last_Dummy + pSelf->Server()->TickSpeed() * g_Config.m_SvDummyDelay/2 <= pSelf->Server()->Tick())
 			{
+				if(!pChr->IsGrounded())
+				{
+					pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "dummy", "You can\'t teleport dummy in air.");
+					return;
+				}
+				CPlayerRescueState state = GetPlayerState(pChr);
+				ApplyPlayerState(state, pDummyChr);
 				pSelf->CreatePlayerSpawn(pDummyChr->Core()->m_Pos);
 				pDummyChr->m_PrevPos = pSelf->m_apPlayers[ClientID]->m_ViewPos;
 				pDummyChr->Core()->m_Pos = pSelf->m_apPlayers[ClientID]->m_ViewPos;
-				pPlayer->m_Last_Dummy = pSelf->Server()->Tick();
-				//pDummyChr->m_DDRaceState = DDRACE_STARTED; //important
-
-				// solo
-				pDummyChr->Teams()->m_Core.SetSolo(DummyID, pChr->Teams()->m_Core.GetSolo(ClientID));
+				pPlayer->m_Last_Dummy = pSelf->Server()->Tick();			
 			}
 			else
 				pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "dummy", "You can\'t /dummy that often.");
