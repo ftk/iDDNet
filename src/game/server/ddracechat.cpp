@@ -1254,11 +1254,12 @@ void CGameContext::ConDummy(IConsole::IResult *pResult, void *pUserData)
 		return;
 	if(pPlayer->m_HasDummy)
 	{
-		if(!g_Config.m_SvDummy)
+		if(!g_Config.m_SvDummy && !g_Config.m_SvDummyTpBeforeStart)
 		{
 			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "dummy", "Teleporting dummy to owner is disabled on the server. Set in config sv_dummy 1 to enable.");
 			return;
 		}
+
 		int DummyID = pPlayer->m_DummyID;
 		if(!CheckClientID(DummyID) || !pSelf ->m_apPlayers[DummyID] || !pSelf ->m_apPlayers[DummyID]->m_IsDummy)
 		{
@@ -1268,6 +1269,11 @@ void CGameContext::ConDummy(IConsole::IResult *pResult, void *pUserData)
 		}
 		CCharacter* pChr = pPlayer->GetCharacter();
 		CCharacter* pDummyChr = pSelf ->m_apPlayers[DummyID]->GetCharacter();
+
+		if(!g_Config.m_SvDummy && g_Config.m_SvDummyTpBeforeStart)
+			if(pChr->m_DDRaceState != DDRACE_NONE || pDummyChr->m_DDRaceState != DDRACE_NONE)
+				return;
+
 		if(pPlayer->GetTeam()!=TEAM_SPECTATORS && pPlayer->m_Paused == CPlayer::PAUSED_NONE &&
 		   pChr && pDummyChr &&
 		   pSelf->m_apPlayers[DummyID]->GetTeam()!=TEAM_SPECTATORS)
@@ -1278,7 +1284,7 @@ void CGameContext::ConDummy(IConsole::IResult *pResult, void *pUserData)
 				pDummyChr->m_PrevPos = pSelf->m_apPlayers[ClientID]->m_ViewPos;
 				pDummyChr->Core()->m_Pos = pSelf->m_apPlayers[ClientID]->m_ViewPos;
 				pPlayer->m_Last_Dummy = pSelf->Server()->Tick();
-				pDummyChr->m_DDRaceState = DDRACE_STARTED; //important
+				//pDummyChr->m_DDRaceState = DDRACE_STARTED; //important
 
 				// solo
 				pDummyChr->Teams()->m_Core.SetSolo(DummyID, pChr->Teams()->m_Core.GetSolo(ClientID));
