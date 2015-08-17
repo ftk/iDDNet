@@ -1260,19 +1260,27 @@ void CGameContext::ConDummy(IConsole::IResult *pResult, void *pUserData)
 			return;
 		}
 
+		if (pPlayer->GetCharacter() == 0)
+		{
+			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "spec", "You can't teleport dummy while you are dead/a spectator.");
+			return;
+		}
+
 		int DummyID = pPlayer->m_DummyID;
+
+		CCharacter* pChr = pPlayer->GetCharacter();
+		CCharacter* pDummyChr = pSelf ->m_apPlayers[DummyID]->GetCharacter();
+
+		if(!g_Config.m_SvDummy && g_Config.m_SvDummyTpBeforeStart)
+			if(pChr->m_DDRaceState != DDRACE_NONE)
+				return;
+
 		if(!CheckClientID(DummyID) || !pSelf ->m_apPlayers[DummyID] || !pSelf ->m_apPlayers[DummyID]->m_IsDummy)
 		{
 			pPlayer->m_HasDummy = false;
 			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "dummy", "Your dummy not found, sorry. Try to reconnect.");
 			return;
 		}
-		CCharacter* pChr = pPlayer->GetCharacter();
-		CCharacter* pDummyChr = pSelf ->m_apPlayers[DummyID]->GetCharacter();
-
-		if(!g_Config.m_SvDummy && g_Config.m_SvDummyTpBeforeStart)
-			if(pChr->m_DDRaceState != DDRACE_NONE || pDummyChr->m_DDRaceState != DDRACE_NONE)
-				return;
 
 		if(pPlayer->GetTeam()!=TEAM_SPECTATORS && pPlayer->m_Paused == CPlayer::PAUSED_NONE &&
 		   pChr && pDummyChr &&
