@@ -15,6 +15,7 @@ CHAT_COMMAND("info", "", CFGFLAG_CHAT|CFGFLAG_SERVER, ConInfo, this, "Shows info
 CHAT_COMMAND("me", "r", CFGFLAG_CHAT|CFGFLAG_SERVER, ConMe, this, "Like the famous irc command '/me says hi' will display '<yourname> says hi'")
 CHAT_COMMAND("w", "sr", CFGFLAG_CHAT|CFGFLAG_SERVER, ConWhisper, this, "Whisper something to someone (private message)")
 CHAT_COMMAND("whisper", "sr", CFGFLAG_CHAT|CFGFLAG_SERVER, ConWhisper, this, "Whisper something to someone (private message)")
+CHAT_COMMAND("pm", "sr", CFGFLAG_CHAT|CFGFLAG_SERVER, ConWhisper, this, "Whisper something to someone (private message)")
 CHAT_COMMAND("c", "r", CFGFLAG_CHAT|CFGFLAG_SERVER, ConConverse, this, "Converse with the last person you whispered to (private message)");
 CHAT_COMMAND("converse", "r", CFGFLAG_CHAT|CFGFLAG_SERVER, ConConverse, this, "Converse with the last person you whispered to (private message)");
 CHAT_COMMAND("pause", "", CFGFLAG_CHAT|CFGFLAG_SERVER, ConTogglePause, this, "Toggles pause")
@@ -49,6 +50,7 @@ CHAT_COMMAND("top5points", "?i", CFGFLAG_CHAT|CFGFLAG_SERVER, ConTopPoints, this
 #endif
 
 // iDDNet
+CHAT_COMMAND("cmdlist", "?s", CFGFLAG_CHAT, ConCMDList, this, "List all commands which are accessible for users")
 CHAT_COMMAND("dummy", "", CFGFLAG_CHAT, ConDummy, this, "Creates your own Dummy if it doesn\'t exist")
 CHAT_COMMAND("dummy_del", "", CFGFLAG_CHAT, ConDummyDelete, this, "Removes your Dummy")
 CHAT_COMMAND("dummy_change", "", CFGFLAG_CHAT, ConDummyChange, this, "Swap you with your dummy")
@@ -68,7 +70,6 @@ CHAT_COMMAND("dh", "", CFGFLAG_CHAT, ConDummyHammerFly, this, "Your Dummy looks 
 CHAT_COMMAND("dhf", "", CFGFLAG_CHAT, ConDummyHammerFly, this, "Your Dummy looks at you and hitting with hammer")
 CHAT_COMMAND("cd", "", CFGFLAG_CHAT, ConDummyControl, this, "Go to spectators and control your dummy")
 CHAT_COMMAND("dcm", "", CFGFLAG_CHAT, ConDummyCopyMove, this, "Dummy copies all your movement. Smth like multiclient.")
-
 CHAT_COMMAND("dhook", "", CFGFLAG_CHAT, ConDummyHook, this, "Experimental Hook Fly")
 
 //mkRace

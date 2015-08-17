@@ -33,6 +33,85 @@ void CGameContext::ConCredits(IConsole::IResult *pResult, void *pUserData)
 		"Check the changes on ddnet.tw");
 }
 
+void CGameContext::ConCMDList(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *) pUserData;
+
+	if (pResult->NumArguments() == 0)
+	{
+		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
+			"~~~~~~~~~~~~~~~ CMDLIST ~~~~~~~~~~~~~~~");
+		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
+			"Dummy cmdlist: /cmdlist dummy");
+		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
+			"Race cmdlist: /cmdlist race");
+		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
+			"Chat cmdlist: /cmdlist chat");
+		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
+			"Other cmdlist: /cmdlist other");
+	}
+	else
+	{
+		const char *pArg = pResult->GetString(0);
+		if (str_comp(pArg, "dummy") == 0)
+		{
+			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
+				"~~~~~~~~~~ DUMMY CMDLIST ~~~~~~~~~~");
+			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
+				"/dummy, /d - Creates your own Dummy if it doesn\'t exist.");
+			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
+				"/dummy_del, /dummy_delete, /delete, /dd - Removes your Dummy.");
+			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
+				"/dummy_change, /dummy_swap, /dc, /ds - Swap you with your dummy.");
+			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
+				"/dummy_hammer, /dummy_hammerfly, /dh, /dhf - HammeFly.");
+			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
+				"/dhook - HookFly.");
+			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
+				"/dummy_copy_move, /dcm - Dummy copies all your movement.");
+			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
+				"/control_dummy, /cd - Go to spectators and control your dummy.");
+			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
+				"/rescue d, /r d - Rescue for dummy.");
+			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
+				"/disconnect_rescue d, /dr d - Disconnect rescue for dummy.");
+		}
+		if (str_comp(pArg, "race") == 0)
+		{
+			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
+				"~~~~~~~~~~ RACE CMDLIST ~~~~~~~~~~");
+			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
+				"/pause, /spec, /save, /load");
+			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
+				"/rank, /rankteam, /top5, /top5team");
+			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
+				"/team, /lock, /showothers, /specteam");
+			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
+				"/saytime, /saytimeall, /time, /timer");
+			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
+				"/kill, /times, /points, /top5points");
+			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
+				"/rescue, /r, /disconnect_rescue, /dr");
+		}
+		if (str_comp(pArg, "chat") == 0)
+		{
+			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
+				"~~~~~~~~~~ CHAT CMDLIST ~~~~~~~~~~");
+			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
+				"/me, /dnd, /whisper, /w, /pm, /converse, /c");
+		}
+		if (str_comp(pArg, "other") == 0)
+		{
+			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
+				"~~~~~~~~~~ OTHER CMDLIST ~~~~~~~~~~");
+			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
+				"/credits, /info, /help, /settings, /mapinfo");
+			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
+				"/emote, /eyeemote, /ninjajetpack, /timeout");
+		}
+	}
+}
+
 void CGameContext::ConInfo(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *) pUserData;

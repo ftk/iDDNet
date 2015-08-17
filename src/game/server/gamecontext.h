@@ -322,6 +322,7 @@ private:
 	static void ConUnFreezeHammer(IConsole::IResult *pResult, void *pUserData);
 
 	// iDDNet
+	static void ConCMDList(IConsole::IResult *pResult, void *pUserData);
 	static void ConRescue(IConsole::IResult *pResult, void *pUserData);
 	static void ConDummy(IConsole::IResult *pResult, void *pUserData);
 	static void ConDummyDelete(IConsole::IResult *pResult, void *pUserData);
