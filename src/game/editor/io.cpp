@@ -280,7 +280,26 @@ int CEditorMap::Save(class IStorage *pStorage, const char *pFileName)
 		if(pImg->m_External)
 			Item.m_ImageData = -1;
 		else
-			Item.m_ImageData = df.AddData(Item.m_Width*Item.m_Height*4, pImg->m_pData);
+		{
+			if(pImg->m_Format == CImageInfo::FORMAT_RGB)
+			{
+				// Convert to RGBA
+				unsigned char *pData = (unsigned char*) mem_alloc(Item.m_Width*Item.m_Height*4, 1);
+				for(int i = 0; i < Item.m_Width*Item.m_Height; i++)
+				{
+					pData[i*4] = ((unsigned char*)(pImg->m_pData))[i*3];
+					pData[i*4+1] = ((unsigned char*)(pImg->m_pData))[i*3+1];
+					pData[i*4+2] = ((unsigned char*)(pImg->m_pData))[i*3+2];
+					pData[i*4+3] = 255;
+				}
+				Item.m_ImageData = df.AddData(Item.m_Width*Item.m_Height*4, pData);
+				mem_free(pData);
+			}
+			else
+			{
+				Item.m_ImageData = df.AddData(Item.m_Width*Item.m_Height*4, pImg->m_pData);
+			}
+		}
 		df.AddItem(MAPITEMTYPE_IMAGE, i, sizeof(Item), &Item);
 	}
 
@@ -291,7 +310,7 @@ int CEditorMap::Save(class IStorage *pStorage, const char *pFileName)
 
 		CMapItemSound Item;
 		Item.m_Version = 1;
-		
+
 		Item.m_External = pSound->m_External;
 		Item.m_SoundName = df.AddData(str_length(pSound->m_aName)+1, pSound->m_aName);
 		if(pSound->m_External)
@@ -304,7 +323,7 @@ int CEditorMap::Save(class IStorage *pStorage, const char *pFileName)
 			Item.m_SoundData = df.AddData(pSound->m_DataSize, pSound->m_pData);
 			Item.m_SoundDataSize = pSound->m_DataSize;
 		}
-			
+
 		df.AddItem(MAPITEMTYPE_SOUND, i, sizeof(Item), &Item);
 	}
 
@@ -989,6 +1008,11 @@ int CEditorMap::Load(class IStorage *pStorage, const char *pFileName, int Storag
 									else if(((CLayerSwitch*)pTiles)->m_pSwitchTile[i].m_Type == TILE_PENALTY)
 									{
 										((CLayerTiles*)pTiles)->m_pTiles[i].m_Index = TILE_PENALTY;
+										((CLayerTiles*)pTiles)->m_pTiles[i].m_Flags = ((CLayerSwitch*)pTiles)->m_pSwitchTile[i].m_Flags;
+									}
+									else if(((CLayerSwitch*)pTiles)->m_pSwitchTile[i].m_Type == TILE_BONUS)
+									{
+										((CLayerTiles*)pTiles)->m_pTiles[i].m_Index = TILE_BONUS;
 										((CLayerTiles*)pTiles)->m_pTiles[i].m_Flags = ((CLayerSwitch*)pTiles)->m_pSwitchTile[i].m_Flags;
 									}
 								}

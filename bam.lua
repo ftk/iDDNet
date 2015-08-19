@@ -3,6 +3,11 @@ CheckVersion("0.4")
 Import("configure.lua")
 Import("other/sdl/sdl.lua")
 Import("other/freetype/freetype.lua")
+Import("other/curl/curl.lua")
+Import("other/opus/opusfile.lua")
+Import("other/opus/opus.lua")
+Import("other/opus/ogg.lua")
+Import("other/mysql/mysql.lua")
 
 --- Setup Config -------
 config = NewConfig()
@@ -13,6 +18,12 @@ config:Add(OptTestCompileC("macosxppc", "int main(){return 0;}", "-arch ppc"))
 config:Add(OptLibrary("zlib", "zlib.h", false))
 config:Add(SDL.OptFind("sdl", true))
 config:Add(FreeType.OptFind("freetype", true))
+config:Add(Curl.OptFind("curl", true))
+config:Add(Opusfile.OptFind("opusfile", true))
+config:Add(Opus.OptFind("opus", true))
+config:Add(Ogg.OptFind("ogg", true))
+config:Add(Mysql.OptFind("mysql", false))
+config:Add(OptString("websockets", false))
 config:Finalize("config.lua")
 
 -- data compiler
@@ -119,18 +130,34 @@ if family == "windows" then
 	if platform == "win32" or config.compiler.driver == "gcc" then
 		table.insert(client_depends, CopyToDirectory(".", "other\\freetype\\lib32\\freetype.dll"))
 		table.insert(client_depends, CopyToDirectory(".", "other\\sdl\\lib32\\SDL.dll"))
+
+		table.insert(client_depends, CopyToDirectory(".", "other\\curl\\windows\\lib32\\libcurl.dll"))
+		table.insert(client_depends, CopyToDirectory(".", "other\\curl\\windows\\lib32\\libeay32.dll"))
+		table.insert(client_depends, CopyToDirectory(".", "other\\curl\\windows\\lib32\\libidn-11.dll"))
+		table.insert(client_depends, CopyToDirectory(".", "other\\curl\\windows\\lib32\\ssleay32.dll"))
+		table.insert(client_depends, CopyToDirectory(".", "other\\curl\\windows\\lib32\\zlib1.dll"))
+
+		table.insert(client_depends, CopyToDirectory(".", "other\\opus\\windows\\lib32\\libgcc_s_sjlj-1.dll"))
+		table.insert(client_depends, CopyToDirectory(".", "other\\opus\\windows\\lib32\\libogg-0.dll"))
+		table.insert(client_depends, CopyToDirectory(".", "other\\opus\\windows\\lib32\\libopus-0.dll"))
+		table.insert(client_depends, CopyToDirectory(".", "other\\opus\\windows\\lib32\\libopusfile-0.dll"))
 	else
 		table.insert(client_depends, CopyToDirectory(".", "other\\freetype\\lib64\\freetype.dll"))
 		table.insert(client_depends, CopyToDirectory(".", "other\\sdl\\lib64\\SDL.dll"))
+
+		table.insert(client_depends, CopyToDirectory(".", "other\\curl\\windows\\lib64\\libcurl.dll"))
+		table.insert(client_depends, CopyToDirectory(".", "other\\curl\\windows\\lib64\\libeay32.dll"))
+		table.insert(client_depends, CopyToDirectory(".", "other\\curl\\windows\\lib64\\ssleay32.dll"))
+		table.insert(client_depends, CopyToDirectory(".", "other\\curl\\windows\\lib64\\zlib1.dll"))
+
+		table.insert(client_depends, CopyToDirectory(".", "other\\opus\\windows\\lib64\\libwinpthread-1.dll"))
+		table.insert(client_depends, CopyToDirectory(".", "other\\opus\\windows\\lib64\\libgcc_s_seh-1.dll"))
+		table.insert(client_depends, CopyToDirectory(".", "other\\opus\\windows\\lib64\\libogg-0.dll"))
+		table.insert(client_depends, CopyToDirectory(".", "other\\opus\\windows\\lib64\\libopus-0.dll"))
+		table.insert(client_depends, CopyToDirectory(".", "other\\opus\\windows\\lib64\\libopusfile-0.dll"))
 	end
 	table.insert(server_sql_depends, CopyToDirectory(".", "other\\mysql\\vc2005libs\\mysqlcppconn.dll"))
 	table.insert(server_sql_depends, CopyToDirectory(".", "other\\mysql\\vc2005libs\\libmysql.dll"))
-
-	--copy opus libs
-	table.insert(client_depends, CopyToDirectory(".", "other\\opus\\windows\\lib32\\libgcc_s_sjlj-1.dll"))
-	table.insert(client_depends, CopyToDirectory(".", "other\\opus\\windows\\lib32\\libogg-0.dll"))
-	table.insert(client_depends, CopyToDirectory(".", "other\\opus\\windows\\lib32\\libopus-0.dll"))
-	table.insert(client_depends, CopyToDirectory(".", "other\\opus\\windows\\lib32\\libopusfile-0.dll"))
 
 	if config.compiler.driver == "cl" then
 		client_link_other = {ResCompile("other/icons/teeworlds_cl.rc")}
@@ -164,14 +191,20 @@ function build(settings)
 		settings.link.flags:Add(ldflags)
 	end
 
+	if config.websockets.value then
+		settings.cc.defines:Add("WEBSOCKETS")
+	end
+
 	if config.compiler.driver == "cl" then
 		settings.cc.flags:Add("/wd4244")
 		settings.cc.flags:Add("/EHsc")
 	else
-		settings.link.flags:Add("-static-libgcc")
-		settings.link.flags:Add("-static-libstdc++")
 		settings.cc.flags:Add("-Wall")
 		if family == "windows" then
+			if config.compiler.driver == "gcc" then
+				settings.link.flags:Add("-static-libgcc")
+				settings.link.flags:Add("-static-libstdc++")
+			end
 			-- disable visibility attribute support for gcc on windows
 			settings.cc.defines:Add("NO_VIZ")
 		elseif platform == "macosx" then
@@ -189,10 +222,6 @@ function build(settings)
 
 	settings.cc.includes:Add("src")
 	settings.cc.includes:Add("src/engine/external")
-	settings.cc.includes:Add("src/engine/external/ogg")
-	settings.cc.includes:Add("other/opus/include")
-	settings.cc.includes:Add("other/opus/include/opus")
-	settings.cc.includes:Add("other/mysql/include")
 
 	-- set some platform specific settings
 	if family == "unix" then
@@ -200,6 +229,7 @@ function build(settings)
 			settings.link.frameworks:Add("Carbon")
 			settings.link.frameworks:Add("AppKit")
 			settings.link.libs:Add("dl")
+			settings.link.libs:Add("crypto")
 		else
 			settings.link.libs:Add("pthread")
 			settings.link.libs:Add("dl")
@@ -216,6 +246,7 @@ function build(settings)
 		settings.link.libs:Add("ws2_32")
 		settings.link.libs:Add("ole32")
 		settings.link.libs:Add("shell32")
+		settings.link.libs:Add("advapi32")
 	end
 
 	-- compile zlib if needed
@@ -234,6 +265,10 @@ function build(settings)
 	wavpack = Compile(settings, Collect("src/engine/external/wavpack/*.c"))
 	pnglite = Compile(settings, Collect("src/engine/external/pnglite/*.c"))
 	jsonparser = Compile(settings, Collect("src/engine/external/json-parser/*.c"))
+	md5 = Compile(settings, "src/engine/external/md5/md5.c")
+	if config.websockets.value then
+		libwebsockets = Compile(settings, Collect("src/engine/external/libwebsockets/*.c"))
+	end
 
 	-- build game components
 	engine_settings = settings:Copy()
@@ -242,76 +277,43 @@ function build(settings)
 	launcher_settings = engine_settings:Copy()
 
 	if family == "unix" then
-		if string.find(settings.config_name, "sql") then
-			server_settings.link.libs:Add("mysqlcppconn-static")
-			server_settings.link.libs:Add("mysqlclient")
-			server_settings.link.libs:Add("dl")
-			server_settings.link.libs:Add("rt")
-		end
-		
 		if platform == "macosx" then
 			client_settings.link.frameworks:Add("OpenGL")
 			client_settings.link.frameworks:Add("AGL")
 			client_settings.link.frameworks:Add("Carbon")
 			client_settings.link.frameworks:Add("Cocoa")
 			launcher_settings.link.frameworks:Add("Cocoa")
-
-			client_settings.link.libs:Add("opusfile")
-			client_settings.link.libs:Add("opus")
-			client_settings.link.libs:Add("ogg")
-
-			if string.find(settings.config_name, "64") then
-				client_settings.link.libpath:Add("other/opus/mac/lib64")
-			else
-				client_settings.link.libpath:Add("other/opus/mac/lib32")
-			end
-
-			if string.find(settings.config_name, "sql") then
-				if arch == "amd64" then
-					server_settings.link.libpath:Add("other/mysql/mac/lib64")
-				else
-					server_settings.link.libpath:Add("other/mysql/mac/lib32")
-				end
-			end
+			client_settings.cc.flags:Add("-I/opt/X11/include")
 		else
 			client_settings.link.libs:Add("X11")
 			client_settings.link.libs:Add("GL")
 			client_settings.link.libs:Add("GLU")
-			client_settings.link.libs:Add("opusfile")
-			client_settings.link.libs:Add("opus")
-			client_settings.link.libs:Add("ogg")
-
-			if arch == "amd64" then
-				client_settings.link.libpath:Add("other/opus/linux/lib64")
-			else
-				client_settings.link.libpath:Add("other/opus/linux/lib32")
-			end
-
-			if string.find(settings.config_name, "sql") then
-				if arch == "amd64" then
-					server_settings.link.libpath:Add("other/mysql/linux/lib64")
-				else
-					server_settings.link.libpath:Add("other/mysql/linux/lib32")
-				end
-			end
+			client_settings.link.libs:Add("dl")
 		end
 
 	elseif family == "windows" then
-		client_settings.link.libpath:Add("other/opus/windows/lib32")
+		if arch == "amd64" then
+			client_settings.link.libpath:Add("other/curl/windows/lib64")
+		else
+			client_settings.link.libpath:Add("other/curl/windows/lib32")
+		end
 		client_settings.link.libs:Add("opengl32")
 		client_settings.link.libs:Add("glu32")
 		client_settings.link.libs:Add("winmm")
 		client_settings.link.libs:Add("libopusfile-0")
+		client_settings.link.libs:Add("curl")
 		if string.find(settings.config_name, "sql") then
 			server_settings.link.libpath:Add("other/mysql/vc2005libs")
 			server_settings.link.libs:Add("mysqlcppconn")
 		end
 	end
 
-	-- apply sdl settings
 	config.sdl:Apply(client_settings)
-	-- apply freetype settings
 	config.freetype:Apply(client_settings)
+	config.curl:Apply(client_settings)
+	config.opusfile:Apply(client_settings)
+	config.opus:Apply(client_settings)
+	config.ogg:Apply(client_settings)
 
 	engine = Compile(engine_settings, Collect("src/engine/shared/*.cpp", "src/base/*.c"))
 	client = Compile(client_settings, Collect("src/engine/client/*.cpp"))
@@ -328,9 +330,14 @@ function build(settings)
 	-- build tools (TODO: fix this so we don't get double _d_d stuff)
 	tools_src = Collect("src/tools/*.cpp", "src/tools/*.c")
 
+	client_notification = {}
 	client_osxlaunch = {}
 	server_osxlaunch = {}
 	if platform == "macosx" then
+		notification_settings = client_settings:Copy()
+		notification_settings.cc.flags:Add("-x objective-c++")
+		notification_settings.cc.flags:Add("-I/System/Library/Frameworks/Foundation.framework/Versions/C/Headers")
+		client_notification = Compile(notification_settings, "src/osx/notification.m")
 		client_osxlaunch = Compile(client_settings, "src/osxlaunch/client.m")
 		server_osxlaunch = Compile(launcher_settings, "src/osxlaunch/server.m")
 	end
@@ -338,16 +345,16 @@ function build(settings)
 	tools = {}
 	for i,v in ipairs(tools_src) do
 		toolname = PathFilename(PathBase(v))
-		tools[i] = Link(settings, toolname, Compile(settings, v), engine, zlib, pnglite)
+		tools[i] = Link(settings, toolname, Compile(settings, v), engine, zlib, pnglite, md5)
 	end
 
 	-- build client, server, version server and master server
 	client_exe = Link(client_settings, "DDNet", game_shared, game_client,
 		engine, client, game_editor, zlib, pnglite, wavpack,
-		client_link_other, client_osxlaunch, jsonparser)
+		client_link_other, client_osxlaunch, jsonparser, libwebsockets, md5, client_notification)
 
 	server_exe = Link(server_settings, "iDDNet-Server", engine, server,
-		game_shared, game_server, zlib, server_link_other)
+		game_shared, game_server, zlib, server_link_other, libwebsockets, md5)
 
 	serverlaunch = {}
 	if platform == "macosx" then
@@ -355,13 +362,13 @@ function build(settings)
 	end
 
 	versionserver_exe = Link(server_settings, "versionsrv", versionserver,
-		engine, zlib)
+		engine, zlib, libwebsockets, md5)
 
 	masterserver_exe = Link(server_settings, "mastersrv", masterserver,
-		engine, zlib)
+		engine, zlib, md5)
 
 	twping_exe = Link(server_settings, "twping", twping,
-		engine, zlib)
+		engine, zlib, md5)
 
 	-- make targets
 	c = PseudoTarget("client".."_"..settings.config_name, client_exe, client_depends)
@@ -415,6 +422,9 @@ release_sql_settings.config_ext = "_sql"
 release_sql_settings.debug = 0
 release_sql_settings.optimize = 1
 release_sql_settings.cc.defines:Add("CONF_RELEASE", "CONF_SQL")
+
+config.mysql:Apply(debug_sql_settings)
+config.mysql:Apply(release_sql_settings)
 
 if platform == "macosx" then
 	debug_settings_ppc = debug_settings:Copy()

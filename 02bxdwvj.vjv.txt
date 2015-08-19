@@ -1,0 +1,261 @@
+﻿Merge remote-tracking branch 'ddnet/master' into test
+
+Conflicts:
+	announcement.txt
+	bam.lua
+	src/engine/shared/network.h
+	src/engine/shared/network_conn.cpp
+	src/engine/shared/network_server.cpp
+	src/game/server/ddracechat.cpp
+	src/game/server/entities/character.cpp
+	src/game/server/gamecontext.cpp
+
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+# On branch test
+# Changes to be committed:
+#	modified:   .gitignore
+#	new file:   autoexec_server.cfg
+#	deleted:    backup/DDRace.ico
+#	deleted:    backup/DDRace.pdn
+#	deleted:    backup/DDRace.png
+#	deleted:    backup/DDRace_srv.ico
+#	deleted:    backup/Numbered entities by Zeta-Heornchen.png
+#	deleted:    backup/Numbered entities.png
+#	deleted:    backup/bam_done.png
+#	deleted:    backup/ddrace_entities_full.png
+#	deleted:    backup/ddracelogobig.png
+#	deleted:    backup/g11240.png
+#	deleted:    backup/g4741.png
+#	deleted:    backup/icon.png
+#	deleted:    backup/icon2.png
+#	deleted:    backup/icon3.png
+#	modified:   bam.lua
+#	new file:   circle.yml
+#	new file:   data/ca-ddnet.pem
+#	new file:   data/countryflags/XCA.png
+#	new file:   data/countryflags/XEU.png
+#	modified:   data/countryflags/index.txt
+#	new file:   data/editor/basic_freeze.rules
+#	new file:   data/editor/ddmax_freeze.rules
+#	deleted:    data/editor/ddnet-tiles.rules
+#
+# Changes not staged for commit:
+#	deleted:    AndroidAppSettings.cfg
+#	deleted:    BUILDING_ANDROID
+#	deleted:    Makefile
+#	modified:   README.md
+#	deleted:    data/editor/ddnet-walls.rules
+#	modified:   data/editor/entities.png
+#	modified:   data/editor/entities_clear.png
+#	modified:   data/editor/front.png
+#	modified:   data/editor/grass_main.rules
+#	modified:   data/editor/grass_main_0.7.rules
+#	deleted:    data/editor/round-tiles.rules
+#	modified:   data/editor/speedup.png
+#	modified:   data/editor/switch.png
+#	modified:   data/editor/tele.png
+#	modified:   data/editor/tune.png
+#	deleted:    data/fonts/FreeSansBold.ttf
+#	deleted:    data/fonts/LICENSE
+#	deleted:    data/fonts/VERSION
+#	deleted:    data/fonts/vera.ttf
+#	modified:   data/languages/german.txt
+#	modified:   data/languages/index.txt
+#	modified:   data/languages/italian.txt
+#	modified:   data/languages/polish.txt
+#	modified:   data/languages/turkish.txt
+#	deleted:    data/mapres/ddnet-start.png
+#	deleted:    data/mapres/ddnet-tiles.png
+#	deleted:    data/mapres/ddnet-walls.png
+#	modified:   data/mapres/grass_main_0.7.png
+#	deleted:    data/mapres/round-tiles.png
+#	modified:   data/mapres/water.png
+#	deleted:    data/maps/Kobra.map
+#	modified:   datasrc/network.py
+#	modified:   license.txt
+#	deleted:    license_DDRace.txt
+#	deleted:    readme.txt
+#	modified:   scripts/make_release.py
+#	modified:   src/base/confusables.c
+#	modified:   src/base/system.c
+#	modified:   src/base/system.h
+#	modified:   src/base/tl/threading.h
+#	modified:   src/base/vmath.h
+#	deleted:    src/engine/autoupdate.h
+#	modified:   src/engine/client.h
+#	deleted:    src/engine/client/autoupdate.cpp
+#	deleted:    src/engine/client/autoupdate.h
+#	modified:   src/engine/client/backend_sdl.cpp
+#	modified:   src/engine/client/backend_sdl.h
+#	modified:   src/engine/client/client.cpp
+#	modified:   src/engine/client/client.h
+#	modified:   src/engine/client/friends.cpp
+#	modified:   src/engine/client/friends.h
+#	modified:   src/engine/client/graphics.cpp
+#	modified:   src/engine/client/graphics.h
+#	modified:   src/engine/client/graphics_threaded.cpp
+#	modified:   src/engine/client/graphics_threaded.h
+#	modified:   src/engine/client/serverbrowser.cpp
+#	modified:   src/engine/client/serverbrowser.h
+#	modified:   src/engine/client/sound.cpp
+#	modified:   src/engine/client/text.cpp
+#	modified:   src/engine/external/json-parser/json.c
+#	modified:   src/engine/external/json-parser/json.h
+#	modified:   src/engine/friends.h
+#	modified:   src/engine/input.h
+#	modified:   src/engine/server/server.cpp
+#	modified:   src/engine/server/server.h
+#	modified:   src/engine/serverbrowser.h
+#	modified:   src/engine/shared/config.cpp
+#	modified:   src/engine/shared/config.h
+#	modified:   src/engine/shared/config_variables.h
+#	modified:   src/engine/shared/demo.cpp
+#	modified:   src/engine/shared/fifoconsole.cpp
+#	modified:   src/engine/shared/huffman.cpp
+#	modified:   src/engine/shared/jobs.cpp
+#	modified:   src/engine/shared/jobs.h
+#	modified:   src/engine/shared/masterserver.cpp
+#	modified:   src/engine/shared/memheap.cpp
+#	modified:   src/engine/shared/netban.cpp
+#	modified:   src/engine/shared/netban.h
+#	modified:   src/engine/shared/network.cpp
+#	modified:   src/engine/shared/network.h
+#	modified:   src/engine/shared/network_conn.cpp
+#	modified:   src/engine/shared/network_server.cpp
+#	modified:   src/engine/shared/protocol.h
+#	modified:   src/engine/shared/ringbuffer.h
+#	modified:   src/engine/shared/snapshot.cpp
+#	modified:   src/engine/shared/storage.cpp
+#	modified:   src/engine/shared/storage.h
+#	modified:   src/engine/storage.h
+#	modified:   src/game/client/component.h
+#	modified:   src/game/client/components/binds.cpp
+#	modified:   src/game/client/components/broadcast.cpp
+#	modified:   src/game/client/components/camera.cpp
+#	modified:   src/game/client/components/camera.h
+#	modified:   src/game/client/components/chat.cpp
+#	modified:   src/game/client/components/chat.h
+#	modified:   src/game/client/components/console.cpp
+#	modified:   src/game/client/components/console.h
+#	modified:   src/game/client/components/controls.cpp
+#	modified:   src/game/client/components/controls.h
+#	modified:   src/game/client/components/countryflags.cpp
+#	modified:   src/game/client/components/emoticon.cpp
+#	modified:   src/game/client/components/ghost.cpp
+#	modified:   src/game/client/components/ghost.h
+#	modified:   src/game/client/components/hud.cpp
+#	modified:   src/game/client/components/items.cpp
+#	modified:   src/game/client/components/killmessages.cpp
+#	modified:   src/game/client/components/killmessages.h
+#	modified:   src/game/client/components/maplayers.cpp
+#	modified:   src/game/client/components/mapsounds.cpp
+#	modified:   src/game/client/components/menus.cpp
+#	modified:   src/game/client/components/menus.h
+#	modified:   src/game/client/components/menus_browser.cpp
+#	modified:   src/game/client/components/menus_demo.cpp
+#	modified:   src/game/client/components/menus_ingame.cpp
+#	modified:   src/game/client/components/menus_settings.cpp
+#	modified:   src/game/client/components/motd.cpp
+#	modified:   src/game/client/components/nameplates.cpp
+#	modified:   src/game/client/components/players.cpp
+#	modified:   src/game/client/components/scoreboard.cpp
+#	modified:   src/game/client/components/sounds.cpp
+#	modified:   src/game/client/components/sounds.h
+#	modified:   src/game/client/components/spectator.cpp
+#	modified:   src/game/client/components/spectator.h
+#	modified:   src/game/client/components/voting.cpp
+#	modified:   src/game/client/gameclient.cpp
+#	modified:   src/game/client/gameclient.h
+#	modified:   src/game/client/render_map.cpp
+#	modified:   src/game/collision.cpp
+#	modified:   src/game/collision.h
+#	modified:   src/game/editor/auto_map.cpp
+#	modified:   src/game/editor/auto_map.h
+#	modified:   src/game/editor/editor.cpp
+#	modified:   src/game/editor/editor.h
+#	modified:   src/game/editor/io.cpp
+#	modified:   src/game/editor/layer_tiles.cpp
+#	modified:   src/game/editor/popups.cpp
+#	modified:   src/game/gamecore.cpp
+#	modified:   src/game/gamecore.h
+#	modified:   src/game/layers.cpp
+#	modified:   src/game/mapitems.h
+#	modified:   src/game/server/ddracechat.cpp
+#	modified:   src/game/server/ddracechat.h
+#	modified:   src/game/server/ddracecommands.cpp
+#	modified:   src/game/server/entities/character.cpp
+#	modified:   src/game/server/entities/character.h
+#	modified:   src/game/server/entities/door.cpp
+#	modified:   src/game/server/entities/door.h
+#	modified:   src/game/server/entities/gun.cpp
+#	modified:   src/game/server/entities/gun.h
+#	modified:   src/game/server/entities/laser.cpp
+#	modified:   src/game/server/entities/projectile.cpp
+#	modified:   src/game/server/entities/projectile.h
+#	modified:   src/game/server/gamecontext.cpp
+#	modified:   src/game/server/gamecontext.h
+#	modified:   src/game/server/gamecontroller.cpp
+#	modified:   src/game/server/gamecontroller.h
+#	modified:   src/game/server/gameworld.cpp
+#	modified:   src/game/server/player.cpp
+#	modified:   src/game/server/player.h
+#	modified:   src/game/server/save.cpp
+#	modified:   src/game/server/score/file_score.cpp
+#	modified:   src/game/server/score/sql_score.cpp
+#	modified:   src/game/server/teams.cpp
+#	modified:   src/game/teamscore.cpp
+#	modified:   src/game/teamscore.h
+#	modified:   src/game/tuning.h
+#	modified:   src/game/variables.h
+#	modified:   src/game/version.h
+#	modified:   src/mastersrv/mastersrv.cpp
+#	modified:   src/tools/crapnet.cpp
+#	modified:   src/versionsrv/versionsrv.cpp
+#
+# Untracked files:
+#	data/editor/generic_clear.rules
+#	data/editor/generic_unhookable.rules
+#	data/editor/generic_unhookable_0.7.rules
+#	data/editor/round_tiles.rules
+#	data/languages/catalan.txt
+#	data/languages/scripts/
+#	data/mapres/basic_freeze.png
+#	data/mapres/ddmax_freeze.png
+#	data/mapres/desert_background.png
+#	data/mapres/desert_mountains_new_background.png
+#	data/mapres/desert_mountains_new_foreground.png
+#	data/mapres/font_teeworlds.png
+#	data/mapres/font_teeworlds_alt.png
+#	data/mapres/generic_clear.png
+#	data/mapres/grass_doodads_0.7.png
+#	data/mapres/mixed_tiles.png
+#	data/mapres/round_tiles.png
+#	data/mapres/snow_mountain.png
+#	data/maps/Goo!.map
+#	data/maps/Kobra 4.cfg
+#	data/maps/Kobra 4.map
+#	hc5jdmi0.15s.txt
+#	other/curl/
+#	other/mysql/mysql.lua
+#	other/opus/ogg.lua
+#	other/opus/opus.lua
+#	other/opus/opusfile.lua
+#	other/opus/windows/lib64/
+#	scripts/AndroidAppSettings.cfg
+#	scripts/make_android.sh
+#	src/engine/client/fetcher.cpp
+#	src/engine/client/fetcher.h
+#	src/engine/client/updater.cpp
+#	src/engine/client/updater.h
+#	src/engine/external/libwebsockets/
+#	src/engine/external/md5/
+#	src/engine/fetcher.h
+#	src/engine/shared/websockets.cpp
+#	src/engine/shared/websockets.h
+#	src/engine/updater.h
+#	src/game/client/components/statboard.cpp
+#	src/game/client/components/statboard.h
+#	src/osx/
+#
+

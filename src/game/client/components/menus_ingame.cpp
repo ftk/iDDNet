@@ -59,14 +59,18 @@ void CMenus::RenderGame(CUIRect MainView)
 			Client()->Disconnect();
 	}
 
+	static int s_SpectateButton = 0;
+	static int s_JoinRedButton = 0;
+	static int s_JoinBlueButton = 0;
+	bool DummyConnecting = m_pClient->Client()->DummyConnecting();
+
 	if(m_pClient->m_Snap.m_pLocalInfo && m_pClient->m_Snap.m_pGameInfoObj)
 	{
 		if(m_pClient->m_Snap.m_pLocalInfo->m_Team != TEAM_SPECTATORS)
 		{
 			ButtonBar.VSplitLeft(5.0f, 0, &ButtonBar);
 			ButtonBar.VSplitLeft(120.0f, &Button, &ButtonBar);
-			static int s_SpectateButton = 0;
-			if(DoButton_Menu(&s_SpectateButton, Localize("Spectate"), 0, &Button))
+			if(!DummyConnecting && DoButton_Menu(&s_SpectateButton, Localize("Spectate"), 0, &Button))
 			{
 				if(g_Config.m_ClDummy == 0 || m_pClient->Client()->DummyConnected())
 				{
@@ -82,8 +86,7 @@ void CMenus::RenderGame(CUIRect MainView)
 			{
 				ButtonBar.VSplitLeft(5.0f, 0, &ButtonBar);
 				ButtonBar.VSplitLeft(120.0f, &Button, &ButtonBar);
-				static int s_SpectateButton = 0;
-				if(DoButton_Menu(&s_SpectateButton, Localize("Join red"), 0, &Button))
+				if(!DummyConnecting && DoButton_Menu(&s_JoinRedButton, Localize("Join red"), 0, &Button))
 				{
 					m_pClient->SendSwitchTeam(TEAM_RED);
 					SetActive(false);
@@ -94,8 +97,7 @@ void CMenus::RenderGame(CUIRect MainView)
 			{
 				ButtonBar.VSplitLeft(5.0f, 0, &ButtonBar);
 				ButtonBar.VSplitLeft(120.0f, &Button, &ButtonBar);
-				static int s_SpectateButton = 0;
-				if(DoButton_Menu(&s_SpectateButton, Localize("Join blue"), 0, &Button))
+				if(!DummyConnecting && DoButton_Menu(&s_JoinBlueButton, Localize("Join blue"), 0, &Button))
 				{
 					m_pClient->SendSwitchTeam(TEAM_BLUE);
 					SetActive(false);
@@ -108,8 +110,7 @@ void CMenus::RenderGame(CUIRect MainView)
 			{
 				ButtonBar.VSplitLeft(5.0f, 0, &ButtonBar);
 				ButtonBar.VSplitLeft(120.0f, &Button, &ButtonBar);
-				static int s_SpectateButton = 0;
-				if(DoButton_Menu(&s_SpectateButton, Localize("Join game"), 0, &Button))
+				if(!DummyConnecting && DoButton_Menu(&s_SpectateButton, Localize("Join game"), 0, &Button))
 				{
 					m_pClient->SendSwitchTeam(0);
 					SetActive(false);
@@ -135,7 +136,11 @@ void CMenus::RenderGame(CUIRect MainView)
 	ButtonBar.VSplitLeft(170.0f, &Button, &ButtonBar);
 
 	static int s_DummyButton = 0;
-	if(DoButton_Menu(&s_DummyButton, Localize(Client()->DummyConnected() ? "Disconnect dummy" : "Connect dummy"), 0, &Button))
+	if(DummyConnecting)
+	{
+		DoButton_Menu(&s_DummyButton, Localize("Connecting dummy"), 1, &Button);
+	}
+	else if(DoButton_Menu(&s_DummyButton, Localize(Client()->DummyConnected() ? "Disconnect dummy" : "Connect dummy"), 0, &Button))
 	{
 		if(!Client()->DummyConnected())
 		{
@@ -452,21 +457,45 @@ void CMenus::RenderServerControlServer(CUIRect MainView)
 	static int s_VoteList = 0;
 	static float s_ScrollValue = 0;
 	CUIRect List = MainView;
-#if defined(__ANDROID__)
-	UiDoListboxStart(&s_VoteList, &List, 50.0f, "", "", m_pClient->m_pVoting->m_NumVoteOptions, 1, m_CallvoteSelectedOption, s_ScrollValue);
-#else
-	UiDoListboxStart(&s_VoteList, &List, 24.0f, "", "", m_pClient->m_pVoting->m_NumVoteOptions, 1, m_CallvoteSelectedOption, s_ScrollValue);
-#endif
+	int Total = m_pClient->m_pVoting->m_NumVoteOptions;
+	int NumVoteOptions = 0;
+	int aIndices[MAX_VOTE_OPTIONS];
+	static int s_CurVoteOption = 0;
+	int TotalShown = 0;
 
 	for(CVoteOptionClient *pOption = m_pClient->m_pVoting->m_pFirst; pOption; pOption = pOption->m_pNext)
 	{
+		if(m_aFilterString[0] != '\0' && !str_find_nocase(pOption->m_aDescription, m_aFilterString))
+			continue;
+		TotalShown++;
+	}
+
+#if defined(__ANDROID__)
+	UiDoListboxStart(&s_VoteList, &List, 50.0f, "", "", TotalShown, 1, s_CurVoteOption, s_ScrollValue);
+#else
+	UiDoListboxStart(&s_VoteList, &List, 24.0f, "", "", TotalShown, 1, s_CurVoteOption, s_ScrollValue);
+#endif
+
+	int i = -1;
+	for(CVoteOptionClient *pOption = m_pClient->m_pVoting->m_pFirst; pOption; pOption = pOption->m_pNext)
+	{
+		i++;
+		if(m_aFilterString[0] != '\0' && !str_find_nocase(pOption->m_aDescription, m_aFilterString))
+			continue;
+
 		CListboxItem Item = UiDoListboxNextItem(pOption);
 
 		if(Item.m_Visible)
 			UI()->DoLabelScaled(&Item.m_Rect, pOption->m_aDescription, 16.0f, -1);
+
+		if(NumVoteOptions < Total)
+			aIndices[NumVoteOptions] = i;
+		NumVoteOptions++;
 	}
 
-	m_CallvoteSelectedOption = UiDoListboxEnd(&s_ScrollValue, 0);
+	s_CurVoteOption = UiDoListboxEnd(&s_ScrollValue, 0);
+	if(s_CurVoteOption < Total)
+		m_CallvoteSelectedOption = aIndices[s_CurVoteOption];
 }
 
 void CMenus::RenderServerControlKick(CUIRect MainView, bool FilterSpectators)
@@ -482,6 +511,10 @@ void CMenus::RenderServerControlKick(CUIRect MainView, bool FilterSpectators)
 		int Index = m_pClient->m_Snap.m_paInfoByName[i]->m_ClientID;
 		if(Index == m_pClient->m_Snap.m_LocalClientID || (FilterSpectators && m_pClient->m_Snap.m_paInfoByName[i]->m_Team == TEAM_SPECTATORS))
 			continue;
+
+		if(!str_find_nocase(m_pClient->m_aClients[Index].m_aName, m_aFilterString))
+			continue;
+
 		if(m_CallvoteSelectedPlayer == Index)
 			Selected = NumOptions;
 		aPlayerIDs[NumOptions++] = Index;
@@ -570,7 +603,38 @@ void CMenus::RenderServerControl(CUIRect MainView)
 
 	// vote menu
 	{
-		CUIRect Button;
+		CUIRect Button, Button2, QuickSearch;
+
+		// render quick search
+		{
+			Bottom.VSplitLeft(240.0f, &QuickSearch, &Bottom);
+			QuickSearch.HSplitTop(5.0f, 0, &QuickSearch);
+			const char *pSearchLabel = Localize("⚲");
+			UI()->DoLabelScaled(&QuickSearch, pSearchLabel, 14.0f, -1);
+			float wSearch = TextRender()->TextWidth(0, 14.0f, pSearchLabel, -1);
+			QuickSearch.VSplitLeft(wSearch, 0, &QuickSearch);
+			QuickSearch.VSplitLeft(5.0f, 0, &QuickSearch);
+			QuickSearch.VSplitLeft(QuickSearch.w-15.0f, &QuickSearch, &Button2);
+			static float Offset = 0.0f;
+			//static char aFilterString[25];
+			if(DoEditBox(&m_aFilterString, &QuickSearch, m_aFilterString, sizeof(m_aFilterString), 14.0f, &Offset, false, CUI::CORNER_L, Localize("Search"))) {
+				// TODO: Implement here
+			}
+
+			// clear button
+			{
+				static int s_ClearButton = 0;
+				RenderTools()->DrawUIRect(&Button2, vec4(1,1,1,0.33f)*ButtonColorMul(&s_ClearButton), CUI::CORNER_R, 3.0f);
+				UI()->DoLabel(&Button2, "×", Button2.h*ms_FontmodHeight, 0);
+				if(UI()->DoButtonLogic(&s_ClearButton, "×", 0, &Button2))
+				{
+					m_aFilterString[0] = 0;
+					UI()->SetActiveItem(&m_aFilterString);
+					Client()->ServerBrowserUpdate();
+				}
+			}
+		}
+
 		Bottom.VSplitRight(120.0f, &Bottom, &Button);
 
 		static int s_CallVoteButton = 0;

@@ -5,8 +5,10 @@
 #include "kernel.h"
 
 #include "message.h"
+#include <engine/friends.h>
 #include <engine/shared/config.h>
 #include <versionsrv/versionsrv.h>
+#include <game/generated/protocol.h>
 
 enum
 {
@@ -39,6 +41,10 @@ protected:
 public:
 	int m_LocalIDs[2];
 	char m_aNews[NEWS_SIZE];
+
+	CNetObj_PlayerInput DummyInput;
+
+	bool m_DummySendConnInfo;
 
 	class CSnapItem
 	{
@@ -91,7 +97,9 @@ public:
 	virtual void DummyDisconnect(const char *pReason) = 0;
 	virtual void DummyConnect() = 0;
 	virtual bool DummyConnected() = 0;
+	virtual bool DummyConnecting() = 0;
 
+	virtual void Restart() = 0;
 	virtual void Quit() = 0;
 	virtual const char *DemoPlayer_Play(const char *pFilename, int StorageType) = 0;
 	virtual void DemoRecorder_Start(const char *pFilename, bool WithTimestamp, int Recorder) = 0;
@@ -99,6 +107,7 @@ public:
 	virtual void DemoRecorder_Stop(int Recorder) = 0;
 	virtual class IDemoRecorder *DemoRecorder(int Recorder) = 0;
 	virtual void AutoScreenshot_Start() = 0;
+	virtual void AutoStatScreenshot_Start() = 0;
 	virtual void ServerBrowserUpdate() = 0;
 
 	// networking
@@ -121,6 +130,8 @@ public:
 
 	// server info
 	virtual void GetServerInfo(class CServerInfo *pServerInfo) = 0;
+
+	virtual void CheckVersionUpdate() = 0;
 
 	// snapshot interface
 
@@ -172,6 +183,9 @@ public:
 	virtual void DemoSlice(const char *pDstPath) = 0;
 
 	virtual void RequestDDNetSrvList() = 0;
+	virtual bool EditorHasUnsavedData() = 0;
+
+	virtual IFriends* Foes() = 0;
 };
 
 class IGameClient : public IInterface

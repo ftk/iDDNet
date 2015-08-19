@@ -63,7 +63,7 @@ void CGraphicsBackend_Threaded::StartProcessor(ICommandProcessor *pProcessor)
 {
 	m_Shutdown = false;
 	m_pProcessor = pProcessor;
-	m_pThread = thread_create(ThreadFunc, this);
+	m_pThread = thread_init(ThreadFunc, this);
 	m_BufferDone.signal();
 }
 
@@ -186,7 +186,7 @@ void CCommandProcessorFragment_OpenGL::SetState(const CCommandBuffer::SState &St
 	}
 	else
 		glDisable(GL_SCISSOR_TEST);
-	
+
 	// texture
 	if(State.m_Texture >= 0 && State.m_Texture < CCommandBuffer::MAX_TEXTURES)
 	{
@@ -325,7 +325,7 @@ void CCommandProcessorFragment_OpenGL::Cmd_Clear(const CCommandBuffer::SCommand_
 void CCommandProcessorFragment_OpenGL::Cmd_Render(const CCommandBuffer::SCommand_Render *pCommand)
 {
 	SetState(pCommand->m_State);
-	
+
 	glVertexPointer(3, GL_FLOAT, sizeof(CCommandBuffer::SVertex), (char*)pCommand->m_pVertices);
 	glTexCoordPointer(2, GL_FLOAT, sizeof(CCommandBuffer::SVertex), (char*)pCommand->m_pVertices + sizeof(float)*3);
 	glColorPointer(4, GL_FLOAT, sizeof(CCommandBuffer::SVertex), (char*)pCommand->m_pVertices + sizeof(float)*5);
@@ -336,22 +336,18 @@ void CCommandProcessorFragment_OpenGL::Cmd_Render(const CCommandBuffer::SCommand
 	switch(pCommand->m_PrimType)
 	{
 	case CCommandBuffer::PRIMTYPE_QUADS:
-#if !defined(__ANDROID__)
-		if(g_Config.m_GfxQuadsAsTriangles)
-#endif
-		{
-			for( unsigned i = 0, j = pCommand->m_PrimCount; i < j; i++ )
-				glDrawArrays(GL_TRIANGLE_FAN, i*4, 4);
-		}
-#if !defined(__ANDROID__)
-		else
-		{
-			glDrawArrays(GL_QUADS, 0, pCommand->m_PrimCount*4);
-		}
+#if defined(__ANDROID__)
+		for( unsigned i = 0, j = pCommand->m_PrimCount; i < j; i++ )
+			glDrawArrays(GL_TRIANGLE_FAN, i*4, 4);
+#else
+		glDrawArrays(GL_QUADS, 0, pCommand->m_PrimCount*4);
 #endif
 		break;
 	case CCommandBuffer::PRIMTYPE_LINES:
 		glDrawArrays(GL_LINES, 0, pCommand->m_PrimCount*2);
+		break;
+	case CCommandBuffer::PRIMTYPE_TRIANGLES:
+		glDrawArrays(GL_TRIANGLES, 0, pCommand->m_PrimCount*3);
 		break;
 	default:
 		dbg_msg("render", "unknown primtype %d\n", pCommand->m_Cmd);
@@ -510,16 +506,16 @@ void CCommandProcessor_SDL_OpenGL::RunBuffer(CCommandBuffer *pBuffer)
 		const CCommandBuffer::SCommand *pBaseCommand = pBuffer->GetCommand(&CmdIndex);
 		if(pBaseCommand == 0x0)
 			break;
-		
+
 		if(m_OpenGL.RunCommand(pBaseCommand))
 			continue;
-		
+
 		if(m_SDL.RunCommand(pBaseCommand))
 			continue;
 
 		if(m_General.RunCommand(pBaseCommand))
 			continue;
-		
+
 		dbg_msg("graphics", "unknown command %d", pBaseCommand->m_Cmd);
 	}
 }
@@ -604,7 +600,7 @@ int CGraphicsBackend_SDL_OpenGL::Init(const char *pName, int *Width, int *Height
 		dbg_msg("gfx", "unable to set video mode: %s", SDL_GetError());
 		//*pCommand->m_pResult = -1;
 		return -1;
-	}		
+	}
 
 	SDL_ShowCursor(0);
 
@@ -639,7 +635,7 @@ int CGraphicsBackend_SDL_OpenGL::Shutdown()
 	CmdBuffer.AddCommand(Cmd);
 	RunBuffer(&CmdBuffer);
 	WaitForIdle();
-			
+
 	// stop and delete the processor
 	StopProcessor();
 	delete m_pProcessor;

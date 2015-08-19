@@ -17,16 +17,26 @@
 
 CCamera::CCamera()
 {
-	m_Zoom = 1.0f;
 	m_CamType = CAMTYPE_UNDEFINED;
+	m_ZoomSet = false;
+	m_Zoom = 1.0;
 }
 
 void CCamera::OnRender()
 {
 	CServerInfo Info;
 	Client()->GetServerInfo(&Info);
+
 	if(!(m_pClient->m_Snap.m_SpecInfo.m_Active || IsRace(&Info) || Client()->State() == IClient::STATE_DEMOPLAYBACK))
-		m_Zoom = 1.0f;
+	{
+		m_ZoomSet = false;
+		m_Zoom = 1.0;
+	}
+	else if(!m_ZoomSet && g_Config.m_ClDefaultZoom != 10)
+	{
+		m_ZoomSet = true;
+		OnReset();
+	}
 
 	// update camera center
 	if(m_pClient->m_Snap.m_SpecInfo.m_Active && !m_pClient->m_Snap.m_SpecInfo.m_UsePosition)
@@ -75,14 +85,25 @@ void CCamera::OnConsoleInit()
 	Console()->Register("zoom+", "", CFGFLAG_CLIENT, ConZoomPlus, this, "Zoom increase");
 	Console()->Register("zoom-", "", CFGFLAG_CLIENT, ConZoomMinus, this, "Zoom decrease");
 	Console()->Register("zoom", "", CFGFLAG_CLIENT, ConZoomReset, this, "Zoom reset");
+	Console()->Register("toggle_dynamic_camera", "", CFGFLAG_CLIENT, ConToggleDynamic, this, "Turn dynamic camera on/off");
 }
+
+const float ZoomStep = 0.866025f;
 
 void CCamera::OnReset()
 {
 	m_Zoom = 1.0f;
+
+	for (int i = g_Config.m_ClDefaultZoom; i < 10; i++)
+	{
+		m_Zoom *= 1/ZoomStep;
+	}
+	for (int i = g_Config.m_ClDefaultZoom; i > 10; i--)
+	{
+		m_Zoom *= ZoomStep;
+	}
 }
 
-const float ZoomStep = 0.866025f;
 void CCamera::ConZoomPlus(IConsole::IResult *pResult, void *pUserData)
 {
 	CCamera *pSelf = (CCamera *)pUserData;
@@ -104,5 +125,36 @@ void CCamera::ConZoomReset(IConsole::IResult *pResult, void *pUserData)
 	CCamera *pSelf = (CCamera *)pUserData;
 	CServerInfo Info;
 	pSelf->Client()->GetServerInfo(&Info);
-	((CCamera *)pUserData)->m_Zoom = 1.0f;
+	((CCamera *)pUserData)->OnReset();
+}
+
+void CCamera::ToggleDynamic()
+{
+	static int s_OldMousesens = 0;
+	if(g_Config.m_ClMouseDeadzone)
+	{
+		g_Config.m_ClMouseFollowfactor = 0;
+		g_Config.m_ClMouseMaxDistance = g_Config.m_ClDefaultMouseMaxDistance;
+		g_Config.m_ClMouseDeadzone = 0;
+		if(g_Config.m_ClDynCamMousesens && s_OldMousesens)
+		{
+			g_Config.m_InpMousesens = s_OldMousesens;
+		}
+	}
+	else
+	{
+		s_OldMousesens = g_Config.m_InpMousesens;
+		g_Config.m_ClMouseFollowfactor = g_Config.m_ClDynCamFollowFactor;
+		g_Config.m_ClMouseMaxDistance = g_Config.m_ClDynCamMaxDistance;
+		g_Config.m_ClMouseDeadzone = g_Config.m_ClDynCamDeadZone;
+		if(g_Config.m_ClDynCamMousesens)
+		{
+			g_Config.m_InpMousesens = g_Config.m_ClDynCamMousesens;
+		}
+	}
+}
+
+void CCamera::ConToggleDynamic(IConsole::IResult *pResult, void *pUserData)
+{
+	ToggleDynamic();
 }

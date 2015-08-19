@@ -243,7 +243,7 @@ int CLayerTiles::BrushGrab(CLayerGroup *pBrush, CUIRect Rect)
 				for(int x = 0; x < r.w; x++)
 				{
 					pGrabbed->m_pSwitchTile[y*pGrabbed->m_Width+x] = ((CLayerSwitch*)this)->m_pSwitchTile[(r.y+y)*m_Width+(r.x+x)];
-					if(pGrabbed->m_pSwitchTile[y*pGrabbed->m_Width+x].m_Type == ENTITY_DOOR + ENTITY_OFFSET || pGrabbed->m_pSwitchTile[y*pGrabbed->m_Width+x].m_Type == TILE_HIT_START || pGrabbed->m_pSwitchTile[y*pGrabbed->m_Width+x].m_Type == TILE_HIT_END || pGrabbed->m_pSwitchTile[y*pGrabbed->m_Width+x].m_Type == TILE_SWITCHOPEN || pGrabbed->m_pSwitchTile[y*pGrabbed->m_Width+x].m_Type == TILE_SWITCHCLOSE || pGrabbed->m_pSwitchTile[y*pGrabbed->m_Width+x].m_Type == TILE_SWITCHTIMEDOPEN || pGrabbed->m_pSwitchTile[y*pGrabbed->m_Width+x].m_Type == TILE_SWITCHTIMEDCLOSE || pGrabbed->m_pSwitchTile[y*pGrabbed->m_Width+x].m_Type == ENTITY_LASER_LONG + ENTITY_OFFSET || pGrabbed->m_pSwitchTile[y*pGrabbed->m_Width+x].m_Type == ENTITY_LASER_MEDIUM + ENTITY_OFFSET || pGrabbed->m_pSwitchTile[y*pGrabbed->m_Width+x].m_Type == ENTITY_LASER_SHORT + ENTITY_OFFSET || pGrabbed->m_pSwitchTile[y*pGrabbed->m_Width+x].m_Type == TILE_JUMP || pGrabbed->m_pSwitchTile[y*pGrabbed->m_Width+x].m_Type == TILE_PENALTY)
+					if(pGrabbed->m_pSwitchTile[y*pGrabbed->m_Width+x].m_Type == ENTITY_DOOR + ENTITY_OFFSET || pGrabbed->m_pSwitchTile[y*pGrabbed->m_Width+x].m_Type == TILE_HIT_START || pGrabbed->m_pSwitchTile[y*pGrabbed->m_Width+x].m_Type == TILE_HIT_END || pGrabbed->m_pSwitchTile[y*pGrabbed->m_Width+x].m_Type == TILE_SWITCHOPEN || pGrabbed->m_pSwitchTile[y*pGrabbed->m_Width+x].m_Type == TILE_SWITCHCLOSE || pGrabbed->m_pSwitchTile[y*pGrabbed->m_Width+x].m_Type == TILE_SWITCHTIMEDOPEN || pGrabbed->m_pSwitchTile[y*pGrabbed->m_Width+x].m_Type == TILE_SWITCHTIMEDCLOSE || pGrabbed->m_pSwitchTile[y*pGrabbed->m_Width+x].m_Type == ENTITY_LASER_LONG + ENTITY_OFFSET || pGrabbed->m_pSwitchTile[y*pGrabbed->m_Width+x].m_Type == ENTITY_LASER_MEDIUM + ENTITY_OFFSET || pGrabbed->m_pSwitchTile[y*pGrabbed->m_Width+x].m_Type == ENTITY_LASER_SHORT + ENTITY_OFFSET || pGrabbed->m_pSwitchTile[y*pGrabbed->m_Width+x].m_Type == TILE_JUMP || pGrabbed->m_pSwitchTile[y*pGrabbed->m_Width+x].m_Type == TILE_PENALTY || pGrabbed->m_pSwitchTile[y*pGrabbed->m_Width+x].m_Type == TILE_BONUS)
 					{
 						m_pEditor->m_SwitchNum = pGrabbed->m_pSwitchTile[y*pGrabbed->m_Width+x].m_Number;
 						m_pEditor->m_SwitchDelay = pGrabbed->m_pSwitchTile[y*pGrabbed->m_Width+x].m_Delay;
@@ -253,7 +253,7 @@ int CLayerTiles::BrushGrab(CLayerGroup *pBrush, CUIRect Rect)
 		pGrabbed->m_SwitchDelay = m_pEditor->m_SwitchDelay;
 		str_copy(pGrabbed->m_aFileName, m_pEditor->m_aFileName, sizeof(pGrabbed->m_aFileName));
 	}
-	
+
 	else if(m_pEditor->GetSelectedLayer(0) == m_pEditor->m_Map.m_pTuneLayer)
 		{
 		CLayerTune *pGrabbed = new CLayerTune(r.w, r.h);
@@ -262,7 +262,7 @@ int CLayerTiles::BrushGrab(CLayerGroup *pBrush, CUIRect Rect)
 		pGrabbed->m_Image = m_Image;
 		pGrabbed->m_Game = m_Game;
 		pBrush->AddLayer(pGrabbed);
-		
+
 		// copy the tiles
 				for(int y = 0; y < r.h; y++)
 					for(int x = 0; x < r.w; x++)
@@ -466,7 +466,7 @@ void CLayerTiles::Resize(int NewW, int NewH)
 	// resize switch layer if available
 	if(m_Game && m_pEditor->m_Map.m_pSwitchLayer && (m_pEditor->m_Map.m_pSwitchLayer->m_Width != NewW || m_pEditor->m_Map.m_pSwitchLayer->m_Height != NewH))
 		m_pEditor->m_Map.m_pSwitchLayer->Resize(NewW, NewH);
-	
+
 	// resize tune layer if available
 	if(m_Game && m_pEditor->m_Map.m_pTuneLayer && (m_pEditor->m_Map.m_pTuneLayer->m_Width != NewW || m_pEditor->m_Map.m_pTuneLayer->m_Height != NewH))
 			m_pEditor->m_Map.m_pTuneLayer->Resize(NewW, NewH);
@@ -949,7 +949,7 @@ void CLayerTele::FillSelection(bool Empty, CLayer *pBrush, CUIRect Rect)
 {
 	if(m_Readonly)
 		return;
-	
+
 	Snap(&Rect); // corrects Rect; no need of <=
 
 	Snap(&Rect);
@@ -1214,7 +1214,7 @@ void CLayerSpeedup::FillSelection(bool Empty, CLayer *pBrush, CUIRect Rect)
 {
 	if(m_Readonly)
 		return;
-	
+
 	Snap(&Rect); // corrects Rect; no need of <=
 
 	Snap(&Rect);
@@ -1421,7 +1421,7 @@ void CLayerSwitch::BrushDraw(CLayer *pBrush, float wx, float wy)
 			if(fx<0 || fx >= m_Width || fy < 0 || fy >= m_Height)
 				continue;
 
-			if((l->m_pTiles[y*l->m_Width+x].m_Index >= (ENTITY_ARMOR_1 + ENTITY_OFFSET) && l->m_pTiles[y*l->m_Width+x].m_Index <= (ENTITY_DOOR + ENTITY_OFFSET)) || l->m_pTiles[y*l->m_Width+x].m_Index == TILE_HIT_START || l->m_pTiles[y*l->m_Width+x].m_Index == TILE_HIT_END || l->m_pTiles[y*l->m_Width+x].m_Index == TILE_SWITCHOPEN || l->m_pTiles[y*l->m_Width+x].m_Index == TILE_SWITCHCLOSE || l->m_pTiles[y*l->m_Width+x].m_Index == TILE_SWITCHTIMEDOPEN || l->m_pTiles[y*l->m_Width+x].m_Index == TILE_SWITCHTIMEDCLOSE || l->m_pTiles[y*l->m_Width+x].m_Index == TILE_FREEZE || l->m_pTiles[y*l->m_Width+x].m_Index == TILE_DFREEZE || l->m_pTiles[y*l->m_Width+x].m_Index == TILE_DUNFREEZE || l->m_pTiles[y*l->m_Width+x].m_Index == TILE_JUMP || l->m_pTiles[y*l->m_Width+x].m_Index == TILE_PENALTY)
+			if((l->m_pTiles[y*l->m_Width+x].m_Index >= (ENTITY_ARMOR_1 + ENTITY_OFFSET) && l->m_pTiles[y*l->m_Width+x].m_Index <= (ENTITY_DOOR + ENTITY_OFFSET)) || l->m_pTiles[y*l->m_Width+x].m_Index == TILE_HIT_START || l->m_pTiles[y*l->m_Width+x].m_Index == TILE_HIT_END || l->m_pTiles[y*l->m_Width+x].m_Index == TILE_SWITCHOPEN || l->m_pTiles[y*l->m_Width+x].m_Index == TILE_SWITCHCLOSE || l->m_pTiles[y*l->m_Width+x].m_Index == TILE_SWITCHTIMEDOPEN || l->m_pTiles[y*l->m_Width+x].m_Index == TILE_SWITCHTIMEDCLOSE || l->m_pTiles[y*l->m_Width+x].m_Index == TILE_FREEZE || l->m_pTiles[y*l->m_Width+x].m_Index == TILE_DFREEZE || l->m_pTiles[y*l->m_Width+x].m_Index == TILE_DUNFREEZE || l->m_pTiles[y*l->m_Width+x].m_Index == TILE_JUMP || l->m_pTiles[y*l->m_Width+x].m_Index == TILE_PENALTY || l->m_pTiles[y*l->m_Width+x].m_Index == TILE_BONUS)
 			{
 				if(m_pEditor->m_SwitchNum != l->m_SwitchNumber || m_pEditor->m_SwitchDelay != l->m_SwitchDelay)
 				{
@@ -1466,7 +1466,6 @@ void CLayerSwitch::BrushDraw(CLayer *pBrush, float wx, float wy)
 
 			if(l->m_pTiles[y*l->m_Width+x].m_Index == TILE_FREEZE)
 			{
-				m_pSwitchTile[fy*m_Width+fx].m_Number = 0;
 				m_pSwitchTile[fy*m_Width+fx].m_Flags = 0;
 			}
 			else if(l->m_pTiles[y*l->m_Width+x].m_Index == TILE_DFREEZE || l->m_pTiles[y*l->m_Width+x].m_Index == TILE_DUNFREEZE)
@@ -1482,7 +1481,7 @@ void CLayerSwitch::FillSelection(bool Empty, CLayer *pBrush, CUIRect Rect)
 {
 	if(m_Readonly)
 		return;
-	
+
 	Snap(&Rect); // corrects Rect; no need of <=
 
 	Snap(&Rect);
@@ -1522,7 +1521,7 @@ void CLayerSwitch::FillSelection(bool Empty, CLayer *pBrush, CUIRect Rect)
 					else
 						m_pSwitchTile[fy*m_Width+fx].m_Number = pLt->m_pSwitchTile[(y*pLt->m_Width + x%pLt->m_Width) % (pLt->m_Width*pLt->m_Height)].m_Number;
 					if((!pLt->m_pSwitchTile[(y*pLt->m_Width + x%pLt->m_Width) % (pLt->m_Width*pLt->m_Height)].m_Delay) || m_pEditor->m_SwitchDelay != pLt->m_SwitchDelay)
-						m_pSwitchTile[fy*m_Width+fx].m_Delay = m_pEditor->m_SwitchNum;
+						m_pSwitchTile[fy*m_Width+fx].m_Delay = m_pEditor->m_SwitchDelay;
 					else
 						m_pSwitchTile[fy*m_Width+fx].m_Delay = pLt->m_pSwitchTile[(y*pLt->m_Width + x%pLt->m_Width) % (pLt->m_Width*pLt->m_Height)].m_Delay;
 					m_pSwitchTile[fy*m_Width+fx].m_Flags = pLt->m_pSwitchTile[(y*pLt->m_Width + x%pLt->m_Width) % (pLt->m_Width*pLt->m_Height)].m_Flags;
@@ -1744,7 +1743,7 @@ void CLayerTune::FillSelection(bool Empty, CLayer *pBrush, CUIRect Rect)
 {
 	if(m_Readonly)
 			return;
-	
+
 	Snap(&Rect); // corrects Rect; no need of <=
 
 		int sx = ConvertX(Rect.x);

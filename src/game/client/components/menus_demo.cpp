@@ -73,7 +73,7 @@ void CMenus::RenderDemoPlayer(CUIRect MainView)
 
 		Box.HSplitTop(20.f/UI()->Scale(), &Part, &Box);
 		Box.HSplitTop(24.f/UI()->Scale(), &Part, &Box);
-		UI()->DoLabelScaled(&Part, "Select a name", 24.f, 0);
+		UI()->DoLabelScaled(&Part, Localize("Select a name"), 24.f, 0);
 		Box.HSplitTop(20.f/UI()->Scale(), &Part, &Box);
 		Box.HSplitTop(24.f/UI()->Scale(), &Part, &Box);
 		Part.VMargin(20.f/UI()->Scale(), &Part);
@@ -103,11 +103,15 @@ void CMenus::RenderDemoPlayer(CUIRect MainView)
 		if(DoButton_Menu(&s_ButtonOk, Localize("Ok"), 0, &Ok) || m_EnterPressed)
 		{
 			if (str_comp(m_lDemos[m_DemolistSelectedIndex].m_aFilename, m_aCurrentDemoFile) == 0)
-				str_copy(m_aDemoPlayerPopupHint, "Please use a different name", sizeof(m_aDemoPlayerPopupHint));
+				str_copy(m_aDemoPlayerPopupHint, Localize("Please use a different name"), sizeof(m_aDemoPlayerPopupHint));
 			else
 			{
 				m_DemoPlayerState = DEMOPLAYER_NONE;
-				
+
+				int len = str_length(m_aCurrentDemoFile);
+				if(len < 5 || str_comp_nocase(&m_aCurrentDemoFile[len-5], ".demo"))
+					str_append(m_aCurrentDemoFile, ".demo", sizeof(m_aCurrentDemoFile));
+
 				char aPath[512];
 				str_format(aPath, sizeof(aPath), "%s/%s", m_aCurrentDemoFolder, m_aCurrentDemoFile);
 				Client()->DemoSlice(aPath);
@@ -174,7 +178,7 @@ void CMenus::RenderDemoPlayer(CUIRect MainView)
 
 	MainView.HSplitBottom(TotalHeight, 0, &MainView);
 	MainView.VSplitLeft(50.0f, 0, &MainView);
-	MainView.VSplitRight(450.0f, &MainView, 0);
+	MainView.VSplitLeft(450.0f, &MainView, 0);
 
 	RenderTools()->DrawUIRect(&MainView, ms_ColorTabbarActive, CUI::CORNER_T, 10.0f);
 

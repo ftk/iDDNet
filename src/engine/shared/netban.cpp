@@ -205,6 +205,12 @@ void CNetBan::CBanPool<T, HashCount>::Update(CBan<CDataType> *pBan, const CBanIn
 	}
 }
 
+void CNetBan::UnbanAll()
+{
+	m_BanAddrPool.Reset();
+	m_BanRangePool.Reset();
+}
+
 template<class T, int HashCount>
 void CNetBan::CBanPool<T, HashCount>::Reset()
 {
@@ -364,7 +370,7 @@ int CNetBan::UnbanByRange(const CNetRange *pRange)
 {
 	if(pRange->IsValid())
 		return Unban(&m_BanRangePool, pRange);
-	
+
 	Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "net_ban", "ban failed (invalid range)");
 	return -1;
 }
@@ -400,8 +406,15 @@ int CNetBan::UnbanByIndex(int Index)
 	return Result;
 }
 
-bool CNetBan::IsBanned(const NETADDR *pAddr, char *pBuf, unsigned BufferSize) const
+bool CNetBan::IsBanned(const NETADDR *pOrigAddr, char *pBuf, unsigned BufferSize) const
 {
+	NETADDR addr;
+	const NETADDR *pAddr = pOrigAddr;
+	if (pOrigAddr->type == NETTYPE_WEBSOCKET_IPV4) {
+		mem_copy(&addr, pOrigAddr, sizeof(NETADDR));
+		pAddr = &addr;
+		addr.type = NETTYPE_IPV4;
+	}
 	CNetHash aHash[17];
 	int Length = CNetHash::MakeHashArray(pAddr, aHash);
 
@@ -425,7 +438,7 @@ bool CNetBan::IsBanned(const NETADDR *pAddr, char *pBuf, unsigned BufferSize) co
 			}
 		}
 	}
-	
+
 	return false;
 }
 

@@ -22,9 +22,11 @@ void CGameContext::ConCredits(IConsole::IResult *pResult, void *pUserData)
 	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "credit",
 		"Many ideas from the great community,");
 	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "credit",
-		"Help and code by eeeee, HMH, east, CookieMichal,");
+		"Help and code by eeeee, HMH, east, CookieMichal, Learath2,");
 	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "credit",
-		"Savander, laxa, Tobii, BeaR, Wohoo, nuborn, DoNe & others.");
+		"Savander, laxa, Tobii, BeaR, Wohoo, nuborn, DoNe, Shiki,");
+	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "credit",
+		"trml, Soreu, hi_leute_gll, Lady Saavik & others.");
 	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "credit",
 		"Based on DDRace by the DDRace developers,");
 	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "credit",
@@ -853,6 +855,13 @@ void CGameContext::ConLockTeam(IConsole::IResult *pResult, void *pUserData)
 				if (((CGameControllerDDRace*) pSelf->m_pController)->m_Teams.m_Core.Team(i) == Team)
 					pSelf->SendChatTarget(i, aBuf);
 		}
+		else if(!g_Config.m_SvTeamLock)
+		{
+			pSelf->Console()->Print(
+					IConsole::OUTPUT_LEVEL_STANDARD,
+					"print",
+					"Team locking is disabled on this server");
+		}
 		else
 		{
 			((CGameControllerDDRace*) pSelf->m_pController)->m_Teams.SetTeamLock(Team, true);
@@ -881,7 +890,7 @@ void CGameContext::ConJoinTeam(IConsole::IResult *pResult, void *pUserData)
 	if (!pPlayer)
 		return;
 
-	if (pSelf->m_VoteCloseTime && pSelf->m_VoteCreator == pResult->m_ClientID)
+	if (pSelf->m_VoteCloseTime && pSelf->m_VoteCreator == pResult->m_ClientID && (pSelf->m_VoteKick || pSelf->m_VoteSpec))
 	{
 		pSelf->Console()->Print(
 				IConsole::OUTPUT_LEVEL_STANDARD,
