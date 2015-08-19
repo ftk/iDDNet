@@ -141,8 +141,7 @@ void CPlayers::Predict(
 		g_GameClient.m_aClients[info.cid].angle = angle;*/
 	}
 
-    vec2 NonPredPos = mix(vec2(Prev.m_X, Prev.m_Y), vec2(Player.m_X, Player.m_Y), IntraTick);
-
+vec2 NonPredPos = mix(vec2(Prev.m_X, Prev.m_Y), vec2(Player.m_X, Player.m_Y), IntraTick);
 
 	// use preditect players if needed
 	if(g_Config.m_ClPredict && Client()->State() != IClient::STATE_DEMOPLAYBACK)
@@ -378,9 +377,9 @@ void CPlayers::RenderPlayer(
 	const CNetObj_PlayerInfo *pPrevInfo,
 	const CNetObj_PlayerInfo *pPlayerInfo,
 	const vec2 &parPosition
-/*    vec2 &PrevPos,
-    vec2 &SmoothPos,
-    int &MoveCnt
+/*	vec2 &PrevPos,
+	vec2 &SmoothPos,
+	int &MoveCnt
 */	)
 {
 	CNetObj_Character Prev;
@@ -882,16 +881,17 @@ void CPlayers::RenderPlayer(
 	if(g_Config.m_ClNameplates && g_Config.m_ClAntiPingPlayers)
 	{
 		float FontSize = 18.0f + 20.0f * g_Config.m_ClNameplatesSize / 100.0f;
+		float FontSizeClan = 18.0f + 20.0f * g_Config.m_ClNameplatesClanSize / 100.0f;
 		// render name plate
 		if(!pPlayerInfo->m_Local)
 		{
 			float a = 1;
 			if(g_Config.m_ClNameplatesAlways == 0)
 				a = clamp(1-powf(distance(m_pClient->m_pControls->m_TargetPos[g_Config.m_ClDummy], Position)/200.0f,16.0f), 0.0f, 1.0f);
-			
+
 			const char *pName = m_pClient->m_aClients[pPlayerInfo->m_ClientID].m_aName;
 			float tw = TextRender()->TextWidth(0, FontSize, pName, -1);
-			
+
 			vec3 rgb = vec3(1.0f, 1.0f, 1.0f);
 			if(g_Config.m_ClNameplatesTeamcolors && m_pClient->m_Teams.Team(pPlayerInfo->m_ClientID))
 				rgb = HslToRgb(vec3(m_pClient->m_Teams.Team(pPlayerInfo->m_ClientID) / 64.0f, 1.0f, 0.75f));
@@ -913,16 +913,25 @@ void CPlayers::RenderPlayer(
 				else if(pPlayerInfo->m_Team == TEAM_BLUE)
 					TextRender()->TextColor(0.7f, 0.7f, 1.0f, a);
 			}
-			
+
 			TextRender()->Text(0, Position.x-tw/2.0f, Position.y-FontSize-38.0f, FontSize, pName, -1);
-			
+
+			if(g_Config.m_ClNameplatesClan)
+			{
+				const char *pClan = m_pClient->m_aClients[pPlayerInfo->m_ClientID].m_aClan;
+				float tw_clan = TextRender()->TextWidth(0, FontSizeClan, pClan, -1);
+				TextRender()->Text(0, Position.x-tw_clan/2.0f, Position.y-FontSize-FontSizeClan-38.0f, FontSizeClan, pClan, -1);
+			}
+
 			if(g_Config.m_Debug) // render client id when in debug aswell
 			{
 				char aBuf[128];
 				str_format(aBuf, sizeof(aBuf),"%d", pPlayerInfo->m_ClientID);
-				TextRender()->Text(0, Position.x, Position.y-90, 28.0f, aBuf, -1);
+				float Offset = g_Config.m_ClNameplatesClan ? (FontSize * 2 + FontSizeClan) : (FontSize * 2);
+				float tw_id = TextRender()->TextWidth(0, FontSize, aBuf, -1);
+				TextRender()->Text(0, Position.x-tw_id/2.0f, Position.y-Offset-38.0f, 28.0f, aBuf, -1);
 			}
-			
+
 			TextRender()->TextColor(1,1,1,1);
 			TextRender()->TextOutlineColor(0.0f, 0.0f, 0.0f, 0.3f);
 		}
@@ -960,7 +969,7 @@ void CPlayers::OnRender()
 	static vec2 SmoothPos[MAX_CLIENTS];
 	static int MoveCnt[MAX_CLIENTS] = {0};
 	static vec2 PredictedPos[MAX_CLIENTS];
-	
+
 	static int predcnt = 0;
 
 	if (g_Config.m_ClAntiPingPlayers)

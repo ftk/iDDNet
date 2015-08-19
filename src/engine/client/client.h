@@ -33,8 +33,6 @@ class CSmoothTime
 	int64 m_Current;
 	int64 m_Target;
 
-	int64 m_RLast;
-	int64 m_TLast;
 	CGraph m_Graph;
 
 	int m_SpikeCounter;
@@ -63,9 +61,8 @@ class CClient : public IClient, public CDemoPlayer::IListner
 	IEngineMap *m_pMap;
 	IConsole *m_pConsole;
 	IStorage *m_pStorage;
-#if !defined(CONF_PLATFORM_MACOSX) && !defined(__ANDROID__)
-	IAutoUpdate *m_pAutoUpdate;
-#endif
+	IFetcher *m_pFetcher;
+	IUpdater *m_pUpdater;
 	IEngineMasterServer *m_pMasterServer;
 
 	enum
@@ -79,10 +76,10 @@ class CClient : public IClient, public CDemoPlayer::IListner
 	class CDemoRecorder m_DemoRecorder[RECORDER_MAX];
 	class CDemoEditor m_DemoEditor;
 	class CServerBrowser m_ServerBrowser;
-#if !defined(CONF_PLATFORM_MACOSX) && !defined(__ANDROID__)
-	class CAutoUpdate m_AutoUpdate;
-#endif
+	class CFetcher m_Fetcher;
+	class CUpdater m_Updater;
 	class CFriends m_Friends;
+	class CFriends m_Foes;
 	class CMapChecker m_MapChecker;
 
 	char m_aServerAddressStr[256];
@@ -91,7 +88,7 @@ class CClient : public IClient, public CDemoPlayer::IListner
 	int64 m_LocalStartTime;
 
 	int m_DebugFont;
-	
+
 	int64 m_LastRenderTime;
 	float m_RenderFrameTimeLow;
 	float m_RenderFrameTimeHigh;
@@ -101,6 +98,7 @@ class CClient : public IClient, public CDemoPlayer::IListner
 	int m_WindowMustRefocus;
 	int m_SnapCrcErrors;
 	bool m_AutoScreenshotRecycle;
+	bool m_AutoStatScreenshotRecycle;
 	bool m_EditorActive;
 	bool m_SoundInitFailed;
 	bool m_ResortServerBrowser;
@@ -127,6 +125,7 @@ class CClient : public IClient, public CDemoPlayer::IListner
 	char m_aCmdConnect[256];
 
 	// map download
+	CFetchTask *m_pMapdownloadTask;
 	char m_aMapdownloadFilename[256];
 	char m_aMapdownloadName[256];
 	IOHANDLE m_MapdownloadFile;
@@ -151,7 +150,6 @@ class CClient : public IClient, public CDemoPlayer::IListner
 	int m_CurrentInput[2];
 	bool m_LastDummy;
 	bool m_LastDummy2;
-	CNetObj_PlayerInput DummyInput;
 	CNetObj_PlayerInput HammerInput;
 
 	// graphs
@@ -192,7 +190,7 @@ class CClient : public IClient, public CDemoPlayer::IListner
 	volatile int m_GfxState;
 	static void GraphicsThreadProxy(void *pThis) { ((CClient*)pThis)->GraphicsThread(); }
 	void GraphicsThread();
-  vec3 GetColorV3(int v);
+	vec3 GetColorV3(int v);
 
 	char m_aDDNetSrvListToken[4];
 	bool m_DDNetSrvListTokenSet;
@@ -205,9 +203,8 @@ public:
 	IGameClient *GameClient() { return m_pGameClient; }
 	IEngineMasterServer *MasterServer() { return m_pMasterServer; }
 	IStorage *Storage() { return m_pStorage; }
-#if !defined(CONF_PLATFORM_MACOSX) && !defined(__ANDROID__)
-	IAutoUpdate *AutoUpdate() { return m_pAutoUpdate; }
-#endif
+	IFetcher *Fetcher() { return m_pFetcher; }
+	IUpdater *Updater() { return m_pUpdater; }
 
 	CClient();
 
@@ -219,6 +216,7 @@ public:
 	void SendInfo();
 	void SendEnterGame();
 	void SendReady();
+	void SendMapRequest();
 
 	virtual bool RconAuthed() { return m_RconAuthed[g_Config.m_ClDummy] != 0; }
 	virtual bool UseTempRconCommands() { return m_UseTempRconCommands != 0; }
@@ -240,6 +238,7 @@ public:
 
 	const char *LatestVersion();
 	void VersionUpdate();
+	void CheckVersionUpdate();
 
 	// ------ state handling -----
 	void SetState(int s);
@@ -255,6 +254,7 @@ public:
 	virtual void DummyDisconnect(const char *pReason);
 	virtual void DummyConnect();
 	virtual bool DummyConnected();
+	virtual bool DummyConnecting();
 	void DummyInfo();
 	int m_DummyConnected;
 	int m_LastDummyConnectTime;
@@ -276,6 +276,7 @@ public:
 	void Render();
 	void DebugRender();
 
+	virtual void Restart();
 	virtual void Quit();
 
 	virtual const char *ErrorString();
@@ -283,15 +284,19 @@ public:
 	const char *LoadMap(const char *pName, const char *pFilename, unsigned WantedCrc);
 	const char *LoadMapSearch(const char *pMapName, int WantedCrc);
 
-	static int PlayerScoreComp(const void *a, const void *b);
+	static int PlayerScoreNameComp(const void *a, const void *b);
 
 	void ProcessConnlessPacket(CNetChunk *pPacket);
 	void ProcessServerPacket(CNetChunk *pPacket);
 	void ProcessServerPacketDummy(CNetChunk *pPacket);
 
+	void ResetMapDownload();
+	void FinishMapDownload();
+
+	virtual CFetchTask *MapDownloadTask() { return m_pMapdownloadTask; }
 	virtual const char *MapDownloadName() { return m_aMapdownloadName; }
-	virtual int MapDownloadAmount() { return m_MapdownloadAmount; }
-	virtual int MapDownloadTotalsize() { return m_MapdownloadTotalsize; }
+	virtual int MapDownloadAmount() { return !m_pMapdownloadTask ? m_MapdownloadAmount : (int)m_pMapdownloadTask->Current(); }
+	virtual int MapDownloadTotalsize() { return !m_pMapdownloadTask ? m_MapdownloadTotalsize : (int)m_pMapdownloadTask->Size(); }
 
 	void PumpNetwork();
 
@@ -314,6 +319,7 @@ public:
 	static void Con_DummyDisconnect(IConsole::IResult *pResult, void *pUserData);
 
 	static void Con_Quit(IConsole::IResult *pResult, void *pUserData);
+	static void Con_DemoPlay(IConsole::IResult *pResult, void *pUserData);
 	static void Con_Minimize(IConsole::IResult *pResult, void *pUserData);
 	static void Con_Ping(IConsole::IResult *pResult, void *pUserData);
 	static void Con_Screenshot(IConsole::IResult *pResult, void *pUserData);
@@ -341,7 +347,9 @@ public:
 	class IDemoRecorder *DemoRecorder(int Recorder);
 
 	void AutoScreenshot_Start();
+	void AutoStatScreenshot_Start();
 	void AutoScreenshot_Cleanup();
+	void AutoStatScreenshot_Cleanup();
 
 	void ServerBrowserUpdate();
 
@@ -358,5 +366,8 @@ public:
 	virtual void DemoSlice(const char *pDstPath);
 
 	void RequestDDNetSrvList();
+	bool EditorHasUnsavedData() { return m_pEditor->HasUnsavedData(); }
+
+	virtual IFriends* Foes() {return &m_Foes; }
 };
 #endif

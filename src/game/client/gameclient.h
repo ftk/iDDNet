@@ -36,30 +36,30 @@ public:
 class CLocalProjectile
 {
 public:
-    int m_Active;
+	int m_Active;
 	CGameClient *m_pGameClient;
-    CWorldCore *m_pWorld;
-    CCollision *m_pCollision;
+	CWorldCore *m_pWorld;
+	CCollision *m_pCollision;
 
-    vec2 m_Direction;
-    vec2 m_Pos;
-    int m_StartTick;
-    int m_Type;
+	vec2 m_Direction;
+	vec2 m_Pos;
+	int m_StartTick;
+	int m_Type;
 
-    int m_Owner;
-    int m_Weapon;
-    bool m_Explosive;
-    int m_Bouncing;
+	int m_Owner;
+	int m_Weapon;
+	bool m_Explosive;
+	int m_Bouncing;
 	bool m_Freeze;
-    bool m_ExtraInfo;
+	bool m_ExtraInfo;
 
-    vec2 GetPos(float Time);
-    void CreateExplosion(vec2 Pos, int LocalClientID);
-    void Tick(int CurrentTick, int GameTickSpeed, int LocalClientID);
-    void Init(CGameClient *pGameClient, CWorldCore *pWorld, CCollision *pCollision, const CNetObj_Projectile *pProj);
+	vec2 GetPos(float Time);
+	void CreateExplosion(vec2 Pos, int LocalClientID);
+	void Tick(int CurrentTick, int GameTickSpeed, int LocalClientID);
+	void Init(CGameClient *pGameClient, CWorldCore *pWorld, CCollision *pCollision, const CNetObj_Projectile *pProj);
 	void Init(CGameClient *pGameClient, CWorldCore *pWorld, CCollision *pCollision, vec2 Vel, vec2 Pos, int StartTick, int Type, int Owner, int Weapon, bool Explosive, int Bouncing, bool Freeze, bool ExtraInfo);
 	bool GameLayerClipped(vec2 CheckPos);
-    void Deactivate() { m_Active = 0; }
+	void Deactivate() { m_Active = 0; }
 };
 
 class CGameClient : public IGameClient
@@ -93,11 +93,10 @@ class CGameClient : public IGameClient
 	class IStorage *m_pStorage;
 	class IDemoPlayer *m_pDemoPlayer;
 	class IServerBrowser *m_pServerBrowser;
-#if !defined(CONF_PLATFORM_MACOSX) && !defined(__ANDROID__)
-	class IAutoUpdate *m_pAutoUpdate;
-#endif
 	class IEditor *m_pEditor;
 	class IFriends *m_pFriends;
+	class IFriends *m_pFoes;
+	class IUpdater *m_pUpdater;
 
 	CLayers m_Layers;
 	class CCollision m_Collision;
@@ -110,7 +109,12 @@ class CGameClient : public IGameClient
 	int m_PredictedTick;
 	int m_LastNewPredictedTick[2];
 
-	int64 m_LastSendInfo;
+	int m_LastRoundStartTick;
+
+	int m_LastFlagCarrierRed;
+	int m_LastFlagCarrierBlue;
+
+	int m_CheckInfo[2];
 
 	static void ConTeam(IConsole::IResult *pResult, void *pUserData);
 	static void ConKill(IConsole::IResult *pResult, void *pUserData);
@@ -133,14 +137,13 @@ public:
 	class IDemoPlayer *DemoPlayer() const { return m_pDemoPlayer; }
 	class IDemoRecorder *DemoRecorder(int Recorder) const { return Client()->DemoRecorder(Recorder); }
 	class IServerBrowser *ServerBrowser() const { return m_pServerBrowser; }
-#if !defined(CONF_PLATFORM_MACOSX) && !defined(__ANDROID__)
-	class IAutoUpdate *AutoUpdate() const { return m_pAutoUpdate; }
-#endif
 	class CRenderTools *RenderTools() { return &m_RenderTools; }
 	class CLayers *Layers() { return &m_Layers; };
 	class CCollision *Collision() { return &m_Collision; };
 	class IEditor *Editor() { return m_pEditor; }
 	class IFriends *Friends() { return m_pFriends; }
+	class IFriends *Foes() { return m_pFoes; }
+	class IUpdater *Updater() { return m_pUpdater; }
 
 	int NetobjNumCorrections() { return m_NetObjHandler.NumObjCorrections(); }
 	const char *NetobjCorrectedOn() { return m_NetObjHandler.CorrectedObjOn(); }
@@ -245,6 +248,7 @@ public:
 		bool m_Active;
 		bool m_ChatIgnore;
 		bool m_Friend;
+		bool m_Foe;
 
 		void UpdateRenderInfo();
 		void Reset();
@@ -255,6 +259,31 @@ public:
 	};
 
 	CClientData m_aClients[MAX_CLIENTS];
+
+	class CClientStats
+	{
+		public:
+			CClientStats();
+
+			int m_JoinDate;
+			bool m_Active;
+			bool m_WasActive;
+
+			int m_aFragsWith[NUM_WEAPONS];
+			int m_aDeathsFrom[NUM_WEAPONS];
+			int m_Frags;
+			int m_Deaths;
+			int m_Suicides;
+			int m_BestSpree;
+			int m_CurrentSpree;
+
+			int m_FlagGrabs;
+			int m_FlagCaptures;
+
+			void Reset();
+	};
+
+	CClientStats m_aStats[MAX_CLIENTS];
 
 	CRenderTools m_RenderTools;
 
@@ -278,6 +307,7 @@ public:
 	virtual void OnRconLine(const char *pLine);
 	virtual void OnGameOver();
 	virtual void OnStartGame();
+	virtual void OnFlagGrab(int TeamID);
 
 	virtual void ResetDummyInput();
 	virtual const char *GetItemName(int Type);
@@ -310,6 +340,7 @@ public:
 	class CMapImages *m_pMapimages;
 	class CVoting *m_pVoting;
 	class CScoreboard *m_pScoreboard;
+	class CStatboard *m_pStatboard;
 	class CItems *m_pItems;
 	class CMapLayers *m_pMapLayersBackGround;
 	class CMapLayers *m_pMapLayersForeGround;
@@ -328,6 +359,8 @@ public:
 	CWeaponData m_aWeaponData[150];
 	CWeaponData *GetWeaponData(int Tick) { return &m_aWeaponData[((Tick%150)+150)%150]; }
 	CWeaponData *FindWeaponData(int TargetTick);
+
+	void FindWeaker(bool IsWeaker[2][MAX_CLIENTS]);
 
 private:
 
@@ -373,14 +406,14 @@ inline vec3 RgbToHsl(vec3 RGB)
 
 		if (HSL.l < 0.5)
 			HSL.s = (maxColor - minColor) / (maxColor + minColor);
-		else 
+		else
 			HSL.s = (maxColor - minColor) / (2.0 - maxColor - minColor);
 
 		if (RGB.r == maxColor)
 			HSL.h = (RGB.g - RGB.b) / (maxColor - minColor);
 		else if (RGB.g == maxColor)
 			HSL.h = 2.0 + (RGB.b - RGB.r) / (maxColor - minColor);
-		else 
+		else
 			HSL.h = 4.0 + (RGB.r - RGB.g) / (maxColor - minColor);
 
 		HSL.h /= 6; //to bring it to a number between 0 and 1

@@ -9,6 +9,7 @@
 #define BASE_SYSTEM_H
 
 #include "detect.h"
+#include "stddef.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -352,7 +353,7 @@ IOHANDLE io_stderr();
 void thread_sleep(int milliseconds);
 
 /*
-	Function: thread_create
+	Function: thread_init
 		Creates a new thread.
 
 	Parameters:
@@ -360,7 +361,7 @@ void thread_sleep(int milliseconds);
 		user - Pointer to pass to the thread.
 
 */
-void *thread_create(void (*threadfunc)(void *), void *user);
+void *thread_init(void (*threadfunc)(void *), void *user);
 
 /*
 	Function: thread_wait
@@ -403,9 +404,9 @@ typedef void* LOCK;
 LOCK lock_create();
 void lock_destroy(LOCK lock);
 
-int lock_try(LOCK lock);
+int lock_trylock(LOCK lock);
 void lock_wait(LOCK lock);
-void lock_release(LOCK lock);
+void lock_unlock(LOCK lock);
 
 
 /* Group: Semaphores */
@@ -474,6 +475,7 @@ typedef struct
 	int type;
 	int ipv4sock;
 	int ipv6sock;
+	int web_ipv4sock;
 } NETSOCKET;
 
 enum
@@ -484,7 +486,8 @@ enum
 	NETTYPE_IPV4 = 1,
 	NETTYPE_IPV6 = 2,
 	NETTYPE_LINK_BROADCAST = 4,
-	NETTYPE_ALL = NETTYPE_IPV4|NETTYPE_IPV6
+	NETTYPE_WEBSOCKET_IPV4 = 8,
+	NETTYPE_ALL = NETTYPE_IPV4|NETTYPE_IPV6|NETTYPE_WEBSOCKET_IPV4
 };
 
 typedef struct
@@ -781,6 +784,22 @@ int str_length(const char *str);
 		- Garantees that dst string will contain zero-termination.
 */
 int str_format(char *buffer, int buffer_size, const char *format, ...);
+
+/*
+	Function: str_trim_words
+		Trims specific number of words at the start of a string.
+
+	Parameters:
+		str - String to trim the words from.
+		words - Count of words to trim.
+
+	Returns:
+		Trimmed string
+
+	Remarks:
+		- The strings are treated as zero-termineted strings.
+*/
+char *str_trim_words(char *str, int words);
 
 /*
 	Function: str_sanitize_strong
@@ -1226,6 +1245,8 @@ int str_utf8_comp_names(const char *a, const char *b);
 
 int str_utf8_isspace(int code);
 
+int str_utf8_isstart(char c);
+
 const char *str_utf8_skip_whitespaces(const char *str);
 
 /*
@@ -1262,16 +1283,17 @@ int str_utf8_forward(const char *str, int cursor);
 
 /*
 	Function: str_utf8_decode
-		Decodes an utf8 character
+		Decodes a utf8 codepoint
 
 	Parameters:
-		ptr - pointer to an utf8 string. this pointer will be moved forward
+		ptr - Pointer to a utf8 string. This pointer will be moved forward.
 
 	Returns:
-		Unicode value for the character. -1 for invalid characters and 0 for end of string.
+		The Unicode codepoint. -1 for invalid input and 0 for end of string.
 
 	Remarks:
 		- This function will also move the pointer forward.
+		- You may call this function again after an error occured.
 */
 int str_utf8_decode(const char **ptr);
 
@@ -1280,7 +1302,7 @@ int str_utf8_decode(const char **ptr);
 		Encode an utf8 character
 
 	Parameters:
-		ptr - Pointer to a buffer that should recive the data. Should be able to hold at least 4 bytes.
+		ptr - Pointer to a buffer that should receive the data. Should be able to hold at least 4 bytes.
 
 	Returns:
 		Number of bytes put into the buffer.
@@ -1307,6 +1329,48 @@ int str_utf8_encode(char *ptr, int chr);
 int str_utf8_check(const char *str);
 
 int pid();
+
+/*
+	Function: shell_execute
+		Executes a given file.
+*/
+void shell_execute(const char *file);
+
+/*
+	Function: os_compare_version
+		Compares the OS version to a given major and minor.
+
+	Parameters:
+		major - Major version to compare to.
+		minor - Minor version to compare to.
+
+	Returns:
+		1 - OS version higher.
+		0 - OS version same.
+		-1 - OS version lower.
+*/
+int os_compare_version(int major, int minor);
+
+/*
+	Function: secure_random_init
+		Initializes the secure random module.
+		You *MUST* check the return value of this function.
+
+	Returns:
+		0 - Initialization succeeded.
+		1 - Initialization failed.
+*/
+int secure_random_init();
+
+/*
+	Function: secure_random_fill
+		Fills the buffer with the specified amount of random bytes.
+
+	Parameters:
+		buffer - Pointer to the start of the buffer.
+		length - Length of the buffer.
+*/
+void secure_random_fill(void *bytes, size_t length);
 
 #ifdef __cplusplus
 }

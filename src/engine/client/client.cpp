@@ -26,7 +26,6 @@
 #include <engine/map.h>
 #include <engine/masterserver.h>
 #include <engine/serverbrowser.h>
-#include <engine/autoupdate.h>
 #include <engine/sound.h>
 #include <engine/storage.h>
 #include <engine/textrender.h>
@@ -51,18 +50,19 @@
 
 #include <engine/client/serverbrowser.h>
 
-#include "friends.h"
-#include "serverbrowser.h"
-#include "autoupdate.h"
-#include "client.h"
-
-#include <zlib.h>
-
 #if defined(CONF_FAMILY_WINDOWS)
 	#define _WIN32_WINNT 0x0501
 	#define WIN32_LEAN_AND_MEAN
 	#include <windows.h>
 #endif
+
+#include "friends.h"
+#include "serverbrowser.h"
+#include "fetcher.h"
+#include "updater.h"
+#include "client.h"
+
+#include <zlib.h>
 
 #include "SDL.h"
 #ifdef main
@@ -280,6 +280,7 @@ CClient::CClient() : m_DemoPlayer(&m_SnapshotDelta)
 	m_WindowMustRefocus = 0;
 	m_SnapCrcErrors = 0;
 	m_AutoScreenshotRecycle = false;
+	m_AutoStatScreenshotRecycle = false;
 	m_EditorActive = false;
 
 	m_AckGameTick[0] = -1;
@@ -307,6 +308,7 @@ CClient::CClient() : m_DemoPlayer(&m_SnapshotDelta)
 	// map download
 	m_aMapdownloadFilename[0] = 0;
 	m_aMapdownloadName[0] = 0;
+	m_pMapdownloadTask = 0;
 	m_MapdownloadFile = 0;
 	m_MapdownloadChunk = 0;
 	m_MapdownloadCrc = 0;
@@ -410,6 +412,16 @@ void CClient::SendEnterGame()
 void CClient::SendReady()
 {
 	CMsgPacker Msg(NETMSG_READY);
+	SendMsgEx(&Msg, MSGFLAG_VITAL|MSGFLAG_FLUSH);
+}
+
+void CClient::SendMapRequest()
+{
+	if(m_MapdownloadFile)
+		io_close(m_MapdownloadFile);
+	m_MapdownloadFile = Storage()->OpenFile(m_aMapdownloadFilename, IOFLAG_WRITE, IStorage::TYPE_SAVE);
+	CMsgPacker Msg(NETMSG_REQUEST_MAP_DATA);
+	Msg.AddInt(m_MapdownloadChunk);
 	SendMsgEx(&Msg, MSGFLAG_VITAL|MSGFLAG_FLUSH);
 }
 
@@ -722,6 +734,8 @@ void CClient::DisconnectWithReason(const char *pReason)
 
 	// disable all downloads
 	m_MapdownloadChunk = 0;
+	if(m_pMapdownloadTask)
+		m_pMapdownloadTask->Abort();
 	if(m_MapdownloadFile)
 		io_close(m_MapdownloadFile);
 	m_MapdownloadFile = 0;
@@ -751,6 +765,11 @@ bool CClient::DummyConnected()
 	return m_DummyConnected;
 }
 
+bool CClient::DummyConnecting()
+{
+	return !m_DummyConnected && m_LastDummyConnectTime > 0 && m_LastDummyConnectTime + GameTickSpeed() * 5 > GameTick();
+}
+
 void CClient::DummyConnect()
 {
 	if(m_LastDummyConnectTime > 0 && m_LastDummyConnectTime + GameTickSpeed() * 5 > GameTick())
@@ -766,28 +785,10 @@ void CClient::DummyConnect()
 
 	m_RconAuthed[1] = 0;
 
+	m_DummySendConnInfo = true;
+
 	//connecting to the server
 	m_NetClient[1].Connect(&m_ServerAddress);
-
-	// send client info
-	CMsgPacker MsgInfo(NETMSG_INFO);
-	MsgInfo.AddString(GameClient()->NetVersion(), 128);
-	MsgInfo.AddString(g_Config.m_Password, 128);
-	SendMsgExY(&MsgInfo, MSGFLAG_VITAL|MSGFLAG_FLUSH, true, 1);
-
-	// update netclient
-	m_NetClient[1].Update();
-
-	// send ready
-	CMsgPacker MsgReady(NETMSG_READY);
-	SendMsgExY(&MsgReady, MSGFLAG_VITAL|MSGFLAG_FLUSH, true, 1);
-
-	// startinfo
-	GameClient()->SendDummyInfo(true);
-
-	// send enter game an finish the connection
-	CMsgPacker MsgEnter(NETMSG_ENTERGAME);
-	SendMsgExY(&MsgEnter, MSGFLAG_VITAL|MSGFLAG_FLUSH, true, 1);
 }
 
 void CClient::DummyDisconnect(const char *pReason)
@@ -832,13 +833,13 @@ int CClient::SendMsgExY(CMsgPacker *pMsg, int Flags, bool System, int NetClient)
 void CClient::DummyInfo()
 {
 	CNetMsg_Cl_ChangeInfo Msg;
-	Msg.m_pName = g_Config.m_DummyName;
-	Msg.m_pClan = g_Config.m_DummyClan;
-	Msg.m_Country = g_Config.m_DummyCountry;
-	Msg.m_pSkin = g_Config.m_DummySkin;
-	Msg.m_UseCustomColor = g_Config.m_DummyUseCustomColor;
-	Msg.m_ColorBody = g_Config.m_DummyColorBody;
-	Msg.m_ColorFeet = g_Config.m_DummyColorFeet;
+	Msg.m_pName = g_Config.m_ClDummyName;
+	Msg.m_pClan = g_Config.m_ClDummyClan;
+	Msg.m_Country = g_Config.m_ClDummyCountry;
+	Msg.m_pSkin = g_Config.m_ClDummySkin;
+	Msg.m_UseCustomColor = g_Config.m_ClDummyUseCustomColor;
+	Msg.m_ColorBody = g_Config.m_ClDummyColorBody;
+	Msg.m_ColorFeet = g_Config.m_ClDummyColorFeet;
 	CMsgPacker Packer(Msg.MsgID());
 	Msg.Pack(&Packer);
 	SendMsgExY(&Packer, MSGFLAG_VITAL);
@@ -1016,6 +1017,13 @@ void CClient::DebugRender()
 	}
 }
 
+void CClient::Restart()
+{
+	char aBuf[512];
+	shell_execute(Storage()->GetBinaryPath(PLAT_CLIENT_EXEC, aBuf, sizeof aBuf));
+	Quit();
+}
+
 void CClient::Quit()
 {
 	SetState(IClient::STATE_QUITING);
@@ -1041,6 +1049,12 @@ void CClient::Render()
 
 	GameClient()->OnRender();
 	DebugRender();
+
+	if(State() == IClient::STATE_ONLINE && g_Config.m_ClAntiPingLimit)
+	{
+		int64 Now = time_get();
+		g_Config.m_ClAntiPing = (m_PredictedTime.Get(Now)-m_GameTime[g_Config.m_ClDummy].Get(Now))*1000/(float)time_freq() > g_Config.m_ClAntiPingLimit;
+	}
 }
 
 vec3 CClient::GetColorV3(int v)
@@ -1115,7 +1129,7 @@ const char *CClient::LoadMapSearch(const char *pMapName, int WantedCrc)
 	return pError;
 }
 
-int CClient::PlayerScoreComp(const void *a, const void *b)
+int CClient::PlayerScoreNameComp(const void *a, const void *b)
 {
 	CServerInfo::CClient *p0 = (CServerInfo::CClient *)a;
 	CServerInfo::CClient *p1 = (CServerInfo::CClient *)b;
@@ -1123,11 +1137,11 @@ int CClient::PlayerScoreComp(const void *a, const void *b)
 		return -1;
 	if(!p0->m_Player && p1->m_Player)
 		return 1;
-	if(p0->m_Score == p1->m_Score)
-		return 0;
+	if(p0->m_Score > p1->m_Score)
+		return -1;
 	if(p0->m_Score < p1->m_Score)
 		return 1;
-	return -1;
+	return str_comp_nocase(p0->m_aName, p1->m_aName);
 }
 
 void CClient::ProcessConnlessPacket(CNetChunk *pPacket)
@@ -1140,7 +1154,10 @@ void CClient::ProcessConnlessPacket(CNetChunk *pPacket)
 			mem_comp(pPacket->m_pData, VERSIONSRV_VERSION, sizeof(VERSIONSRV_VERSION)) == 0)
 		{
 			char *pVersionData = (char*)pPacket->m_pData + sizeof(VERSIONSRV_VERSION);
-			int VersionMatch = !mem_comp(pVersionData, GAME_RELEASE_VERSION, sizeof(GAME_RELEASE_VERSION));
+			int aCurVersion[] = {0,0,0}, aNewVersion[] = {0,0,0};
+			sscanf(pVersionData, "%d.%d.%d", aNewVersion, aNewVersion+1, aNewVersion+2);
+			sscanf(GAME_RELEASE_VERSION, "%d.%d.%d", aCurVersion, aCurVersion+1, aCurVersion+2);
+			bool VersionMatch = mem_comp(aCurVersion, aNewVersion, sizeof aCurVersion) >= 0;
 
 			char aVersion[sizeof(GAME_RELEASE_VERSION)];
 			str_copy(aVersion, pVersionData, sizeof(aVersion));
@@ -1153,18 +1170,7 @@ void CClient::ProcessConnlessPacket(CNetChunk *pPacket)
 
 			// assume version is out of date when version-data doesn't match
 			if(!VersionMatch)
-			{
 				str_copy(m_aVersionStr, aVersion, sizeof(m_aVersionStr));
-
-#if !defined(CONF_PLATFORM_MACOSX) && !defined(__ANDROID__)
-				if (g_Config.m_ClAutoUpdate)
-				{
-					str_format(aBuf, sizeof(aBuf), "Checking for updates");
-					((CGameClient *) GameClient())->m_pMenus->RenderUpdating(aBuf);
-					((CGameClient *) GameClient())->AutoUpdate()->CheckUpdates(((CGameClient *) GameClient())->m_pMenus);
-				}
-#endif
-			}
 
 			// request the news
 			CNetChunk Packet;
@@ -1206,7 +1212,7 @@ void CClient::ProcessConnlessPacket(CNetChunk *pPacket)
 		}
 
 		// ddnet server list
-		// Packet: VERSIONSRV_DDNETLIST + char[4] Token + int16 comp_length + int16 plain_length + char[comp_length] 
+		// Packet: VERSIONSRV_DDNETLIST + char[4] Token + int16 comp_length + int16 plain_length + char[comp_length]
 		if(pPacket->m_DataSize >= (int)(sizeof(VERSIONSRV_DDNETLIST) + 8) &&
 			mem_comp(pPacket->m_pData, VERSIONSRV_DDNETLIST, sizeof(VERSIONSRV_DDNETLIST)) == 0 &&
 			mem_comp((char*)pPacket->m_pData+sizeof(VERSIONSRV_DDNETLIST), m_aDDNetSrvListToken, 4) == 0)
@@ -1267,15 +1273,15 @@ void CClient::ProcessConnlessPacket(CNetChunk *pPacket)
 	if(pPacket->m_DataSize == (int) sizeof(SERVERBROWSE_COUNT) + 2 && mem_comp(pPacket->m_pData, SERVERBROWSE_COUNT, sizeof(SERVERBROWSE_COUNT)) == 0)
 	{
 		unsigned char *pP = (unsigned char*) pPacket->m_pData;
-		pP += sizeof(SERVERBROWSE_COUNT);				
-		int ServerCount = ((*pP)<<8) | *(pP+1); 
+		pP += sizeof(SERVERBROWSE_COUNT);
+		int ServerCount = ((*pP)<<8) | *(pP+1);
 		int ServerID = -1;
 		for(int i = 0; i < IMasterServer::MAX_MASTERSERVERS; i++)
 		{
 			if(!m_pMasterServer->IsValid(i))
 				continue;
 			NETADDR tmp = m_pMasterServer->GetAddr(i);
-			if(net_addr_comp(&pPacket->m_Address, &tmp) == 0)			
+			if(net_addr_comp(&pPacket->m_Address, &tmp) == 0)
 			{
 				ServerID = i;
 				break;
@@ -1382,7 +1388,7 @@ void CClient::ProcessConnlessPacket(CNetChunk *pPacket)
 		if(!Up.Error())
 		{
 			// sort players
-			qsort(Info.m_aClients, Info.m_NumClients, sizeof(*Info.m_aClients), PlayerScoreComp);
+			qsort(Info.m_aClients, Info.m_NumClients, sizeof(*Info.m_aClients), PlayerScoreNameComp);
 
 			pEntry = m_ServerBrowser.Find(pPacket->m_Address);
 			if (!pEntry || !pEntry->m_GotInfo)
@@ -1457,7 +1463,7 @@ void CClient::ProcessConnlessPacket(CNetChunk *pPacket)
 		{
 			// sort players
 			if (Offset + 24 >= Info.m_NumClients)
-				qsort(Info.m_aClients, Info.m_NumClients, sizeof(*Info.m_aClients), PlayerScoreComp);
+				qsort(Info.m_aClients, Info.m_NumClients, sizeof(*Info.m_aClients), PlayerScoreNameComp);
 
 			m_ServerBrowser.Set(pPacket->m_Address, IServerBrowser::SET_TOKEN, Token, &Info);
 
@@ -1534,22 +1540,26 @@ void CClient::ProcessServerPacket(CNetChunk *pPacket)
 
 					m_MapdownloadChunk = 0;
 					str_copy(m_aMapdownloadName, pMap, sizeof(m_aMapdownloadName));
-					if(m_MapdownloadFile)
-						io_close(m_MapdownloadFile);
-					m_MapdownloadFile = Storage()->OpenFile(m_aMapdownloadFilename, IOFLAG_WRITE, IStorage::TYPE_SAVE);
+
 					m_MapdownloadCrc = MapCrc;
 					m_MapdownloadTotalsize = MapSize;
 					m_MapdownloadAmount = 0;
 
-					CMsgPacker Msg(NETMSG_REQUEST_MAP_DATA);
-					Msg.AddInt(m_MapdownloadChunk);
-					SendMsgEx(&Msg, MSGFLAG_VITAL|MSGFLAG_FLUSH);
+					ResetMapDownload();
 
-					if(g_Config.m_Debug)
+					if(g_Config.m_ClHttpMapDownload)
 					{
-						str_format(aBuf, sizeof(aBuf), "requested chunk %d", m_MapdownloadChunk);
-						m_pConsole->Print(IConsole::OUTPUT_LEVEL_DEBUG, "client/network", aBuf);
+						char aUrl[256];
+						char aFilename[64];
+						char aEscaped[128];
+						str_format(aFilename, sizeof(aFilename), "%s_%08x.map", pMap, MapCrc);
+						Fetcher()->Escape(aEscaped, sizeof(aEscaped), aFilename);
+						str_format(aUrl, sizeof(aUrl), "http://%s/%s", g_Config.m_ClDDNetMapServer, aEscaped);
+						m_pMapdownloadTask = new CFetchTask(true);
+						Fetcher()->QueueAdd(m_pMapdownloadTask, aUrl, m_aMapdownloadFilename, IStorage::TYPE_SAVE);
 					}
+					else
+						SendMapRequest();
 				}
 			}
 		}
@@ -1561,7 +1571,7 @@ void CClient::ProcessServerPacket(CNetChunk *pPacket)
 			int Size = Unpacker.GetInt();
 			const unsigned char *pData = Unpacker.GetRaw(Size);
 
-			// check fior errors
+			// check for errors
 			if(Unpacker.Error() || Size <= 0 || MapCRC != m_MapdownloadCrc || Chunk != m_MapdownloadChunk || !m_MapdownloadFile)
 				return;
 
@@ -1571,24 +1581,9 @@ void CClient::ProcessServerPacket(CNetChunk *pPacket)
 
 			if(Last)
 			{
-				const char *pError;
-				m_pConsole->Print(IConsole::OUTPUT_LEVEL_ADDINFO, "client/network", "download complete, loading map");
-
 				if(m_MapdownloadFile)
 					io_close(m_MapdownloadFile);
-				m_MapdownloadFile = 0;
-				m_MapdownloadAmount = 0;
-				m_MapdownloadTotalsize = -1;
-
-				// load map
-				pError = LoadMap(m_aMapdownloadName, m_aMapdownloadFilename, m_MapdownloadCrc);
-				if(!pError)
-				{
-					m_pConsole->Print(IConsole::OUTPUT_LEVEL_ADDINFO, "client/network", "loading done");
-					SendReady();
-				}
-				else
-					DisconnectWithReason(pError);
+				FinishMapDownload();
 			}
 			else
 			{
@@ -2095,8 +2090,6 @@ void CClient::ProcessServerPacketDummy(CNetChunk *pPacket)
 						m_aSnapshots[!g_Config.m_ClDummy][SNAP_CURRENT] = m_SnapshotStorage[!g_Config.m_ClDummy].m_pLast;
 						m_LocalStartTime = time_get();
 						SetState(IClient::STATE_ONLINE);
-
-						//DemoRecorder_HandleAutoStart();
 					}
 
 					// adjust game time
@@ -2117,6 +2110,46 @@ void CClient::ProcessServerPacketDummy(CNetChunk *pPacket)
 	else
 	{
 		GameClient()->OnMessage(Msg, &Unpacker, 1);
+	}
+}
+
+void CClient::ResetMapDownload()
+{
+	if(m_pMapdownloadTask){
+		delete m_pMapdownloadTask;
+		m_pMapdownloadTask = NULL;
+	}
+	m_MapdownloadFile = 0;
+	m_MapdownloadAmount = 0;
+}
+
+void CClient::FinishMapDownload()
+{
+	const char *pError;
+	m_pConsole->Print(IConsole::OUTPUT_LEVEL_ADDINFO, "client/network", "download complete, loading map");
+
+	int prev = m_MapdownloadTotalsize;
+	m_MapdownloadTotalsize = -1;
+
+	// load map
+	pError = LoadMap(m_aMapdownloadName, m_aMapdownloadFilename, m_MapdownloadCrc);
+	if(!pError)
+	{
+		ResetMapDownload();
+		m_pConsole->Print(IConsole::OUTPUT_LEVEL_ADDINFO, "client/network", "loading done");
+		SendReady();
+	}
+	else if(m_pMapdownloadTask)
+	{
+		ResetMapDownload();
+		m_MapdownloadTotalsize = prev;
+		SendMapRequest();
+	}
+	else{
+		if(m_MapdownloadFile)
+			io_close(m_MapdownloadFile);
+		ResetMapDownload();
+		DisconnectWithReason(pError);
 	}
 }
 
@@ -2381,6 +2414,23 @@ void CClient::Update()
 
 	// pump the network
 	PumpNetwork();
+	if(m_pMapdownloadTask)
+	{
+		if(m_pMapdownloadTask->State() == CFetchTask::STATE_DONE)
+			FinishMapDownload();
+		else if(m_pMapdownloadTask->State() == CFetchTask::STATE_ERROR)
+		{
+			dbg_msg("webdl", "HTTP failed falling back to gameserver.");
+			ResetMapDownload();
+			SendMapRequest();
+		}
+		else if(m_pMapdownloadTask->State() == CFetchTask::STATE_ABORTED)
+		{
+			delete m_pMapdownloadTask;
+			m_pMapdownloadTask = 0;
+		}
+	}
+
 
 	// update the maser server registry
 	MasterServer()->Update();
@@ -2419,15 +2469,22 @@ void CClient::VersionUpdate()
 	}
 }
 
+void CClient::CheckVersionUpdate()
+{
+	m_VersionInfo.m_State = CVersionInfo::STATE_START;
+}
+
 void CClient::RegisterInterfaces()
 {
 	Kernel()->RegisterInterface(static_cast<IDemoRecorder*>(&m_DemoRecorder[RECORDER_MANUAL]));
 	Kernel()->RegisterInterface(static_cast<IDemoPlayer*>(&m_DemoPlayer));
 	Kernel()->RegisterInterface(static_cast<IServerBrowser*>(&m_ServerBrowser));
+	Kernel()->RegisterInterface(static_cast<IFetcher*>(&m_Fetcher));
 #if !defined(CONF_PLATFORM_MACOSX) && !defined(__ANDROID__)
-	Kernel()->RegisterInterface(static_cast<IAutoUpdate*>(&m_AutoUpdate));
+	Kernel()->RegisterInterface(static_cast<IUpdater*>(&m_Updater));
 #endif
 	Kernel()->RegisterInterface(static_cast<IFriends*>(&m_Friends));
+	Kernel()->ReregisterInterface(static_cast<IFriends*>(&m_Foes));
 }
 
 void CClient::InitInterfaces()
@@ -2441,17 +2498,24 @@ void CClient::InitInterfaces()
 	m_pInput = Kernel()->RequestInterface<IEngineInput>();
 	m_pMap = Kernel()->RequestInterface<IEngineMap>();
 	m_pMasterServer = Kernel()->RequestInterface<IEngineMasterServer>();
+	m_pFetcher = Kernel()->RequestInterface<IFetcher>();
 #if !defined(CONF_PLATFORM_MACOSX) && !defined(__ANDROID__)
-	m_pAutoUpdate = Kernel()->RequestInterface<IAutoUpdate>();
+	m_pUpdater = Kernel()->RequestInterface<IUpdater>();
 #endif
 	m_pStorage = Kernel()->RequestInterface<IStorage>();
 
-
 	m_DemoEditor.Init(m_pGameClient->NetVersion(), &m_SnapshotDelta, m_pConsole, m_pStorage);
-	
+
 	m_ServerBrowser.SetBaseInfo(&m_NetClient[2], m_pGameClient->NetVersion());
 
+	m_Fetcher.Init();
+
+#if !defined(CONF_PLATFORM_MACOSX) && !defined(__ANDROID__)
+	m_Updater.Init();
+#endif
+
 	m_Friends.Init();
+	m_Foes.Init(true);
 
 	IOHANDLE newsFile = m_pStorage->OpenFile("ddnet-news.txt", IOFLAG_READ, IStorage::TYPE_SAVE);
 	if (newsFile)
@@ -2582,9 +2646,38 @@ void CClient::Run()
 			m_aCmdConnect[0] = 0;
 		}
 
+		// progress on dummy connect if security token handshake skipped/passed
+		if (m_DummySendConnInfo && !m_NetClient[1].SecurityTokenUnknown())
+		{
+			m_DummySendConnInfo = false;
+
+			// send client info
+			CMsgPacker MsgInfo(NETMSG_INFO);
+			MsgInfo.AddString(GameClient()->NetVersion(), 128);
+			MsgInfo.AddString(g_Config.m_Password, 128);
+			SendMsgExY(&MsgInfo, MSGFLAG_VITAL|MSGFLAG_FLUSH, true, 1);
+
+			// update netclient
+			m_NetClient[1].Update();
+
+			// send ready
+			CMsgPacker MsgReady(NETMSG_READY);
+			SendMsgExY(&MsgReady, MSGFLAG_VITAL|MSGFLAG_FLUSH, true, 1);
+
+			// startinfo
+			GameClient()->SendDummyInfo(true);
+
+			// send enter game an finish the connection
+			CMsgPacker MsgEnter(NETMSG_ENTERGAME);
+			SendMsgExY(&MsgEnter, MSGFLAG_VITAL|MSGFLAG_FLUSH, true, 1);
+		}
+
 		// update input
 		if(Input()->Update())
 			break;	// SDL_QUIT
+#if !defined(CONF_PLATFORM_MACOSX) && !defined(__ANDROID__)
+		Updater()->Update();
+#endif
 
 		// update sound
 		Sound()->Update();
@@ -2656,7 +2749,7 @@ void CClient::Run()
 				m_EditorActive = false;
 
 			Update();
-			
+
 			if((g_Config.m_GfxBackgroundRender || m_pGraphics->WindowOpen()) && (!g_Config.m_GfxAsyncRenderOld || m_pGraphics->IsIdle()))
 			{
 				m_RenderFrames++;
@@ -2808,6 +2901,15 @@ void CClient::AutoScreenshot_Start()
 	}
 }
 
+void CClient::AutoStatScreenshot_Start()
+{
+	if(g_Config.m_ClAutoStatboardScreenshot)
+	{
+		Graphics()->TakeScreenshot("auto/stats/autoscreen");
+		m_AutoStatScreenshotRecycle = true;
+	}
+}
+
 void CClient::AutoScreenshot_Cleanup()
 {
 	if(m_AutoScreenshotRecycle)
@@ -2819,6 +2921,20 @@ void CClient::AutoScreenshot_Cleanup()
 			AutoScreens.Init(Storage(), "screenshots/auto", "autoscreen", ".png", g_Config.m_ClAutoScreenshotMax);
 		}
 		m_AutoScreenshotRecycle = false;
+	}
+}
+
+void CClient::AutoStatScreenshot_Cleanup()
+{
+	if(m_AutoStatScreenshotRecycle)
+	{
+		if(g_Config.m_ClAutoStatboardScreenshotMax)
+		{
+			// clean up auto taken screens
+			CFileCollection AutoScreens;
+			AutoScreens.Init(Storage(), "screenshots/auto/stats", "autoscreen", ".png", g_Config.m_ClAutoStatboardScreenshotMax);
+		}
+		m_AutoStatScreenshotRecycle = false;
 	}
 }
 
@@ -2871,7 +2987,7 @@ void CClient::DemoSliceEnd()
 void CClient::Con_DemoSliceBegin(IConsole::IResult *pResult, void *pUserData)
 {
 	CClient *pSelf = (CClient *)pUserData;
-	pSelf->DemoSliceBegin();	
+	pSelf->DemoSliceBegin();
 }
 
 void CClient::Con_DemoSliceEnd(IConsole::IResult *pResult, void *pUserData)
@@ -2947,6 +3063,19 @@ void CClient::Con_Play(IConsole::IResult *pResult, void *pUserData)
 	pSelf->DemoPlayer_Play(pResult->GetString(0), IStorage::TYPE_ALL);
 }
 
+void CClient::Con_DemoPlay(IConsole::IResult *pResult, void *pUserData)
+{
+	CClient *pSelf = (CClient *)pUserData;
+	if(pSelf->m_DemoPlayer.IsPlaying()){
+		if(pSelf->m_DemoPlayer.BaseInfo()->m_Paused){
+			pSelf->m_DemoPlayer.Unpause();
+		}
+		else{
+			pSelf->m_DemoPlayer.Pause();
+		}
+	}
+}
+
 void CClient::DemoRecorder_Start(const char *pFilename, bool WithTimestamp, int Recorder)
 {
 	if(State() != IClient::STATE_ONLINE)
@@ -3015,6 +3144,8 @@ void CClient::Con_AddDemoMarker(IConsole::IResult *pResult, void *pUserData)
 {
 	CClient *pSelf = (CClient *)pUserData;
 	pSelf->DemoRecorder_AddDemoMarker(RECORDER_MANUAL);
+	pSelf->DemoRecorder_AddDemoMarker(RECORDER_RACE);
+	pSelf->DemoRecorder_AddDemoMarker(RECORDER_AUTO);
 }
 
 void CClient::ServerBrowserUpdate()
@@ -3063,6 +3194,7 @@ void CClient::RegisterCommands()
 	m_pConsole->Register("remove_favorite", "s", CFGFLAG_CLIENT, Con_RemoveFavorite, this, "Remove a server from favorites");
 	m_pConsole->Register("demo_slice_start", "", CFGFLAG_CLIENT, Con_DemoSliceBegin, this, "");
 	m_pConsole->Register("demo_slice_end", "", CFGFLAG_CLIENT, Con_DemoSliceEnd, this, "");
+	m_pConsole->Register("demo_play", "", CFGFLAG_CLIENT, Con_DemoPlay, this, "Play demo");
 
 	// used for server browser update
 	m_pConsole->Chain("br_filter_string", ConchainServerBrowserUpdate, this);
@@ -3178,11 +3310,11 @@ int main(int argc, const char **argv) // ignore_convention
 	pClient->InitInterfaces();
 
 	// execute config file
-	IOHANDLE file = pStorage->OpenFile("settings_ddnet.cfg", IOFLAG_READ, IStorage::TYPE_ALL);
+	IOHANDLE file = pStorage->OpenFile(CONFIG_FILE, IOFLAG_READ, IStorage::TYPE_ALL);
 	if(file)
 	{
 		io_close(file);
-		pConsole->ExecuteFile("settings_ddnet.cfg");
+		pConsole->ExecuteFile(CONFIG_FILE);
 	}
 	else // fallback
 	{
@@ -3190,7 +3322,16 @@ int main(int argc, const char **argv) // ignore_convention
 	}
 
 	// execute autoexec file
-	pConsole->ExecuteFile("autoexec.cfg");
+	file = pStorage->OpenFile(AUTOEXEC_CLIENT_FILE, IOFLAG_READ, IStorage::TYPE_ALL);
+	if(file)
+	{
+		io_close(file);
+		pConsole->ExecuteFile(AUTOEXEC_CLIENT_FILE);
+	}
+	else // fallback
+	{
+		pConsole->ExecuteFile(AUTOEXEC_FILE);
+	}
 
 	// parse the command line arguments
 	if(argc > 1) // ignore_convention
@@ -3215,10 +3356,6 @@ int main(int argc, const char **argv) // ignore_convention
 
 	// write down the config and quit
 	pConfig->Save();
-
-#if !defined(CONF_PLATFORM_MACOSX) && !defined(__ANDROID__)
-	pClient->AutoUpdate()->ExecuteExit();
-#endif
 
 	return 0;
 }

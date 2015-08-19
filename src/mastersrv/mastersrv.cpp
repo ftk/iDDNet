@@ -13,7 +13,6 @@
 
 #include "mastersrv.h"
 
-
 enum {
 	MTU = 1400,
 	MAX_SERVERS_PER_PACKET=75,
@@ -117,7 +116,7 @@ void BuildPackets()
 			}
 			else
 			{
-				static char IPV4Mapping[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF };
+				static char IPV4Mapping[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, (char)0xFF, (char)0xFF };
 
 				mem_copy(m_aPackets[m_NumPackets-1].m_Data.m_aServers[PacketIndex].m_aIp, IPV4Mapping, sizeof(IPV4Mapping));
 				m_aPackets[m_NumPackets-1].m_Data.m_aServers[PacketIndex].m_aIp[12] = pCurrent->m_Address.ip[0];
@@ -334,7 +333,7 @@ int main(int argc, const char **argv) // ignore_convention
 	IStorage *pStorage = CreateStorage("Teeworlds", IStorage::STORAGETYPE_BASIC, argc, argv);
 	IConfig *pConfig = CreateConfig();
 	m_pConsole = CreateConsole(CFGFLAG_MASTER);
-	
+
 	bool RegisterFail = !pKernel->RegisterInterface(pStorage);
 	RegisterFail |= !pKernel->RegisterInterface(m_pConsole);
 	RegisterFail |= !pKernel->RegisterInterface(pConfig);

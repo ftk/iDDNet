@@ -31,14 +31,6 @@
 
 #include "console.h"
 
-enum
-{
-	CONSOLE_CLOSED,
-	CONSOLE_OPENING,
-	CONSOLE_OPEN,
-	CONSOLE_CLOSING,
-};
-
 CGameConsole::CInstance::CInstance(int Type)
 {
 	m_pHistoryEntry = 0x0;
@@ -467,11 +459,11 @@ void CGameConsole::OnRender()
 		TextRender()->TextEx(&Cursor, aInputString, pConsole->m_Input.GetCursorOffset());
 		TextRender()->TextEx(&Cursor, aInputString+pConsole->m_Input.GetCursorOffset(), -1);
 		int Lines = Cursor.m_LineCount;
-		
+
 		y -= (Lines - 1) * FontSize;
 		TextRender()->SetCursor(&Cursor, x, y, FontSize, TEXTFLAG_RENDER);
 		Cursor.m_LineWidth = Screen.w - 10.0f - x;
-		
+
 		TextRender()->TextEx(&Cursor, aInputString, pConsole->m_Input.GetCursorOffset());
 		static float MarkerOffset = TextRender()->TextWidth(0, FontSize, "|", -1)/3;
 		CTextCursor Marker = Cursor;
@@ -542,6 +534,9 @@ void CGameConsole::OnRender()
 					TextRender()->TextEx(&Cursor, pEntry->m_aText, -1);
 				}
 				pEntry = pConsole->m_Backlog.Prev(pEntry);
+
+				// reset color
+				TextRender()->TextColor(1,1,1,1);
 			}
 
 			//	actual backlog page number is too high, render last available page (current checked one, render top down)
@@ -563,6 +558,7 @@ void CGameConsole::OnRender()
 
 		// render page
 		char aBuf[128];
+		TextRender()->TextColor(1,1,1,1);
 		str_format(aBuf, sizeof(aBuf), Localize("-Page %d-"), pConsole->m_BacklogActPage+1);
 		TextRender()->Text(0, 10.0f, 0.0f, FontSize, aBuf, -1);
 

@@ -59,14 +59,9 @@ shutil.rmtree(package_dir, True)
 os.mkdir(package_dir)
 
 print("adding files")
-#shutil.copy("readme.txt", package_dir)
 shutil.copy("license.txt", package_dir)
 shutil.copy("storage.cfg", package_dir)
-shutil.copy("autoexec.cfg", package_dir)
-
-# DDRace
-shutil.copy("announcement.txt", package_dir)
-shutil.copy("license_DDRace.txt", package_dir)
+shutil.copy("autoexec_server.cfg", package_dir)
 
 if include_data and not use_bundle:
 	os.mkdir(os.path.join(package_dir, "data"))
@@ -75,12 +70,21 @@ if include_data and not use_bundle:
 		shutil.copy("other/config_directory.bat", package_dir)
 		shutil.copy("SDL.dll", package_dir)
 		shutil.copy("freetype.dll", package_dir)
-		shutil.copy("libgcc_s_sjlj-1.dll", package_dir)
+		if platform == "win32":
+		    shutil.copy("libgcc_s_sjlj-1.dll", package_dir)
+		    shutil.copy("libidn-11.dll", package_dir)
+		elif platform == "win64":
+		    shutil.copy("libwinpthread-1.dll", package_dir)
+		    shutil.copy("libgcc_s_seh-1.dll", package_dir)
 		shutil.copy("libogg-0.dll", package_dir)
 		shutil.copy("libopus-0.dll", package_dir)
 		shutil.copy("libopusfile-0.dll", package_dir)
 		#shutil.copy("libmysql.dll", package_dir)
 		#shutil.copy("mysqlcppconn.dll", package_dir)
+		shutil.copy("libcurl.dll", package_dir)
+		shutil.copy("libeay32.dll", package_dir)
+		shutil.copy("ssleay32.dll", package_dir)
+		shutil.copy("zlib1.dll", package_dir)
 
 if include_exe and not use_bundle:
 	shutil.copy(name+exe_ext, package_dir)
@@ -148,6 +152,8 @@ if use_bundle:
         <string>????</string>
         <key>CFBundleVersion</key>
         <string>%s</string>
+        <key>CFBundleIdentifier</key>
+        <string>org.DDNetClient.app</string>
 </dict>
 </plist>
 	""" % (version))

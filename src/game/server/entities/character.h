@@ -33,7 +33,7 @@ class CCharacter : public CEntity
 	MACRO_ALLOC_POOL_ID()
 
 	friend class CSaveTee; // need to use core
-	
+
 public:
 	//character's size
 	static const int ms_PhysSize = 28;
@@ -79,6 +79,8 @@ public:
 	void GiveNinja();
 
 	void SetEmote(int Emote, int Tick);
+
+	void Rescue();
 
 	int NeededFaketuning() {return m_NeededFaketuning;}
 	bool IsAlive() const { return m_Alive; }
@@ -151,6 +153,10 @@ private:
 	void HandleBroadcast();
 	void HandleTuneLayer();
 	void SendZoneMsgs();
+
+	bool m_SetSavePos;
+	vec2 m_PrevSavePos;
+
 public:
 
 
@@ -245,7 +251,10 @@ public:
 	int m_TileSFlagsB;
 	vec2 m_Intersection;
 	int64 m_LastStartWarning;
+	int64 m_LastRescue;
+	bool m_LastRefillJumps;
 	bool m_LastPenalty;
+	bool m_LastBonus;
 
 	// Setters/Getters because i don't want to modify vanilla vars access modifiers
 	int GetLastWeapon() { return m_LastWeapon; };

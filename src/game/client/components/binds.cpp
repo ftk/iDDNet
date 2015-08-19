@@ -89,7 +89,7 @@ void CBinds::SetDefaults()
 	Bind(KEY_F1, "toggle_local_console");
 	Bind(KEY_F2, "toggle_remote_console");
 	Bind(KEY_TAB, "+scoreboard");
-	Bind('u', "+show_chat");
+	Bind(KEY_BACKQUOTE, "+statboard");
 	Bind(KEY_F10, "screenshot");
 
 	Bind('a', "+left");
@@ -111,6 +111,7 @@ void CBinds::SetDefaults()
 	Bind(KEY_F5, "spectate_previous");
 	Bind(KEY_F6, "spectate_next");
 #else
+	Bind(KEY_RETURN, "+show_chat; chat all");
 	Bind(KEY_RIGHT, "spectate_next");
 	Bind(KEY_LEFT, "spectate_previous");
 	Bind(KEY_RSHIFT, "+spectate");
@@ -126,13 +127,17 @@ void CBinds::SetDefaults()
 	Bind(KEY_MOUSE_WHEEL_UP, "+prevweapon");
 	Bind(KEY_MOUSE_WHEEL_DOWN, "+nextweapon");
 
-	Bind('t', "chat all");
-	Bind('y', "chat team");
+	Bind('t', "+show_chat; chat all");
+	Bind('y', "+show_chat; chat team");
+	Bind('z', "+show_chat; chat team"); // For German keyboards
+	Bind('u', "+show_chat");
+	Bind('i', "+show_chat; chat all /c ");
 
 	Bind(KEY_F3, "vote yes");
 	Bind(KEY_F4, "vote no");
 
 	Bind('k', "kill");
+	Bind('q', "say /pause");
 	Bind('p', "say /pause");
 
 	// DDRace
@@ -282,8 +287,6 @@ void CBinds::SetDDRaceBinds(bool FreeOnly)
 		Bind('c', "say /rank");
 		Bind('v', "say /info");
 		Bind('b', "say /top5");
-		Bind('p', "say /points");
-		Bind('z', "emote 12");
 		Bind('x', "emote 14");
 		Bind('h', "emote 2");
 		Bind('m', "emote 5");
@@ -329,10 +332,6 @@ void CBinds::SetDDRaceBinds(bool FreeOnly)
 			Bind('v', "say /info");
 		if(!Get('b')[0])
 			Bind('b', "say /top5");
-		if(!Get('p')[0])
-			Bind('p', "say /points");
-		if(!Get('z')[0])
-			Bind('z', "emote 12");
 		if(!Get('x')[0])
 			Bind('x', "emote 14");
 		if(!Get(KEY_KP_PLUS)[0])

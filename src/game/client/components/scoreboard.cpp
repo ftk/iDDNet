@@ -14,6 +14,7 @@
 #include <game/client/render.h>
 #include <game/client/components/countryflags.h>
 #include <game/client/components/motd.h>
+#include <game/client/components/statboard.h>
 
 #include "scoreboard.h"
 
@@ -122,7 +123,7 @@ void CScoreboard::RenderSpectators(float x, float y, float w)
 	bool Multiple = false;
 	for(int i = 0; i < MAX_CLIENTS; ++i)
 	{
-		const CNetObj_PlayerInfo *pInfo = m_pClient->m_Snap.m_paPlayerInfos[i];
+		const CNetObj_PlayerInfo *pInfo = m_pClient->m_Snap.m_paInfoByName[i];
 		if(!pInfo || pInfo->m_Team != TEAM_SPECTATORS)
 			continue;
 
@@ -378,7 +379,6 @@ void CScoreboard::RenderScoreboard(float x, float y, float w, int Team, const ch
 				if(m_pClient->m_Snap.m_aTeamSize[0] > 8)
 				{
 					str_format(aBuf, sizeof(aBuf),"%d", DDTeam);
-					tw = TextRender()->TextWidth(0, FontSize, aBuf, -1);
 					TextRender()->SetCursor(&Cursor, x - 10.0f, y + Spacing + FontSize - (FontSize/1.5f), FontSize/1.5f, TEXTFLAG_RENDER|TEXTFLAG_STOP_AT_END);
 					Cursor.m_LineWidth = NameLength+3;
 				}
@@ -419,8 +419,7 @@ void CScoreboard::RenderScoreboard(float x, float y, float w, int Team, const ch
 		else
 			str_format(aBuf, sizeof(aBuf), "%d", clamp(pInfo->m_Score, -999, 999));
 		tw = TextRender()->TextWidth(0, FontSize, aBuf, -1);
-		TextRender()->SetCursor(&Cursor, ScoreOffset+ScoreLength-tw, y+Spacing, FontSize, TEXTFLAG_RENDER|TEXTFLAG_STOP_AT_END);
-		Cursor.m_LineWidth = ScoreLength;
+		TextRender()->SetCursor(&Cursor, ScoreOffset+ScoreLength-tw, y+Spacing, FontSize, TEXTFLAG_RENDER);
 		TextRender()->TextEx(&Cursor, aBuf, -1);
 
 		// flag
@@ -513,15 +512,45 @@ void CScoreboard::RenderLocalTime(float x)
 
 void CScoreboard::RenderRecordingNotification(float x)
 {
-	if(!m_pClient->DemoRecorder(RECORDER_MANUAL)->IsRecording())
+	if(!m_pClient->DemoRecorder(RECORDER_MANUAL)->IsRecording() &&
+	   !m_pClient->DemoRecorder(RECORDER_AUTO)->IsRecording() &&
+	   !m_pClient->DemoRecorder(RECORDER_RACE)->IsRecording())
+	{
 		return;
+	}
+
+	//draw the text
+	char aBuf[64] = "\0";
+	char aBuf2[64];
+	int Seconds;
+
+	if(m_pClient->DemoRecorder(RECORDER_MANUAL)->IsRecording())
+	{
+		Seconds = m_pClient->DemoRecorder(RECORDER_MANUAL)->Length();
+		str_format(aBuf2, sizeof(aBuf2), Localize("Manual %3d:%02d  "), Seconds/60, Seconds%60);
+		str_append(aBuf, aBuf2, sizeof(aBuf));
+	}
+	if(m_pClient->DemoRecorder(RECORDER_RACE)->IsRecording())
+	{
+		Seconds = m_pClient->DemoRecorder(RECORDER_RACE)->Length();
+		str_format(aBuf2, sizeof(aBuf2), Localize("Race %3d:%02d  "), Seconds/60, Seconds%60);
+		str_append(aBuf, aBuf2, sizeof(aBuf));
+	}
+	if(m_pClient->DemoRecorder(RECORDER_AUTO)->IsRecording())
+	{
+		Seconds = m_pClient->DemoRecorder(RECORDER_AUTO)->Length();
+		str_format(aBuf2, sizeof(aBuf2), Localize("Auto %3d:%02d  "), Seconds/60, Seconds%60);
+		str_append(aBuf, aBuf2, sizeof(aBuf));
+	}
+
+	float w = TextRender()->TextWidth(0, 20.0f, aBuf, -1);
 
 	//draw the box
 	Graphics()->BlendNormal();
 	Graphics()->TextureSet(-1);
 	Graphics()->QuadsBegin();
 	Graphics()->SetColor(0.0f, 0.0f, 0.0f, 0.4f);
-	RenderTools()->DrawRoundRectExt(x, 0.0f, 180.0f, 50.0f, 15.0f, CUI::CORNER_B);
+	RenderTools()->DrawRoundRectExt(x, 0.0f, w+60.0f, 50.0f, 15.0f, CUI::CORNER_B);
 	Graphics()->QuadsEnd();
 
 	//draw the red dot
@@ -530,10 +559,6 @@ void CScoreboard::RenderRecordingNotification(float x)
 	RenderTools()->DrawRoundRect(x+20, 15.0f, 20.0f, 20.0f, 10.0f);
 	Graphics()->QuadsEnd();
 
-	//draw the text
-	char aBuf[64];
-	int Seconds = m_pClient->DemoRecorder(RECORDER_MANUAL)->Length();
-	str_format(aBuf, sizeof(aBuf), Localize("REC %3d:%02d"), Seconds/60, Seconds%60);
 	TextRender()->Text(0, x+50.0f, 10.0f, 20.0f, aBuf, -1);
 }
 
@@ -617,14 +642,17 @@ void CScoreboard::OnRender()
 
 bool CScoreboard::Active()
 {
-	// if we activly wanna look on the scoreboard
+	// if statboard is active dont show scoreboard
+	if(m_pClient->m_pStatboard->IsActive())
+		return false;
+
 	if(m_Active)
 		return true;
 
 	if(m_pClient->m_Snap.m_pLocalInfo && m_pClient->m_Snap.m_pLocalInfo->m_Team != TEAM_SPECTATORS)
 	{
 		// we are not a spectator, check if we are dead
-		if(!m_pClient->m_Snap.m_pLocalCharacter)
+		if(!m_pClient->m_Snap.m_pLocalCharacter && g_Config.m_ClScoreboardOnDeath)
 			return true;
 	}
 

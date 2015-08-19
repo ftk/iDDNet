@@ -103,8 +103,9 @@ public:
 	{
 		//
 		PRIMTYPE_INVALID = 0,
-		PRIMTYPE_LINES,	
+		PRIMTYPE_LINES,
 		PRIMTYPE_QUADS,
+		PRIMTYPE_TRIANGLES,
 	};
 
 	enum
@@ -154,13 +155,13 @@ public:
 		int m_ClipW;
 		int m_ClipH;
 	};
-		
+
 	struct SCommand_Clear : public SCommand
 	{
 		SCommand_Clear() : SCommand(CMD_CLEAR) {}
 		SColor m_Color;
 	};
-		
+
 	struct SCommand_Signal : public SCommand
 	{
 		SCommand_Signal() : SCommand(CMD_SIGNAL) {}
@@ -243,7 +244,7 @@ public:
 		// texture information
 		int m_Slot;
 	};
-	
+
 	//
 	CCommandBuffer(unsigned CmdBufferSize, unsigned DataBufferSize)
 	: m_CmdBuffer(CmdBufferSize), m_DataBuffer(DataBufferSize)
@@ -326,7 +327,7 @@ class CGraphics_Threaded : public IEngineGraphics
 
 		MAX_VERTICES = 32*1024,
 		MAX_TEXTURES = 1024*4,
-		
+
 		DRAWING_QUADS=1,
 		DRAWING_LINES=2
 	};
@@ -363,7 +364,7 @@ class CGraphics_Threaded : public IEngineGraphics
 
 	void FlushVertices();
 	void AddVertices(int Count);
-	void Rotate4(const CCommandBuffer::SPoint &rCenter, CCommandBuffer::SVertex *pPoints);
+	void Rotate(const CCommandBuffer::SPoint &rCenter, CCommandBuffer::SVertex *pPoints, int NumPoints);
 
 	void KickCommandBuffer();
 

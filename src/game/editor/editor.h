@@ -212,7 +212,7 @@ public:
 	{
 		return m_lLayers.size() == 0; // stupid function, since its bad for Fillselection: TODO add a function for Fillselection that returns whether a specific tile is used in the given layer
 	}
-	
+
 	/*bool IsUsedInThisLayer(int Layer, int Index) // <--------- this is what i meant but cause i dont know which Indexes belongs to which layers i cant finish yet
 	{
 		switch Layer
@@ -234,7 +234,7 @@ public:
 			}
 			case LAYERTYPE_SWITCH:
 			{
-				
+
 			}
 			case LAYERTYPE_TUNE:
 			{
@@ -307,7 +307,7 @@ class CEditorSound
 {
 public:
 	CEditor *m_pEditor;
-	
+
 	CEditorSound(CEditor *pEditor)
 	{
 		m_pEditor = pEditor;
@@ -481,6 +481,7 @@ enum
 	PROPTYPE_BOOL,
 	PROPTYPE_INT_STEP,
 	PROPTYPE_INT_SCROLL,
+	PROPTYPE_ANGLE_SCROLL,
 	PROPTYPE_COLOR,
 	PROPTYPE_IMAGE,
 	PROPTYPE_ENVELOPE,
@@ -505,7 +506,7 @@ public:
 
 	void MakePalette();
 	virtual void Render();
-	
+
 	int ConvertX(float x) const;
 	int ConvertY(float y) const;
 	void Convert(CUIRect Rect, RECTi *pOut);
@@ -873,6 +874,7 @@ public:
 	void DoMapBorder();
 	int DoButton_Editor_Common(const void *pID, const char *pText, int Checked, const CUIRect *pRect, int Flags, const char *pToolTip);
 	int DoButton_Editor(const void *pID, const char *pText, int Checked, const CUIRect *pRect, int Flags, const char *pToolTip);
+	int DoButton_Env(const void *pID, const char *pText, int Checked, const CUIRect *pRect, const char *pToolTip, vec3 Color);
 
 	int DoButton_Tab(const void *pID, const char *pText, int Checked, const CUIRect *pRect, int Flags, const char *pToolTip);
 	int DoButton_Ex(const void *pID, const char *pText, int Checked, const CUIRect *pRect, int Flags, const char *pToolTip, int Corners, float FontSize=10.0f);
@@ -893,7 +895,7 @@ public:
 	void UiInvokePopupMenu(void *pID, int Flags, float X, float Y, float W, float H, int (*pfnFunc)(CEditor *pEditor, CUIRect Rect), void *pExtra=0);
 	void UiDoPopupMenu();
 
-	int UiDoValueSelector(void *pID, CUIRect *pRect, const char *pLabel, int Current, int Min, int Max, int Step, float Scale, const char *pToolTip);
+	int UiDoValueSelector(void *pID, CUIRect *pRect, const char *pLabel, int Current, int Min, int Max, int Step, float Scale, const char *pToolTip, bool isDegree=false);
 
 	static int PopupGroup(CEditor *pEditor, CUIRect View);
 	static int PopupLayer(CEditor *pEditor, CUIRect View);
@@ -914,6 +916,7 @@ public:
 	static void CallbackOpenMap(const char *pFileName, int StorageType, void *pUser);
 	static void CallbackAppendMap(const char *pFileName, int StorageType, void *pUser);
 	static void CallbackSaveMap(const char *pFileName, int StorageType, void *pUser);
+	static void CallbackSaveCopyMap(const char *pFileName, int StorageType, void *pUser);
 
 	void PopupSelectImageInvoke(int Current, float x, float y);
 	int PopupSelectImageResult();
@@ -925,7 +928,7 @@ public:
 	int PopupSelectConfigAutoMapResult();
 
 	void PopupSelectSoundInvoke(int Current, float x, float y);
-	int PopupSelectSoundResult(); 
+	int PopupSelectSoundResult();
 
 	vec4 ButtonColorMul(const void *pID);
 
@@ -990,7 +993,7 @@ public:
 	static int PopupSwitch(CEditor *pEditor, CUIRect View);
 	static int PopupTune(CEditor *pEditor, CUIRect View);
 	unsigned char m_TeleNumber;
-	
+
 	unsigned char m_TuningNum;
 
 	unsigned char m_SpeedupForce;

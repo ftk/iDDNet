@@ -6,6 +6,7 @@
 #include <engine/keys.h>
 #include <engine/serverbrowser.h>
 #include <engine/textrender.h>
+#include <engine/updater.h>
 #include <engine/shared/config.h>
 
 #include <game/generated/client_data.h>
@@ -16,6 +17,7 @@
 #include <game/client/render.h>
 #include <game/client/ui.h>
 #include <game/client/components/countryflags.h>
+#include <game/client/components/console.h>
 
 #include "menus.h"
 
@@ -172,6 +174,13 @@ void CMenus::RenderServerbrowserServerList(CUIRect View)
 	else
 		ScrollNum = 0;
 
+	if(Input()->KeyDown(KEY_TAB) && m_pClient->m_pGameConsole->IsClosed())
+	{
+		if(Input()->KeyPressed(KEY_LSHIFT) || Input()->KeyPressed(KEY_RSHIFT))
+			g_Config.m_UiToolboxPage = (g_Config.m_UiToolboxPage + 3 - 1) % 3;
+		else
+			g_Config.m_UiToolboxPage = (g_Config.m_UiToolboxPage + 3 + 1) % 3;
+	}
 	if(m_SelectedIndex > -1)
 	{
 		for(int i = 0; i < m_NumInputEvents; i++)
@@ -320,30 +329,18 @@ void CMenus::RenderServerbrowserServerList(CUIRect View)
 
 			if(ID == COL_FLAG_LOCK)
 			{
-#if defined(__ANDROID__)
-				Button.h = Button.w;
-				Button.y += ms_ListitemAdditionalHeight / 2;
-#endif
 				if(pItem->m_Flags & SERVER_FLAG_PASSWORD)
 					DoButton_Icon(IMAGE_BROWSEICONS, SPRITE_BROWSE_LOCK, &Button);
 			}
 			else if(ID == COL_FLAG_FAV)
 			{
-#if defined(__ANDROID__)
-				Button.h = Button.w;
-				Button.y += ms_ListitemAdditionalHeight / 2;
-#endif
 				if(pItem->m_Favorite)
 					DoButton_Icon(IMAGE_BROWSEICONS, SPRITE_BROWSE_HEART, &Button);
 			}
 			else if(ID == COL_NAME)
 			{
 				CTextCursor Cursor;
-#if defined(__ANDROID__)
-				TextRender()->SetCursor(&Cursor, Button.x, Button.y + ms_ListitemAdditionalHeight / 2, 12.0f * UI()->Scale(), TEXTFLAG_RENDER|TEXTFLAG_STOP_AT_END);
-#else
 				TextRender()->SetCursor(&Cursor, Button.x, Button.y, 12.0f * UI()->Scale(), TEXTFLAG_RENDER|TEXTFLAG_STOP_AT_END);
-#endif
 				Cursor.m_LineWidth = Button.w;
 
 				if(g_Config.m_BrFilterString[0] && (pItem->m_QuickSearchHit&IServerBrowser::QUICK_SERVERNAME))
@@ -367,11 +364,7 @@ void CMenus::RenderServerbrowserServerList(CUIRect View)
 			else if(ID == COL_MAP)
 			{
 				CTextCursor Cursor;
-#if defined(__ANDROID__)
-				TextRender()->SetCursor(&Cursor, Button.x, Button.y + ms_ListitemAdditionalHeight / 2, 12.0f * UI()->Scale(), TEXTFLAG_RENDER|TEXTFLAG_STOP_AT_END);
-#else
 				TextRender()->SetCursor(&Cursor, Button.x, Button.y, 12.0f * UI()->Scale(), TEXTFLAG_RENDER|TEXTFLAG_STOP_AT_END);
-#endif
 				Cursor.m_LineWidth = Button.w;
 
 				if(g_Config.m_BrFilterString[0] && (pItem->m_QuickSearchHit&IServerBrowser::QUICK_MAPNAME))
@@ -394,10 +387,6 @@ void CMenus::RenderServerbrowserServerList(CUIRect View)
 			}
 			else if(ID == COL_PLAYERS)
 			{
-#if defined(__ANDROID__)
-				Button.h -= ms_ListitemAdditionalHeight;
-				Button.y += ms_ListitemAdditionalHeight / 2;
-#endif
 				CUIRect Icon;
 				Button.VMargin(4.0f, &Button);
 				if(pItem->m_FriendState != IFriends::FRIEND_NO)
@@ -418,10 +407,6 @@ void CMenus::RenderServerbrowserServerList(CUIRect View)
 			}
 			else if(ID == COL_PING)
 			{
-#if defined(__ANDROID__)
-				Button.h -= ms_ListitemAdditionalHeight;
-				Button.y += ms_ListitemAdditionalHeight / 2;
-#endif
 				str_format(aTemp, sizeof(aTemp), "%i", pItem->m_Latency);
 				if (g_Config.m_UiColorizePing)
 				{
@@ -434,21 +419,13 @@ void CMenus::RenderServerbrowserServerList(CUIRect View)
 			}
 			else if(ID == COL_VERSION)
 			{
-#if defined(__ANDROID__)
-				Button.h -= ms_ListitemAdditionalHeight;
-				Button.y += ms_ListitemAdditionalHeight / 2;
-#endif
 				const char *pVersion = pItem->m_aVersion;
 				UI()->DoLabelScaled(&Button, pVersion, 12.0f, 1);
 			}
 			else if(ID == COL_GAMETYPE)
 			{
 				CTextCursor Cursor;
-#if defined(__ANDROID__)
-				TextRender()->SetCursor(&Cursor, Button.x, Button.y + ms_ListitemAdditionalHeight / 2, 12.0f*UI()->Scale(), TEXTFLAG_RENDER|TEXTFLAG_STOP_AT_END);
-#else
 				TextRender()->SetCursor(&Cursor, Button.x, Button.y, 12.0f*UI()->Scale(), TEXTFLAG_RENDER|TEXTFLAG_STOP_AT_END);
-#endif
 				Cursor.m_LineWidth = Button.w;
 
 				if (g_Config.m_UiColorizeGametype)
@@ -504,7 +481,7 @@ void CMenus::RenderServerbrowserServerList(CUIRect View)
 	Status.Margin(5.0f, &Status);
 
 	CUIRect QuickSearch, QuickExclude, Button, Status2, Status3;
-	Status.VSplitRight(240.0f, &Status2, &Status3);
+	Status.VSplitRight(250.0f, &Status2, &Status3);
 
 	Status2.VSplitMid(&QuickSearch, &QuickExclude);
 	QuickExclude.VSplitLeft(5.0f, 0, &QuickExclude);
@@ -1266,10 +1243,72 @@ void CMenus::RenderServerbrowser(CUIRect MainView)
 
 	// status box
 	{
-		CUIRect Button, ButtonArea;
+		CUIRect Button, ButtonArea, Part;
 		StatusBox.HSplitTop(5.0f, 0, &StatusBox);
 
 		// version note
+#if defined(CONF_FAMILY_WINDOWS) || (defined(CONF_PLATFORM_LINUX) && !defined(__ANDROID__))
+		StatusBox.HSplitBottom(15.0f, &StatusBox, &Button);
+		char aBuf[64];
+		int State = Updater()->GetCurrentState();
+		bool NeedUpdate = str_comp(Client()->LatestVersion(), "0");
+		if(State == IUpdater::CLEAN && NeedUpdate)
+		{
+			str_format(aBuf, sizeof(aBuf), "DDNet %s is out!", Client()->LatestVersion());
+			TextRender()->TextColor(1.0f, 0.4f, 0.4f, 1.0f);
+		}
+		else if(State == IUpdater::CLEAN)
+			str_format(aBuf, sizeof(aBuf), Localize("Current version: %s"), GAME_VERSION);
+		else if(State >= IUpdater::GETTING_MANIFEST && State < IUpdater::NEED_RESTART)
+			str_format(aBuf, sizeof(aBuf), "Downloading %s:", Updater()->GetCurrentFile());
+		else if(State == IUpdater::FAIL)
+		{
+			str_format(aBuf, sizeof(aBuf), "Failed to download a file! Restart client to retry...");
+			TextRender()->TextColor(1.0f, 0.4f, 0.4f, 1.0f);
+		}
+		else if(State == IUpdater::NEED_RESTART)
+		{
+			str_format(aBuf, sizeof(aBuf), "DDNet Client updated!");
+			TextRender()->TextColor(1.0f, 0.4f, 0.4f, 1.0f);
+		}
+		UI()->DoLabelScaled(&Button, aBuf, 14.0f, -1);
+		TextRender()->TextColor(1.0f, 1.0f, 1.0f, 1.0f);
+
+		Button.VSplitLeft(TextRender()->TextWidth(0, 14.0f, aBuf, -1) + 10.0f, &Button, &Part);
+
+		if(State == IUpdater::CLEAN && NeedUpdate)
+		{
+			CUIRect Update;
+			Part.VSplitLeft(100.0f, &Update, NULL);
+
+			static int s_ButtonUpdate = 0;
+			if(DoButton_Menu(&s_ButtonUpdate, Localize("Update now"), 0, &Update))
+			{
+				Updater()->InitiateUpdate();
+			}
+		}
+		else if(State == IUpdater::NEED_RESTART)
+		{
+			CUIRect Restart;
+			Part.VSplitLeft(50.0f, &Restart, &Part);
+
+			static int s_ButtonUpdate = 0;
+			if(DoButton_Menu(&s_ButtonUpdate, Localize("Restart"), 0, &Restart))
+			{
+				Client()->Restart();
+			}
+		}
+		else if(State >= IUpdater::GETTING_MANIFEST && State < IUpdater::NEED_RESTART)
+		{
+			CUIRect ProgressBar, Percent;
+			Part.VSplitLeft(100.0f, &ProgressBar, &Percent);
+			ProgressBar.y += 2.0f;
+			ProgressBar.HMargin(1.0f, &ProgressBar);
+			RenderTools()->DrawUIRect(&ProgressBar, vec4(1.0f, 1.0f, 1.0f, 0.25f), CUI::CORNER_ALL, 5.0f);
+			ProgressBar.w = clamp((float)Updater()->GetCurrentPercent(), 10.0f, 100.0f);
+			RenderTools()->DrawUIRect(&ProgressBar, vec4(1.0f, 1.0f, 1.0f, 0.5f), CUI::CORNER_ALL, 5.0f);
+		}
+#else
 		StatusBox.HSplitBottom(15.0f, &StatusBox, &Button);
 		char aBuf[64];
 		if(str_comp(Client()->LatestVersion(), "0") != 0)
@@ -1281,7 +1320,7 @@ void CMenus::RenderServerbrowser(CUIRect MainView)
 			str_format(aBuf, sizeof(aBuf), Localize("Current version: %s"), GAME_VERSION);
 		UI()->DoLabelScaled(&Button, aBuf, 14.0f, -1);
 		TextRender()->TextColor(1.0f, 1.0f, 1.0f, 1.0f);
-
+#endif
 		// button area
 		//StatusBox.VSplitRight(80.0f, &StatusBox, 0);
 		StatusBox.VSplitRight(170.0f, &StatusBox, &ButtonArea);

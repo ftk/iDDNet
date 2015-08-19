@@ -21,6 +21,7 @@ public:
 	char m_aDatadir[MAX_PATH_LENGTH];
 	char m_aUserdir[MAX_PATH_LENGTH];
 	char m_aCurrentdir[MAX_PATH_LENGTH];
+	char m_aBinarydir[MAX_PATH_LENGTH];
 
 	CStorage()
 	{
@@ -59,6 +60,7 @@ public:
 			{
 				fs_makedir(GetPath(TYPE_SAVE, "screenshots", aPath, sizeof(aPath)));
 				fs_makedir(GetPath(TYPE_SAVE, "screenshots/auto", aPath, sizeof(aPath)));
+				fs_makedir(GetPath(TYPE_SAVE, "screenshots/auto/stats", aPath, sizeof(aPath)));
 				fs_makedir(GetPath(TYPE_SAVE, "maps", aPath, sizeof(aPath)));
 				fs_makedir(GetPath(TYPE_SAVE, "downloadedmaps", aPath, sizeof(aPath)));
 			}
@@ -163,6 +165,7 @@ public:
 		if(fs_is_dir("data/mapres"))
 		{
 			str_copy(m_aDatadir, "data", sizeof(m_aDatadir));
+			str_copy(m_aBinarydir, "", sizeof(m_aBinarydir));
 			return;
 		}
 
@@ -170,6 +173,7 @@ public:
 		if(fs_is_dir(DATA_DIR "/mapres"))
 		{
 			str_copy(m_aDatadir, DATA_DIR, sizeof(m_aDatadir));
+			str_copy(m_aBinarydir, "", sizeof(m_aBinarydir));
 			return;
 		}
 
@@ -184,6 +188,7 @@ public:
 			{
 				char aBaseDir[MAX_PATH_LENGTH];
 				str_copy(aBaseDir, pArgv0, Pos+1);
+				str_copy(m_aBinarydir, aBaseDir, sizeof(m_aBinarydir));
 				str_format(m_aDatadir, sizeof(m_aDatadir), "%s/data", aBaseDir);
 				str_append(aBaseDir, "/data/mapres", sizeof(aBaseDir));
 
@@ -213,6 +218,7 @@ public:
 				str_format(aBuf, sizeof(aBuf), "%s/mapres", aDirs[i]);
 				if(fs_is_dir(aBuf))
 				{
+					str_copy(m_aBinarydir, aDirs[i], sizeof(aDirs[i])-5);
 					str_copy(m_aDatadir, aDirs[i], sizeof(m_aDatadir));
 					return;
 				}
@@ -240,7 +246,7 @@ public:
 		}
 	}
 
-	const char *GetPath(int Type, const char *pDir, char *pBuffer, unsigned BufferSize)
+	virtual const char *GetPath(int Type, const char *pDir, char *pBuffer, unsigned BufferSize)
 	{
 		str_format(pBuffer, BufferSize, "%s%s%s", m_aaStoragePaths[Type], !m_aaStoragePaths[Type][0] ? "" : "/", pDir);
 		return pBuffer;
@@ -364,6 +370,12 @@ public:
 		return !fs_remove(GetPath(Type, pFilename, aBuffer, sizeof(aBuffer)));
 	}
 
+	virtual bool RemoveBinaryFile(const char *pFilename)
+	{
+		char aBuffer[MAX_PATH_LENGTH];
+		return !fs_remove(GetBinaryPath(pFilename, aBuffer, sizeof(aBuffer)));
+	}
+
 	virtual bool RenameFile(const char* pOldFilename, const char* pNewFilename, int Type)
 	{
 		if(Type < 0 || Type >= m_NumPaths)
@@ -371,6 +383,13 @@ public:
 		char aOldBuffer[MAX_PATH_LENGTH];
 		char aNewBuffer[MAX_PATH_LENGTH];
 		return !fs_rename(GetPath(Type, pOldFilename, aOldBuffer, sizeof(aOldBuffer)), GetPath(Type, pNewFilename, aNewBuffer, sizeof (aNewBuffer)));
+	}
+
+	virtual bool RenameBinaryFile(const char* pOldFilename, const char* pNewFilename)
+	{
+		char aOldBuffer[MAX_PATH_LENGTH];
+		char aNewBuffer[MAX_PATH_LENGTH];
+		return !fs_rename(GetBinaryPath(pOldFilename, aOldBuffer, sizeof(aOldBuffer)), GetBinaryPath(pNewFilename, aNewBuffer, sizeof (aNewBuffer)));
 	}
 
 	virtual bool CreateFolder(const char *pFoldername, int Type)
@@ -392,6 +411,12 @@ public:
 		}
 
 		GetPath(Type, pDir, pBuffer, BufferSize);
+	}
+
+	virtual const char* GetBinaryPath(const char *pDir, char *pBuffer, unsigned BufferSize)
+	{
+		str_format(pBuffer, BufferSize, "%s%s%s", m_aBinarydir, !m_aBinarydir[0] ? "" : "/", pDir);
+		return pBuffer;
 	}
 
 	static IStorage *Create(const char *pApplicationName, int StorageType, int NumArgs, const char **ppArguments)

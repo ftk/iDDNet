@@ -127,6 +127,7 @@ class CMenus : public CComponent
 	bool m_NeedRestartSkins;
 	bool m_NeedRestartGraphics;
 	bool m_NeedRestartSound;
+	bool m_NeedRestartUpdate;
 	bool m_NeedSendinfo;
 	bool m_NeedSendDummyinfo;
 	int m_SettingPlayerPage;
@@ -145,6 +146,7 @@ class CMenus : public CComponent
 	int m_CallvoteSelectedOption;
 	int m_CallvoteSelectedPlayer;
 	char m_aCallvoteReason[VOTE_REASON_LENGTH];
+	char m_aFilterString[25];
 
 	// demo
 	struct CDemoItem
@@ -332,7 +334,6 @@ public:
 		POPUP_SOUNDERROR,
 		POPUP_PASSWORD,
 		POPUP_QUIT,
-		POPUP_AUTOUPDATE,
 		POPUP_DISCONNECT,
 
 		// demo player states

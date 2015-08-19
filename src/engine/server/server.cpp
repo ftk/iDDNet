@@ -314,6 +314,7 @@ CServer::CServer()
 	m_RconAuthLevel = AUTHED_ADMIN;
 
 	m_RconRestrict = -1;
+	m_GeneratedRconPassword = 0;
 
 	Init();
 }
@@ -330,10 +331,6 @@ int CServer::TrySetClientName(int ClientID, const char *pName)
 	// check for empty names
 	if(!aTrimmedName[0])
 		return -1;
-
-	// check if new and old name are the same
-	if(m_aClients[ClientID].m_aName[0] && str_comp(m_aClients[ClientID].m_aName, aTrimmedName) == 0)
-		return 0;
 
 	char aBuf[256];
 	str_format(aBuf, sizeof(aBuf), "'%s' -> '%s'", pName, aTrimmedName);
@@ -410,12 +407,12 @@ void CServer::Kick(int ClientID, const char *pReason)
 	else if(m_RconClientID == ClientID)
 	{
 		Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", "you can't kick yourself");
- 		return;
+		return;
 	}
 	else if(m_aClients[ClientID].m_Authed > m_RconAuthLevel  || m_aClients[ClientID].m_State == CClient::STATE_DUMMY) // iDDNet)
 	{
 		Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", "kick command denied");
- 		return;
+		return;
 	}
 
 	m_NetServer.Drop(ClientID, pReason);
@@ -530,6 +527,36 @@ bool CServer::ClientIngame(int ClientID)
 int CServer::MaxClients() const
 {
 	return m_NetServer.MaxClients();
+}
+
+void CServer::InitRconPasswordIfEmpty()
+{
+	if(g_Config.m_SvRconPassword[0])
+	{
+		return;
+	}
+
+	static const char VALUES[] = "ABCDEFGHKLMNPRSTUVWXYZabcdefghjkmnopqt23456789";
+	static const size_t NUM_VALUES = sizeof(VALUES) - 1; // Disregard the '\0'.
+	static const size_t PASSWORD_LENGTH = 6;
+	dbg_assert(NUM_VALUES * NUM_VALUES >= 2048, "need at least 2048 possibilities for 2-character sequences");
+	// With 6 characters, we get a password entropy of log(2048) * 6/2 = 33bit.
+
+	dbg_assert(PASSWORD_LENGTH % 2 == 0, "need an even password length");
+	unsigned short aRandom[PASSWORD_LENGTH / 2];
+	char aRandomPassword[PASSWORD_LENGTH+1];
+	aRandomPassword[PASSWORD_LENGTH] = 0;
+
+	secure_random_fill(aRandom, sizeof(aRandom));
+	for(size_t i = 0; i < PASSWORD_LENGTH / 2; i++)
+	{
+		unsigned short RandomNumber = aRandom[i] % 2048;
+		aRandomPassword[2 * i + 0] = VALUES[RandomNumber / NUM_VALUES];
+		aRandomPassword[2 * i + 1] = VALUES[RandomNumber % NUM_VALUES];
+	}
+
+	str_copy(g_Config.m_SvRconPassword, aRandomPassword, sizeof(g_Config.m_SvRconPassword));
+	m_GeneratedRconPassword = 1;
 }
 
 int CServer::SendMsg(CMsgPacker *pMsg, int Flags, int ClientID)
@@ -733,6 +760,22 @@ void CServer::DoSnapshot()
 	GameServer()->OnPostSnap();
 }
 
+int CServer::NewClientNoAuthCallback(int ClientID, void *pUser)
+{
+	CServer *pThis = (CServer *)pUser;
+	pThis->m_aClients[ClientID].m_State = CClient::STATE_CONNECTING;
+	pThis->m_aClients[ClientID].m_aName[0] = 0;
+	pThis->m_aClients[ClientID].m_aClan[0] = 0;
+	pThis->m_aClients[ClientID].m_Country = -1;
+	pThis->m_aClients[ClientID].m_Authed = AUTHED_NO;
+	pThis->m_aClients[ClientID].m_AuthTries = 0;
+	pThis->m_aClients[ClientID].m_pRconCmdToSend = 0;
+	pThis->m_aClients[ClientID].Reset();
+
+	pThis->SendMap(ClientID);
+
+	return 0;
+}
 
 int CServer::NewClientCallback(int ClientID, void *pUser)
 {
@@ -745,8 +788,6 @@ int CServer::NewClientCallback(int ClientID, void *pUser)
 	pThis->m_aClients[ClientID].m_LastAuthed = AUTHED_NO;
 	pThis->m_aClients[ClientID].m_AuthTries = 0;
 	pThis->m_aClients[ClientID].m_pRconCmdToSend = 0;
-	pThis->m_aClients[ClientID].m_NonceCount = 0;
-	pThis->m_aClients[ClientID].m_LastNonceCount = 0;
 	pThis->m_aClients[ClientID].m_Traffic = 0;
 	pThis->m_aClients[ClientID].m_TrafficSince = 0;
 	memset(&pThis->m_aClients[ClientID].m_Addr, 0, sizeof(NETADDR));
@@ -926,75 +967,12 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 					return;
 				}
 
-				bool SpoofProtectedAlready = false;
-				NETADDR ThisAddr = *m_NetServer.ClientAddr(ClientID);
-				ThisAddr.port = 0;
-				for(int i = 0; i < m_NetServer.MaxClients(); i++)
-				{
-					NETADDR OtherAddr = *m_NetServer.ClientAddr(i);
-					OtherAddr.port = 0;
-					if (m_aClients[i].m_State == CClient::STATE_INGAME && net_addr_comp(&ThisAddr, &OtherAddr) == 0)
-						SpoofProtectedAlready = true;
-				}
-
-				if(g_Config.m_SvSpoofProtection && !SpoofProtectedAlready)
-				{
-					//set nonce
-					m_aClients[ClientID].m_Nonce = rand()%5+5;//5-9
-					m_aClients[ClientID].m_LastNonceCount = Tick();
-					m_aClients[ClientID].m_State = CClient::STATE_SPOOFCHECK;
-
-					CMsgPacker Msg(NETMSG_MAP_CHANGE);
-					Msg.AddString("", 0);//mapname
-					Msg.AddInt(0);//crc
-					Msg.AddInt(0);//size
-					SendMsgEx(&Msg, MSGFLAG_VITAL|MSGFLAG_FLUSH, ClientID, true);
-				}
-				else
-				{
-					m_aClients[ClientID].m_State = CClient::STATE_CONNECTING;
-					SendMap(ClientID);
-				}
+				m_aClients[ClientID].m_State = CClient::STATE_CONNECTING;
+				SendMap(ClientID);
 			}
 		}
 		else if(Msg == NETMSG_REQUEST_MAP_DATA)
 		{
-			if(g_Config.m_SvSpoofProtection)
-			{
-				if(m_aClients[ClientID].m_State == CClient::STATE_SPOOFCHECK)
-				{
-					int Chunk = Unpacker.GetInt();
-					if(m_aClients[ClientID].m_NonceCount != Chunk || m_aClients[ClientID].m_LastNonceCount+TickSpeed() < Tick())//wrong number sent
-						m_NetServer.Drop(ClientID, "Kicked by spoofprotection. Please try again!");
-
-					m_aClients[ClientID].m_LastNonceCount = Tick();
-
-					if(m_aClients[ClientID].m_NonceCount != m_aClients[ClientID].m_Nonce)
-					{
-						CMsgPacker Msg(NETMSG_MAP_DATA);
-						Msg.AddInt(0);//last
-						Msg.AddInt(0);//crc
-						Msg.AddInt(m_aClients[ClientID].m_NonceCount);//chunk
-						Msg.AddInt(1);//size
-						Msg.AddRaw("a", 1);//data
-						SendMsgEx(&Msg, MSGFLAG_VITAL|MSGFLAG_FLUSH, ClientID, true);
-						m_aClients[ClientID].m_NonceCount++;
-					}
-					else//done. continue as usual
-					{
-						m_aClients[ClientID].m_State = CClient::STATE_POSTSPOOFCHECK;
-						dbg_msg(0, "done");
-					}
-
-					return;
-				}
-				else if(m_aClients[ClientID].m_State == CClient::STATE_POSTSPOOFCHECK)
-				{//Too many noncenumbers sent
-					m_NetServer.Drop(ClientID, "Kicked by spoofprotection. Please try again!");
-					return;
-				}
-			}
-
 			if(m_aClients[ClientID].m_State < CClient::STATE_CONNECTING)
 				return; // no map w/o password, sorry guys
 
@@ -1017,8 +995,6 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 			if(Offset+ChunkSize >= m_CurrentMapSize)
 			{
 				ChunkSize = m_CurrentMapSize-Offset;
-				if(ChunkSize < 0)
-					ChunkSize = 0;
 				Last = 1;
 			}
 
@@ -1048,7 +1024,7 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 				net_addr_str(m_NetServer.ClientAddr(ClientID), aAddrStr, sizeof(aAddrStr), true);
 
 				char aBuf[256];
-				str_format(aBuf, sizeof(aBuf), "player is ready. ClientID=%x addr=%s", ClientID, aAddrStr);
+				str_format(aBuf, sizeof(aBuf), "player is ready. ClientID=%x addr=%s secure=%s", ClientID, aAddrStr, m_NetServer.HasSecurityToken(ClientID)?"yes":"no");
 				Console()->Print(IConsole::OUTPUT_LEVEL_ADDINFO, "server", aBuf);
 				m_aClients[ClientID].m_State = CClient::STATE_READY;
 				GameServer()->OnClientConnected(ClientID);
@@ -1469,8 +1445,6 @@ void CServer::PumpNetwork()
 			if(Offset+ChunkSize >= m_CurrentMapSize)
 			{
 				ChunkSize = m_CurrentMapSize-Offset;
-				if(ChunkSize < 0)
-					ChunkSize = 0;
 				Last = 1;
 			}
 
@@ -1493,20 +1467,6 @@ void CServer::PumpNetwork()
 
 	m_ServerBan.Update();
 	m_Econ.Update();
-
-	if(g_Config.m_SvSpoofProtection)
-	{
-		for(int i = 0; i < MAX_CLIENTS; i++)
-		{
-			if(m_aClients[i].m_State == CClient::STATE_POSTSPOOFCHECK)
-			//if(m_aClients[i].m_State == CClient::STATE_POSTSPOOFCHECK &&
-			//	m_aClients[i].m_LastNonceCount+TickSpeed() < Tick())
-			{ // when the time is over: continue joining process
-				m_aClients[i].m_State = CClient::STATE_CONNECTING;
-				SendMap(i);
-			}
-		}
-	}
 }
 
 char *CServer::GetMapName()
@@ -1622,7 +1582,7 @@ int CServer::Run()
 		return -1;
 	}
 
-	m_NetServer.SetCallbacks(NewClientCallback, DelClientCallback, this);
+	m_NetServer.SetCallbacks(NewClientCallback, NewClientNoAuthCallback, DelClientCallback, this);
 
 	m_Econ.Init(Console(), &m_ServerBan);
 
@@ -1636,6 +1596,13 @@ int CServer::Run()
 
 	// process pending commands
 	m_pConsole->StoreCommands(false);
+
+	if(m_GeneratedRconPassword)
+	{
+		dbg_msg("server", "+-------------------------+");
+		dbg_msg("server", "| rcon password: '%s' |", g_Config.m_SvRconPassword);
+		dbg_msg("server", "+-------------------------+");
+	}
 
 	// start game
 	{
@@ -1793,6 +1760,13 @@ void CServer::ConTestingCommands(CConsole::IResult *pResult, void *pUser)
 	((CConsole*)pUser)->Print(CConsole::OUTPUT_LEVEL_STANDARD, "console", aBuf);
 }
 
+void CServer::ConRescue(CConsole::IResult *pResult, void *pUser)
+{
+	char aBuf[128];
+	str_format(aBuf, sizeof(aBuf), "Value: %d", g_Config.m_SvRescue);
+	((CConsole*)pUser)->Print(CConsole::OUTPUT_LEVEL_STANDARD, "console", aBuf);
+}
+
 void CServer::ConKick(IConsole::IResult *pResult, void *pUser)
 {
 	if(pResult->NumArguments() > 1)
@@ -1820,8 +1794,8 @@ void CServer::ConStatus(IConsole::IResult *pResult, void *pUser)
 			{
 				const char *pAuthStr = pThis->m_aClients[i].m_Authed == CServer::AUTHED_ADMIN ? "(Admin)" :
 										pThis->m_aClients[i].m_Authed == CServer::AUTHED_MOD ? "(Mod)" : "";
-				str_format(aBuf, sizeof(aBuf), "id=%d addr=%s name='%s' score=%d client=%d %s", i, aAddrStr,
-					pThis->m_aClients[i].m_aName, pThis->m_aClients[i].m_Score, ((CGameContext *)(pThis->GameServer()))->m_apPlayers[i]->m_ClientVersion, pAuthStr);
+				str_format(aBuf, sizeof(aBuf), "id=%d addr=%s name='%s' score=%d client=%d secure=%s %s", i, aAddrStr,
+					pThis->m_aClients[i].m_aName, pThis->m_aClients[i].m_Score, ((CGameContext *)(pThis->GameServer()))->m_apPlayers[i]->m_ClientVersion, pThis->m_NetServer.HasSecurityToken(i) ? "yes":"no", pAuthStr);
 			}
 			else if (pThis->m_aClients[i].m_State == CClient::STATE_DUMMY) // iDDNet
 				str_format(aBuf, sizeof(aBuf), "id=%d name='%s' score=%d [DUMMY]", i, pThis->m_aClients[i].m_aName, pThis->m_aClients[i].m_Score);
@@ -2142,6 +2116,12 @@ int main(int argc, const char **argv) // ignore_convention
 	}
 #endif
 
+	if(secure_random_init() != 0)
+	{
+		dbg_msg("secure", "could not initialize secure RNG");
+		return -1;
+	}
+
 	CServer *pServer = CreateServer();
 	IKernel *pKernel = IKernel::Create();
 
@@ -2183,13 +2163,23 @@ int main(int argc, const char **argv) // ignore_convention
 	pServer->RegisterCommands();
 
 	// execute autoexec file
-	pConsole->ExecuteFile("autoexec.cfg");
+	IOHANDLE file = pStorage->OpenFile(AUTOEXEC_SERVER_FILE, IOFLAG_READ, IStorage::TYPE_ALL);
+	if(file)
+	{
+		io_close(file);
+		pConsole->ExecuteFile(AUTOEXEC_SERVER_FILE);
+	}
+	else // fallback
+	{
+		pConsole->ExecuteFile(AUTOEXEC_FILE);
+	}
 
 	// parse the command line arguments
 	if(argc > 1) // ignore_convention
 		pConsole->ParseArguments(argc-1, &argv[1]); // ignore_convention
 
-	pConsole->Register("sv_test_cmds", "", CFGFLAG_SERVER|CFGFLAG_CLIENT, CServer::ConTestingCommands, pConsole, "Turns testing commands aka cheats on/off");
+	pConsole->Register("sv_test_cmds", "", CFGFLAG_SERVER, CServer::ConTestingCommands, pConsole, "Turns testing commands aka cheats on/off");
+	pConsole->Register("sv_rescue", "", CFGFLAG_SERVER, CServer::ConRescue, pConsole, "Allow /rescue command so players can teleport themselves out of freeze");
 
 	// restore empty config strings to their defaults
 	pConfig->RestoreStrings();
@@ -2203,6 +2193,7 @@ int main(int argc, const char **argv) // ignore_convention
 #if defined(CONF_FAMILY_UNIX)
 	FifoConsole *fifoConsole = new FifoConsole(pConsole, g_Config.m_SvInputFifo, CFGFLAG_SERVER);
 #endif
+	pServer->InitRconPasswordIfEmpty();
 
 	// run the server
 	dbg_msg("server", "starting...");

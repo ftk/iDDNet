@@ -63,17 +63,8 @@ CControls::CControls()
 
 void CControls::OnReset()
 {
-	m_LastData[g_Config.m_ClDummy].m_Direction = 0;
-	//m_LastData.m_Hook = 0;
-	// simulate releasing the fire button
-	if((m_LastData[g_Config.m_ClDummy].m_Fire&1) != 0)
-		m_LastData[g_Config.m_ClDummy].m_Fire++;
-	m_LastData[g_Config.m_ClDummy].m_Fire &= INPUT_STATE_MASK;
-	m_LastData[g_Config.m_ClDummy].m_Jump = 0;
-	m_InputData[g_Config.m_ClDummy] = m_LastData[g_Config.m_ClDummy];
-
-	m_InputDirectionLeft[g_Config.m_ClDummy] = 0;
-	m_InputDirectionRight[g_Config.m_ClDummy] = 0;
+	ResetInput(0);
+	ResetInput(1);
 
 	m_JoystickFirePressed = false;
 	m_JoystickRunPressed = false;
@@ -83,22 +74,19 @@ void CControls::OnReset()
 	m_OldMouseX = m_OldMouseY = 0.0f;
 }
 
-void CControls::ResetDummyInput()
+void CControls::ResetInput(int dummy)
 {
-	m_LastData[!g_Config.m_ClDummy].m_Direction = 0;
-	if(m_LastData[!g_Config.m_ClDummy].m_Fire & 1)
-		m_LastData[!g_Config.m_ClDummy].m_Fire++;
-	m_LastData[!g_Config.m_ClDummy].m_Hook = 0;
-	m_LastData[!g_Config.m_ClDummy].m_Jump = 0;
+	m_LastData[dummy].m_Direction = 0;
+	//m_LastData.m_Hook = 0;
+	// simulate releasing the fire button
+	if((m_LastData[dummy].m_Fire&1) != 0)
+		m_LastData[dummy].m_Fire++;
+	m_LastData[dummy].m_Fire &= INPUT_STATE_MASK;
+	m_LastData[dummy].m_Jump = 0;
+	m_InputData[dummy] = m_LastData[dummy];
 
-	m_InputData[!g_Config.m_ClDummy].m_Direction = 0;
-	if(m_InputData[!g_Config.m_ClDummy].m_Fire & 1)
-		m_InputData[!g_Config.m_ClDummy].m_Fire++;
-	m_InputData[!g_Config.m_ClDummy].m_Hook = 0;
-	m_InputData[!g_Config.m_ClDummy].m_Jump = 0;
-
-	m_InputDirectionLeft[!g_Config.m_ClDummy] = 0;
-	m_InputDirectionRight[!g_Config.m_ClDummy] = 0;
+	m_InputDirectionLeft[dummy] = 0;
+	m_InputDirectionRight[dummy] = 0;
 }
 
 void CControls::OnRelease()
@@ -108,11 +96,11 @@ void CControls::OnRelease()
 
 void CControls::OnPlayerDeath()
 {
-  if (g_Config.m_ClResetWantedWeaponOnDeath)
-    m_LastData[g_Config.m_ClDummy].m_WantedWeapon = m_InputData[g_Config.m_ClDummy].m_WantedWeapon = 0;
-  for( int i = 0; i < NUM_WEAPONS; i++ )
-    m_AmmoCount[i] = 0;
-  m_JoystickTapTime = 0; // Do not launch hook on first tap
+	if (g_Config.m_ClResetWantedWeaponOnDeath)
+		m_LastData[g_Config.m_ClDummy].m_WantedWeapon = m_InputData[g_Config.m_ClDummy].m_WantedWeapon = 0;
+	for( int i = 0; i < NUM_WEAPONS; i++ )
+		m_AmmoCount[i] = 0;
+	m_JoystickTapTime = 0; // Do not launch hook on first tap
 }
 
 struct CInputState
@@ -248,7 +236,7 @@ int CControls::SnapInput(int *pData)
 	// we freeze the input if chat or menu is activated
 	if(!(m_InputData[g_Config.m_ClDummy].m_PlayerFlags&PLAYERFLAG_PLAYING))
 	{
-		OnReset();
+		ResetInput(g_Config.m_ClDummy);
 
 		mem_copy(pData, &m_InputData[g_Config.m_ClDummy], sizeof(m_InputData[0]));
 
@@ -272,6 +260,27 @@ int CControls::SnapInput(int *pData)
 			m_InputData[g_Config.m_ClDummy].m_Direction = -1;
 		if(!m_InputDirectionLeft[g_Config.m_ClDummy] && m_InputDirectionRight[g_Config.m_ClDummy])
 			m_InputData[g_Config.m_ClDummy].m_Direction = 1;
+
+		// dummy copy moves
+		if(g_Config.m_ClDummyCopyMoves)
+		{
+			CNetObj_PlayerInput *DummyInput = &Client()->DummyInput;
+			DummyInput->m_Direction = m_InputData[g_Config.m_ClDummy].m_Direction;
+			DummyInput->m_Hook = m_InputData[g_Config.m_ClDummy].m_Hook;
+			DummyInput->m_Jump = m_InputData[g_Config.m_ClDummy].m_Jump;
+			DummyInput->m_PlayerFlags = m_InputData[g_Config.m_ClDummy].m_PlayerFlags;
+			DummyInput->m_TargetX = m_InputData[g_Config.m_ClDummy].m_TargetX;
+			DummyInput->m_TargetY = m_InputData[g_Config.m_ClDummy].m_TargetY;
+			DummyInput->m_WantedWeapon = m_InputData[g_Config.m_ClDummy].m_WantedWeapon;
+
+
+
+			DummyInput->m_Fire += m_InputData[g_Config.m_ClDummy].m_Fire - m_LastData[g_Config.m_ClDummy].m_Fire;
+			DummyInput->m_NextWeapon += m_InputData[g_Config.m_ClDummy].m_NextWeapon - m_LastData[g_Config.m_ClDummy].m_NextWeapon;
+			DummyInput->m_PrevWeapon += m_InputData[g_Config.m_ClDummy].m_PrevWeapon - m_LastData[g_Config.m_ClDummy].m_PrevWeapon;
+
+			m_InputData[!g_Config.m_ClDummy] = *DummyInput;
+		}
 
 		// stress testing
 		if(g_Config.m_DbgStress)

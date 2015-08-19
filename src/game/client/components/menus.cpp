@@ -20,7 +20,6 @@
 #include <engine/serverbrowser.h>
 #include <engine/storage.h>
 #include <engine/textrender.h>
-#include <engine/autoupdate.h>
 #include <engine/shared/config.h>
 
 #include <game/version.h>
@@ -49,7 +48,7 @@ vec4 CMenus::ms_ColorTabbarActiveIngame;
 
 #if defined(__ANDROID__)
 float CMenus::ms_ButtonHeight = 50.0f;
-float CMenus::ms_ListheaderHeight = 50.0f;
+float CMenus::ms_ListheaderHeight = 17.0f;
 float CMenus::ms_ListitemAdditionalHeight = 33.0f;
 #else
 float CMenus::ms_ButtonHeight = 25.0f;
@@ -600,7 +599,8 @@ int CMenus::RenderMenubar(CUIRect r)
 		static int s_InternetButton=0;
 		if(DoButton_MenuTab(&s_InternetButton, Localize("Internet"), m_ActivePage==PAGE_INTERNET, &Button, CUI::CORNER_TL))
 		{
-			ServerBrowser()->Refresh(IServerBrowser::TYPE_INTERNET);
+			if(ServerBrowser()->GetCurrentType() != IServerBrowser::TYPE_INTERNET)
+				ServerBrowser()->Refresh(IServerBrowser::TYPE_INTERNET);
 			NewPage = PAGE_INTERNET;
 			m_DoubleClickIndex = -1;
 		}
@@ -610,7 +610,8 @@ int CMenus::RenderMenubar(CUIRect r)
 		static int s_LanButton=0;
 		if(DoButton_MenuTab(&s_LanButton, Localize("LAN"), m_ActivePage==PAGE_LAN, &Button, 0))
 		{
-			ServerBrowser()->Refresh(IServerBrowser::TYPE_LAN);
+			if(ServerBrowser()->GetCurrentType() != IServerBrowser::TYPE_LAN)
+				ServerBrowser()->Refresh(IServerBrowser::TYPE_LAN);
 			NewPage = PAGE_LAN;
 			m_DoubleClickIndex = -1;
 		}
@@ -620,7 +621,8 @@ int CMenus::RenderMenubar(CUIRect r)
 		static int s_FavoritesButton=0;
 		if(DoButton_MenuTab(&s_FavoritesButton, Localize("Favorites"), m_ActivePage==PAGE_FAVORITES, &Button, 0))
 		{
-			ServerBrowser()->Refresh(IServerBrowser::TYPE_FAVORITES);
+			if(ServerBrowser()->GetCurrentType() != IServerBrowser::TYPE_FAVORITES)
+				ServerBrowser()->Refresh(IServerBrowser::TYPE_FAVORITES);
 			NewPage = PAGE_FAVORITES;
 			m_DoubleClickIndex = -1;
 		}
@@ -630,7 +632,8 @@ int CMenus::RenderMenubar(CUIRect r)
 		static int s_DDNetButton=0;
 		if(DoButton_MenuTab(&s_DDNetButton, Localize("DDNet"), m_ActivePage==PAGE_DDNET, &Button, CUI::CORNER_TR))
 		{
-			ServerBrowser()->Refresh(IServerBrowser::TYPE_DDNET);
+			if(ServerBrowser()->GetCurrentType() != IServerBrowser::TYPE_DDNET)
+				ServerBrowser()->Refresh(IServerBrowser::TYPE_DDNET);
 			NewPage = PAGE_DDNET;
 			m_DoubleClickIndex = -1;
 		}
@@ -1094,14 +1097,6 @@ int CMenus::Render()
 			pButtonText = Localize("Ok");
 			ExtraAlign = -1;
 		}
-#if !defined(CONF_PLATFORM_MACOSX) && !defined(__ANDROID__)
-		else if(m_Popup == POPUP_AUTOUPDATE)
-		{
-			pTitle = Localize("Auto-Update");
-			pExtraText = Localize("An update to DDNet client is available. Do you want to update now? This will restart the client. If an update fails, make sure the client has permissions to modify files.");
-			ExtraAlign = -1;
-		}
-#endif
 
 		CUIRect Box, Part;
 		Box = Screen;
@@ -1117,7 +1112,11 @@ int CMenus::Render()
 
 		Box.HSplitTop(20.f/UI()->Scale(), &Part, &Box);
 		Box.HSplitTop(24.f/UI()->Scale(), &Part, &Box);
-		UI()->DoLabelScaled(&Part, pTitle, 24.f, 0);
+		Part.VMargin(20.f/UI()->Scale(), &Part);
+		if(TextRender()->TextWidth(0, 24.f, pTitle, -1) > Part.w)
+			UI()->DoLabelScaled(&Part, pTitle, 24.f, -1, (int)Part.w);
+		else
+			UI()->DoLabelScaled(&Part, pTitle, 24.f, 0);
 		Box.HSplitTop(20.f/UI()->Scale(), &Part, &Box);
 		Box.HSplitTop(24.f/UI()->Scale(), &Part, &Box);
 		Part.VMargin(20.f/UI()->Scale(), &Part);
@@ -1125,7 +1124,12 @@ int CMenus::Render()
 		if(ExtraAlign == -1)
 			UI()->DoLabelScaled(&Part, pExtraText, 20.f, -1, (int)Part.w);
 		else
-			UI()->DoLabelScaled(&Part, pExtraText, 20.f, 0, -1);
+		{
+			if(TextRender()->TextWidth(0, 20.f, pExtraText, -1) > Part.w)
+				UI()->DoLabelScaled(&Part, pExtraText, 20.f, -1, (int)Part.w);
+			else
+				UI()->DoLabelScaled(&Part, pExtraText, 20.f, 0, -1);
+		}
 
 		if(m_Popup == POPUP_QUIT)
 		{
@@ -1185,28 +1189,6 @@ int CMenus::Render()
 			if(DoButton_Menu(&s_ButtonTryAgain, Localize("Yes"), 0, &Yes) || m_EnterPressed)
 				Client()->Disconnect();
 		}
-#if !defined(CONF_PLATFORM_MACOSX) && !defined(__ANDROID__)
-		else if(m_Popup == POPUP_AUTOUPDATE)
-		{
-			CUIRect Yes, No;
-			Box.HSplitBottom(20.f, &Box, &Part);
-			Box.HSplitBottom(24.f, &Box, &Part);
-
-			// buttons
-			Part.VMargin(80.0f, &Part);
-			Part.VSplitMid(&No, &Yes);
-			Yes.VMargin(20.0f, &Yes);
-			No.VMargin(20.0f, &No);
-
-			static int s_ButtonAbort = 0;
-			if(DoButton_Menu(&s_ButtonAbort, Localize("No"), 0, &No) || m_EscapePressed)
-				m_Popup = POPUP_NONE;
-
-			static int s_ButtonTryAgain = 0;
-			if(DoButton_Menu(&s_ButtonTryAgain, Localize("Yes"), 0, &Yes) || m_EnterPressed)
-				m_pClient->AutoUpdate()->DoUpdates(this);
-		}
-#endif
 		else if(m_Popup == POPUP_PASSWORD)
 		{
 			CUIRect Label, TextBox, TryAgain, Abort;

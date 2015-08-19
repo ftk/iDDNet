@@ -98,8 +98,6 @@ public:
 			STATE_EMPTY = 0,
 			STATE_AUTH,
 			STATE_CONNECTING,
-			STATE_SPOOFCHECK,
-			STATE_POSTSPOOFCHECK,
 			STATE_READY,
 			STATE_INGAME,
 			STATE_DUMMY,// iDDNet
@@ -140,10 +138,6 @@ public:
 		int m_LastAuthed;
 		int m_AuthTries;
 
-		int m_Nonce; // number to reach
-		int m_NonceCount; // current num
-		int64 m_LastNonceCount;
-
 		const IConsole::CCommandInfo *m_pRconCmdToSend;
 
 		void Reset();
@@ -181,6 +175,8 @@ public:
 	unsigned char *m_pCurrentMapData;
 	unsigned int m_CurrentMapSize;
 
+	int m_GeneratedRconPassword;
+
 	CDemoRecorder m_aDemoRecorder[MAX_CLIENTS+1];
 	CRegister m_Register;
 	CMapChecker m_MapChecker;
@@ -207,6 +203,8 @@ public:
 
 	int Init();
 
+	void InitRconPasswordIfEmpty();
+
 	void SetRconCID(int ClientID);
 	bool IsAuthed(int ClientID);
 	int GetClientInfo(int ClientID, CClientInfo *pInfo);
@@ -223,6 +221,7 @@ public:
 	void DoSnapshot();
 
 	static int NewClientCallback(int ClientID, void *pUser);
+	static int NewClientNoAuthCallback(int ClientID, void *pUser);
 	static int DelClientCallback(int ClientID, const char *pReason, void *pUser);
 
 	void SendMap(int ClientID);
@@ -257,6 +256,7 @@ public:
 	int Run();
 
 	static void ConTestingCommands(IConsole::IResult *pResult, void *pUser);
+	static void ConRescue(IConsole::IResult *pResult, void *pUser);
 	static void ConKick(IConsole::IResult *pResult, void *pUser);
 	static void ConStatus(IConsole::IResult *pResult, void *pUser);
 	static void ConShutdown(IConsole::IResult *pResult, void *pUser);

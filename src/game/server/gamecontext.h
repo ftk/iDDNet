@@ -72,6 +72,7 @@ class CGameContext : public IGameServer
 	static void ConTuneResetZone(IConsole::IResult *pResult, void *pUserData);
 	static void ConTuneSetZoneMsgEnter(IConsole::IResult *pResult, void *pUserData);
 	static void ConTuneSetZoneMsgLeave(IConsole::IResult *pResult, void *pUserData);
+	static void ConSwitchOpen(IConsole::IResult *pResult, void *pUserData);
 	static void ConPause(IConsole::IResult *pResult, void *pUserData);
 	static void ConChangeMap(IConsole::IResult *pResult, void *pUserData);
 	static void ConRandomMap(IConsole::IResult *pResult, void *pUserData);
@@ -138,7 +139,7 @@ public:
 	int m_VoteEnforce;
 	char m_ZoneEnterMsg[NUM_TUNINGZONES][256]; // 0 is used for switching from or to area without tunings
 	char m_ZoneLeaveMsg[NUM_TUNINGZONES][256];
-	
+
 	enum
 	{
 		VOTE_ENFORCE_UNKNOWN=0,
@@ -187,7 +188,7 @@ public:
 	void CheckPureTuning();
 	void SendTuningParams(int ClientID, int Zone = 0);
 
-	class CVoteOptionServer *GetVoteOption(int Index);
+	struct CVoteOptionServer *GetVoteOption(int Index);
 	void ProgressVoteOptions(int ClientID);
 
 	//
@@ -307,6 +308,7 @@ private:
 	static void ConSayTimeAll(IConsole::IResult *pResult, void *pUserData);
 	static void ConTime(IConsole::IResult *pResult, void *pUserData);
 	static void ConSetTimerType(IConsole::IResult *pResult, void *pUserData);
+	static void ConRescue(IConsole::IResult *pResult, void *pUserData);
 	static void ConProtectedKill(IConsole::IResult *pResult, void *pUserData);
 
 

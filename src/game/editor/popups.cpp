@@ -26,6 +26,8 @@ static int g_UiNumPopups = 0;
 
 void CEditor::UiInvokePopupMenu(void *pID, int Flags, float x, float y, float Width, float Height, int (*pfnFunc)(CEditor *pEditor, CUIRect Rect), void *pExtra)
 {
+	if(g_UiNumPopups > 7)
+		return;
 	Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "editor", "invoked");
 	if(x + Width > UI()->Screen()->w)
 		x -= Width;
@@ -174,7 +176,7 @@ int CEditor::PopupGroup(CEditor *pEditor, CUIRect View)
 			return 1;
 		}
 	}
-	
+
 	if(pEditor->GetSelectedGroup()->m_GameGroup && !pEditor->m_Map.m_pTuneLayer)
 		{
 			// new tune layer
@@ -657,7 +659,7 @@ int CEditor::PopupSource(CEditor *pEditor, CUIRect View)
 			}
 		}
 	}
-	
+
 
 	enum
 	{
@@ -744,7 +746,7 @@ int CEditor::PopupSource(CEditor *pEditor, CUIRect View)
 				PROP_CIRCLE_RADIUS=0,
 				NUM_CIRCLE_PROPS,
 			};
-			
+
 			CProperty aCircleProps[] = {
 				{"Radius", pSource->m_Shape.m_Circle.m_Radius, PROPTYPE_INT_SCROLL, 0, 1000000},
 
@@ -752,7 +754,7 @@ int CEditor::PopupSource(CEditor *pEditor, CUIRect View)
 			};
 
 			static int s_aCircleIds[NUM_CIRCLE_PROPS] = {0};
-			
+
 			NewVal = 0;
 			Prop = pEditor->DoProperties(&View, aCircleProps, s_aCircleIds, &NewVal);
 			if(Prop != -1)
@@ -762,7 +764,7 @@ int CEditor::PopupSource(CEditor *pEditor, CUIRect View)
 
 			break;
 		}
-		
+
 	case CSoundShape::SHAPE_RECTANGLE:
 		{
 			enum
@@ -771,7 +773,7 @@ int CEditor::PopupSource(CEditor *pEditor, CUIRect View)
 				PROP_RECTANGLE_HEIGHT,
 				NUM_RECTANGLE_PROPS,
 			};
-			
+
 			CProperty aRectangleProps[] = {
 				{"Width", pSource->m_Shape.m_Rectangle.m_Width/1024, PROPTYPE_INT_SCROLL, 0, 1000000},
 				{"Height", pSource->m_Shape.m_Rectangle.m_Height/1024, PROPTYPE_INT_SCROLL, 0, 1000000},
@@ -780,7 +782,7 @@ int CEditor::PopupSource(CEditor *pEditor, CUIRect View)
 			};
 
 			static int s_aRectangleIds[NUM_RECTANGLE_PROPS] = {0};
-			
+
 			NewVal = 0;
 			Prop = pEditor->DoProperties(&View, aRectangleProps, s_aRectangleIds, &NewVal);
 			if(Prop != -1)
@@ -792,7 +794,7 @@ int CEditor::PopupSource(CEditor *pEditor, CUIRect View)
 			break;
 		}
 	}
-	
+
 
 	return 0;
 }
@@ -1106,8 +1108,6 @@ int CEditor::PopupSelectImage(CEditor *pEditor, CUIRect View)
 				if(pEditor->Input()->KeyPresses(KEY_MOUSE_WHEEL_DOWN))
 					s_ScrollValue = clamp(s_ScrollValue + 1.0f/ScrollNum, 0.0f, 1.0f);
 			}
-			else
-				ScrollNum = 0;
 		}
 	}
 
@@ -1219,8 +1219,6 @@ int CEditor::PopupSelectSound(CEditor *pEditor, CUIRect View)
 				if(pEditor->Input()->KeyPresses(KEY_MOUSE_WHEEL_DOWN))
 					s_ScrollValue = clamp(s_ScrollValue + 1.0f/ScrollNum, 0.0f, 1.0f);
 			}
-			else
-				ScrollNum = 0;
 		}
 	}
 
@@ -1278,7 +1276,7 @@ int CEditor::PopupSelectSoundResult()
 	g_SelectSoundCurrent = g_SelectSoundSelected;
 	g_SelectSoundSelected = -100;
 	return g_SelectSoundCurrent;
-} 
+}
 
 static int s_GametileOpSelected = -1;
 
@@ -1382,7 +1380,7 @@ int CEditor::PopupTele(CEditor *pEditor, CUIRect View)
 
 	if(Prop == PROP_TELE)
 	{
-		NewVal = clamp(NewVal, 0, 255);
+		NewVal = (NewVal + 256) % 256;
 
 		CLayerTele *gl = pEditor->m_Map.m_pTeleLayer;
 		for(int y = 0; y < gl->m_Height; ++y)
@@ -1422,7 +1420,7 @@ int CEditor::PopupSpeedup(CEditor *pEditor, CUIRect View)
 	CProperty aProps[] = {
 		{"Force", pEditor->m_SpeedupForce, PROPTYPE_INT_SCROLL, 0, 255},
 		{"Max Speed", pEditor->m_SpeedupMaxSpeed, PROPTYPE_INT_SCROLL, 0, 255},
-		{"Angle", pEditor->m_SpeedupAngle, PROPTYPE_INT_SCROLL, 0, 359},
+		{"Angle", pEditor->m_SpeedupAngle, PROPTYPE_ANGLE_SCROLL, 0, 359},
 		{0},
 	};
 
@@ -1465,7 +1463,7 @@ int CEditor::PopupSwitch(CEditor *pEditor, CUIRect View)
 
 	if(Prop == PROP_SwitchNumber)
 	{
-		NewVal = clamp(NewVal, 0, 255);
+		NewVal = (NewVal + 256) % 256;
 
 		CLayerSwitch *gl = pEditor->m_Map.m_pSwitchLayer;
 		for(int y = 0; y < gl->m_Height; ++y)
@@ -1486,7 +1484,7 @@ int CEditor::PopupSwitch(CEditor *pEditor, CUIRect View)
 		pEditor->m_SwitchNum = NewVal;
 	}
 	if(Prop == PROP_SwitchDelay)
-		pEditor->m_SwitchDelay = clamp(NewVal, 0, 255);
+		pEditor->m_SwitchDelay = (NewVal + 256) % 256;
 
 	return 0;
 }
@@ -1512,7 +1510,7 @@ int CEditor::PopupTune(CEditor *pEditor, CUIRect View)
 	int Prop = pEditor->DoProperties(&View, aProps, s_aIds, &NewVal);
 
 	if(Prop == PROP_TUNE)
-		 pEditor->m_TuningNum = clamp(NewVal, 1, 255);
+		pEditor->m_TuningNum = (NewVal - 1 + 255) % 255 + 1;
 
 	return 0;
 }
