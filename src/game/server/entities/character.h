@@ -80,8 +80,6 @@ public:
 
 	void SetEmote(int Emote, int Tick);
 
-	void Rescue();
-
 	int NeededFaketuning() {return m_NeededFaketuning;}
 	bool IsAlive() const { return m_Alive; }
 	bool IsPaused() const { return m_Paused; }
