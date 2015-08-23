@@ -2379,7 +2379,7 @@ void CCharacter::DoHammerFly()
 		m_Input.m_TargetY = AimPos.y;
 
 		//no need in shoot if we are not under the owner and owner is far away and frozen
-		if (m_Pos.y >= pOwnerChr->m_Pos.y && distance(m_Pos, pOwnerChr->m_Pos)<86 && m_aWeapons[m_Core.m_ActiveWeapon].m_Ammo)
+		if (m_Pos.y > pOwnerChr->m_Pos.y && distance(m_Pos, pOwnerChr->m_Pos)<86 && m_aWeapons[m_Core.m_ActiveWeapon].m_Ammo)
 		{
 			m_Input.m_Fire = 0;
 			m_LatestInput.m_Fire = 1;
