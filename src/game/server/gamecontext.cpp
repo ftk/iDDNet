@@ -3036,7 +3036,10 @@ CGameContext::CPlayerRescueState CGameContext::GetPlayerState(CCharacter * pChar
 	state.m_Jumps = pChar->m_Core.m_Jumps;
 
 	if(g_Config.m_SvDummyChangeSaveInput == 1)
+	{
 		state.m_Input = pChar->m_Input;
+		state.m_LatestInput = pChar->m_LatestInput;
+	}
 	//state.WFlags = 0;
 	//for(int i = WEAPON_HAMMER; i <= WEAPON_RIFLE; i++)
 	//	if(pChar->GetWeaponGot(i))
@@ -3101,7 +3104,10 @@ void CGameContext::ApplyPlayerState(const CPlayerRescueState& state, CCharacter 
 	pChar->m_Core.m_JumpedTotal = state.m_JumpedTotal;
 	pChar->m_Core.m_Jumps = state.m_Jumps;
 	if(g_Config.m_SvDummyChangeSaveInput == 1)
+	{
 		pChar->m_Input = state.m_Input;
+		pChar->m_LatestInput = state.m_LatestInput;
+	}
 	pChar->Core()->Read(&state.Core);
 
 }

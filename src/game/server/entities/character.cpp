@@ -2378,21 +2378,18 @@ void CCharacter::DoHammerFly()
 		m_Input.m_TargetX = AimPos.x;
 		m_Input.m_TargetY = AimPos.y;
 
-		if (!m_aWeapons[m_Core.m_ActiveWeapon].m_Ammo) //frozen
+		//no need in shoot if we are not under the owner and owner is far away and frozen
+		if (m_Pos.y >= pOwnerChr->m_Pos.y && distance(m_Pos, pOwnerChr->m_Pos)<86 && m_aWeapons[m_Core.m_ActiveWeapon].m_Ammo)
+		{
+			m_Input.m_Fire = 0;
+			m_LatestInput.m_Fire = 1;
 			return;
-
-		//no need in shoot if we are not under the owner or owner is far away
-		if (m_Pos.y <= pOwnerChr->m_Pos.y || distance(m_Pos, pOwnerChr->m_Pos)>100)
+		}
+		else
 		{
 			m_Input.m_Fire = 0;
 			m_LatestInput.m_Fire = 0;
-			return;
 		}
-
-		//also dummy should hammer on touch, so that's what TODO next
-
-		m_Input.m_Fire = 0;
-		m_LatestInput.m_Fire = 1;
 	}
 }
 

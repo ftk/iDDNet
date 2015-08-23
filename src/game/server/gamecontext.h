@@ -414,6 +414,7 @@ public:
 		int m_Jumps;
 
 		CNetObj_PlayerInput m_Input;
+		CNetObj_PlayerInput m_LatestInput;
 
 		struct WeaponStat
 		{
