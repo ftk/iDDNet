@@ -1384,8 +1384,6 @@ void CGameContext::ConDummy(IConsole::IResult *pResult, void *pUserData)
 				CPlayerRescueState state = GetPlayerState(pChr);
 				ApplyPlayerState(state, pDummyChr);
 				pSelf->CreatePlayerSpawn(pDummyChr->Core()->m_Pos);
-				pDummyChr->m_PrevPos = pSelf->m_apPlayers[ClientID]->m_ViewPos;
-				pDummyChr->Core()->m_Pos = pSelf->m_apPlayers[ClientID]->m_ViewPos;
 				pPlayer->m_Last_Dummy = pSelf->Server()->Tick();			
 			}
 			else
