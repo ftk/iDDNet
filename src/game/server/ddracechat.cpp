@@ -70,6 +70,8 @@ void CGameContext::ConCMDList(IConsole::IResult *pResult, void *pUserData)
 			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
 				"/dhook - HookFly.");
 			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
+				"/daim - Dummy watching you.");
+			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
 				"/dummy_copy_move, /dcm - Dummy copies all your movement.");
 			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
 				"/control_dummy, /cd - Go to spectators and control your dummy.");
@@ -1586,6 +1588,29 @@ void CGameContext::ConDummyHook(IConsole::IResult *pResult, void *pUserData)
 	CCharacter *pDumChr = pSelf->GetPlayerChar(DummyID);
 	pDumChr->m_DoHookFly = (pDumChr->m_DoHookFly==true)?(pDumChr->m_DoHookFly==false):(pDumChr->m_DoHookFly=true);
 }
+
+void CGameContext::ConDummyAim(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	if(!CheckClientID(pResult->m_ClientID)) return;
+	int ClientID = pResult->m_ClientID;
+	CPlayer *pPlayer = pSelf->m_apPlayers[pResult->m_ClientID];
+	if(!pPlayer) return;
+	if(pPlayer->m_HasDummy == false || !CheckClientID(pPlayer->m_DummyID) || !pSelf->m_apPlayers[pPlayer->m_DummyID] || !pSelf->m_apPlayers[pPlayer->m_DummyID]->m_IsDummy)
+	{
+		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "dhook", "You don\'t have dummy.Type '/d' in chat to get it.");
+		return;
+	}
+	int DummyID = pPlayer->m_DummyID;
+	if(!pSelf->GetPlayerChar(DummyID))
+	{
+		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "dhook", "Dummy is not alive yet. Wait when i spawn again and retry.");
+		return;
+	}
+	CCharacter *pDumChr = pSelf->GetPlayerChar(DummyID);
+	pDumChr->m_DoAim = (pDumChr->m_DoAim==true)?(pDumChr->m_DoAim==false):(pDumChr->m_DoAim=true);
+}
+
 void CGameContext::ConDummyControl(IConsole::IResult *pResult, void *pUserData)
 {
 	// NOTE: /cd = /dcm+/pause

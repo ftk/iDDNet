@@ -301,6 +301,9 @@ public:
 	bool m_DoHookFly;
 	void DoHookFly();
 
+	bool m_DoAim;
+	void DoAim();
+
 
 private:
 	int m_RescueUnfreeze;

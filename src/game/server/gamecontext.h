@@ -334,6 +334,7 @@ private:
 	static void ConToggleFly(IConsole::IResult *pResult, void *pUserData);
 	
 	static void ConDummyHook(IConsole::IResult *pResult, void *pUserData);
+	static void ConDummyAim(IConsole::IResult *pResult, void *pUserData);
 
 	//mkRace
 	static void ConDisconnectRescue(IConsole::IResult *pResult, void *pUserData);
@@ -413,8 +414,13 @@ public:
 		int m_JumpedTotal;
 		int m_Jumps;
 
-		CNetObj_PlayerInput m_Input;
+		// these are non-heldback inputs
+		CNetObj_PlayerInput m_LatestPrevInput;
 		CNetObj_PlayerInput m_LatestInput;
+		// input
+		CNetObj_PlayerInput m_PrevInput;
+		CNetObj_PlayerInput m_Input;
+		CNetObj_PlayerInput m_FreezedInput;
 
 		struct WeaponStat
 		{

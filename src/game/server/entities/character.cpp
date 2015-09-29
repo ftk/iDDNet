@@ -2270,6 +2270,7 @@ void CCharacter::iDDNetInit()
 {
 	m_DoHammerFly = false;
 	m_DoHookFly = false;
+	m_DoAim = false;
 	m_RescueUnfreeze = 0;
 	m_SavedPos = vec2(0, 0);
 }
@@ -2292,6 +2293,9 @@ void CCharacter::iDDNetTick()
 
 	if(m_DoHookFly)
 		DoHookFly();
+
+	if(m_DoAim)
+		DoAim();
 }
 void CCharacter::SavePos()
 {
@@ -2383,12 +2387,18 @@ void CCharacter::DoHammerFly()
 		{
 			m_Input.m_Fire = 0;
 			m_LatestInput.m_Fire = 1;
+			m_FreezedInput.m_Fire = 0;
+			m_PrevInput.m_Fire = 0;
+			m_LatestPrevInput.m_Fire = 0;
 			return;
 		}
 		else
 		{
 			m_Input.m_Fire = 0;
 			m_LatestInput.m_Fire = 0;
+			m_FreezedInput.m_Fire = 0;
+			m_PrevInput.m_Fire = 0;
+			m_LatestPrevInput.m_Fire = 0;
 		}
 	}
 }
@@ -2424,6 +2434,24 @@ void CCharacter::DoHookFly()
 	//else do hook
 	m_Input.m_Hook = 1;
 	m_LatestInput.m_Hook = 1;
+}
+
+void CCharacter::DoAim()
+{
+	if(GetPlayer()->m_DummyCopiesMove) //under control
+		return;
+
+	//the character of dummy's owner, we put owner's ID to dummy's CPlayer::m_DummyID when ran chat cmd
+	CCharacter* pOwnerChr = GameServer()->m_apPlayers[GetPlayer()->m_DummyID]->GetCharacter();
+	if(!pOwnerChr) return;
+	//final target pos
+	vec2 AimPos = pOwnerChr->m_Pos - m_Pos;
+
+	//follow owner
+	m_LatestInput.m_TargetX = AimPos.x;
+	m_LatestInput.m_TargetY = AimPos.y;
+	m_Input.m_TargetX = AimPos.x;
+	m_Input.m_TargetY = AimPos.y;
 }
 
 //iDDNet
