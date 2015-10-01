@@ -1384,7 +1384,7 @@ void CGameContext::ConDummy(IConsole::IResult *pResult, void *pUserData)
 					return;
 				}
 				CPlayerRescueState state = GetPlayerState(pChr);
-				ApplyPlayerState(state, pDummyChr);
+				ApplyPlayerState(state, pDummyChr, true);
 				pSelf->CreatePlayerSpawn(pDummyChr->Core()->m_Pos);
 				pPlayer->m_Last_Dummy = pSelf->Server()->Tick();			
 			}
@@ -1530,8 +1530,8 @@ void CGameContext::ConDummyChange(IConsole::IResult *pResult, void *pUserData)
 		CPlayerRescueState state1 = GetPlayerState(pChar1),
 		state2 = GetPlayerState(pChar2);
 		// swap
-		ApplyPlayerState(state2, pChar1);
-		ApplyPlayerState(state1, pChar2);
+		ApplyPlayerState(state2, pChar1, false);
+		ApplyPlayerState(state1, pChar2, true);
 	}
 	else
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "dc", "You can\'t /dummy_change that often.");
@@ -1694,7 +1694,7 @@ void CGameContext::ConDisconnectRescue(IConsole::IResult *pResult, void *pUserDa
 	CPlayerRescueState& state = iterator->second;
 	if(state.Pos == vec2(0.f, 0.f))
 		return;
-	ApplyPlayerState(state, pChar);
+	ApplyPlayerState(state, pChar, true);
 	pSelf->m_SavedPlayers.erase(iterator);
 }
 

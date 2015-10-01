@@ -439,7 +439,7 @@ public:
 	std::map<std::string, CPlayerRescueState> m_SavedPlayers;
 
 	static CPlayerRescueState GetPlayerState(CCharacter * pChar);
-	static void ApplyPlayerState(const CPlayerRescueState& state, CCharacter * pChar);
+	static void ApplyPlayerState(const CPlayerRescueState& state, CCharacter * pChar, bool IsDummy);
 	static void ApplyRescueFlags(int TargetID, CCharacter * pChar);
 };
 

@@ -337,7 +337,7 @@ void CCharacter::HandleWeaponSwitch()
 
 void CCharacter::FireWeapon()
 {
-	if(GetPlayer()->m_IsDummy && !GetPlayer()->m_DummyCopiesMove && !m_DoHammerFly && m_Core.m_ActiveWeapon == WEAPON_HAMMER)
+	if(GetPlayer()->m_IsDummy && !GetPlayer()->m_DummyCopiesMove && !m_DoHammerFly && (m_Core.m_ActiveWeapon == WEAPON_HAMMER || m_Core.m_ActiveWeapon == WEAPON_GUN))
 		return;
 	if(m_ReloadTimer != 0)
 		return;

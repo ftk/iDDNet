@@ -3050,7 +3050,7 @@ CGameContext::CPlayerRescueState CGameContext::GetPlayerState(CCharacter * pChar
 	return state;
 }
 
-void CGameContext::ApplyPlayerState(const CPlayerRescueState& state, CCharacter * pChar)
+void CGameContext::ApplyPlayerState(const CPlayerRescueState& state, CCharacter * pChar, bool IsDummy)
 {
 #define ST_PARAM(var) pChar->m_ ## var = state. var
 	ST_PARAM(Pos);
@@ -3106,14 +3106,14 @@ void CGameContext::ApplyPlayerState(const CPlayerRescueState& state, CCharacter 
 	pChar->m_Core.m_Jumped = state.m_Jumped;
 	pChar->m_Core.m_JumpedTotal = state.m_JumpedTotal;
 	pChar->m_Core.m_Jumps = state.m_Jumps;
-	if(g_Config.m_SvDummyChangeSaveInput == 1)
+	if(g_Config.m_SvDummyChangeSaveInput == 1 && IsDummy)
 	{
 		//pChar->m_LatestPrevInput = state.m_LatestPrevInput;
-		pChar->m_LatestInput = state.m_LatestInput;
+		pChar->m_LatestInput = state.m_LatestInput; //fire
 		//mem_zero(&pChar->m_Input, sizeof(pChar->m_Input));
 		//pChar->m_PrevInput = state.m_PrevInput;
-		pChar->m_Input = state.m_Input;
-		pChar->m_FreezedInput = state.m_FreezedInput;
+		pChar->m_Input = state.m_LatestInput; //direction
+		pChar->m_FreezedInput = state.m_LatestInput; //input in freeze
 	}
 	pChar->Core()->Read(&state.Core);
 
