@@ -2452,6 +2452,29 @@ void CCharacter::DoAim()
 	m_LatestInput.m_TargetY = AimPos.y;
 	m_Input.m_TargetX = AimPos.x;
 	m_Input.m_TargetY = AimPos.y;
+
+	//autofire for rifle
+	if (GetActiveWeapon() == WEAPON_RIFLE)
+	{
+		if(pOwnerChr->m_FreezeTime > 0 && (pOwnerChr->m_FreezeTime < g_Config.m_SvFreezeDelay*50-7) 
+			&& !GameServer()->Collision()->IntersectLine(m_Pos, pOwnerChr->m_Pos, NULL, NULL, false))
+		{
+			m_Input.m_Fire = 0;
+			m_LatestInput.m_Fire = 1;
+			m_FreezedInput.m_Fire = 0;
+			m_PrevInput.m_Fire = 0;
+			m_LatestPrevInput.m_Fire = 0;
+			return;
+		}
+		else
+		{
+			m_Input.m_Fire = 0;
+			m_LatestInput.m_Fire = 0;
+			m_FreezedInput.m_Fire = 0;
+			m_PrevInput.m_Fire = 0;
+			m_LatestPrevInput.m_Fire = 0;
+		}
+	}
 }
 
 //iDDNet
