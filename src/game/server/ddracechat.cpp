@@ -1434,12 +1434,49 @@ void CGameContext::ConDummyDelete(IConsole::IResult *pResult, void *pUserData)
 	int ClientID = pResult->m_ClientID;
 	CPlayer *pPlayer = pSelf->m_apPlayers[pResult->m_ClientID];
 	int DummyID = pPlayer->m_DummyID;
-	if (!pPlayer->m_HasDummy || !pSelf ->m_apPlayers[DummyID] || !pSelf ->m_apPlayers[DummyID]->m_IsDummy)
+	if(!pPlayer->m_HasDummy || !pSelf->m_apPlayers[DummyID] || !pSelf->m_apPlayers[DummyID]->m_IsDummy)
 		return;
-	pSelf->Server()->DummyLeave(DummyID/*, "Any Reason?"*/);
+	pSelf->Server()->DummyLeave(DummyID, "Normal quit");
 	pPlayer->m_HasDummy = false;
 	pPlayer->m_DummyID = -1;
 }
+
+
+// iDDNet  
+void CGameContext::CondbgDummy(IConsole::IResult *pResult, void *pUserData)  
+{  
+	CGameContext *pSelf = (CGameContext *) pUserData;
+	if (!CheckClientID(pResult->m_ClientID))
+		return;
+	int ClientID = pResult->m_ClientID;
+	CPlayer *pPlayer = pSelf->m_apPlayers[ClientID];
+	if(!pPlayer)
+		return;
+	for(int i = 0; i < g_Config.m_SvMaxClients; i++)  
+	{  
+		if(pSelf->m_apPlayers[i])  
+			continue;
+		pSelf->NewDummy(i, true);  
+		return;  
+	}  
+}  
+void CGameContext::CondbgDummyDelete(IConsole::IResult *pResult, void *pUserData)  
+{  
+	CGameContext *pSelf = (CGameContext *) pUserData;
+	if(!CheckClientID(pResult->m_ClientID)) return;
+	for(int i = 0; i < g_Config.m_SvMaxClients; i++)
+	{  
+		//if(!pPlayer->m_HasDummy || !pSelf->m_apPlayers[i] || !pSelf->m_apPlayers[i]->m_IsDummy)
+		if(pSelf->m_apPlayers[i])
+			if(pSelf->m_apPlayers[i]->m_IsDummy)
+			{
+				pSelf->Server()->DummyLeave(i, "Console quit");
+				return;
+			}
+	}  
+}  
+
+
 
 void CGameContext::ConRescue(IConsole::IResult *pResult, void *pUserData)
 {
@@ -1560,7 +1597,14 @@ void CGameContext::ConDummyHammerFly(IConsole::IResult *pResult, void *pUserData
 		return;
 	}
 	CCharacter *pDumChr = pSelf->GetPlayerChar(DummyID);
+
+	if (pResult->NumArguments() > 0 && pResult->GetInteger(0) >= 0)
+		pDumChr->m_HammerFlyRange = pResult->GetInteger(0);
+	else
+		pDumChr->m_HammerFlyRange = 83;
+
 	pDumChr->m_DoHammerFly = (pDumChr->m_DoHammerFly==true)?(pDumChr->m_DoHammerFly==false):(pDumChr->m_DoHammerFly=true);
+
 }
 void CGameContext::ConDummyHook(IConsole::IResult *pResult, void *pUserData)
 {

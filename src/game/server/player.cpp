@@ -358,7 +358,7 @@ void CPlayer::OnDisconnect(const char *pReason)
 {
 	if(m_HasDummy)
 	{
-		Server()->DummyLeave(m_DummyID/*, "Any Reason?"*/);
+		Server()->DummyLeave(m_DummyID, ("Dummy leave with %s", Server()->ClientName(m_ClientID)));
 		m_HasDummy = false;
 		m_DummyID = -1;
 	}
@@ -373,16 +373,25 @@ void CPlayer::OnDisconnect(const char *pReason)
 
 	KillCharacter();
 
-	if(!m_IsDummy)
-		if(Server()->ClientIngame(m_ClientID))
+	
+	if(Server()->ClientIngame(m_ClientID))
+	{
+		char aBuf[512];
+		if(!m_IsDummy)
 		{
-			char aBuf[512];
 			if(pReason && *pReason)
 				str_format(aBuf, sizeof(aBuf), "'%s' has left the game (%s)", Server()->ClientName(m_ClientID), pReason);
 			else
 				str_format(aBuf, sizeof(aBuf), "'%s' has left the game", Server()->ClientName(m_ClientID));
 			GameServer()->SendChat(-1, CGameContext::CHAT_ALL, aBuf);
 		}
+		else
+			if(pReason && *pReason)
+			{
+				str_format(aBuf, sizeof(aBuf), "'%s' has left the game (%s)", Server()->ClientName(m_ClientID), pReason);
+				GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "dummy", aBuf);
+			}
+	}
 
 	CGameControllerDDRace* Controller = (CGameControllerDDRace*)GameServer()->m_pController;
 	Controller->m_Teams.SetForceCharacterTeam(m_ClientID, 0);

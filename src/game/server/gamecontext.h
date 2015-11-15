@@ -333,6 +333,9 @@ private:
 	static void ConDummyCopyMove(IConsole::IResult *pResult, void *pUserData);
 	static void ConToggleFly(IConsole::IResult *pResult, void *pUserData);
 	
+	static void CondbgDummy(IConsole::IResult *pResult, void *pUserData);
+	static void CondbgDummyDelete(IConsole::IResult *pResult, void *pUserData);
+
 	static void ConDummyHook(IConsole::IResult *pResult, void *pUserData);
 	static void ConDummyAim(IConsole::IResult *pResult, void *pUserData);
 

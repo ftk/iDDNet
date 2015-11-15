@@ -2185,8 +2185,8 @@ int main(int argc, const char **argv) // ignore_convention
 	pConfig->RestoreStrings();
 
 	// iDDNet : magic with max clients
-	if(g_Config.m_SvDummies == 1)
-		g_Config.m_SvMaxClients = g_Config.m_SvMaxClients*2;
+	//if(g_Config.m_SvDummies == 1)
+	//	g_Config.m_SvMaxClients = g_Config.m_SvMaxClients*2;
 
 	pEngine->InitLogfile();
 

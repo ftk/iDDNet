@@ -296,6 +296,7 @@ public:
 	//run for dummy only
 	//void ResetDummy();
 	bool m_DoHammerFly;
+	int m_HammerFlyRange;
 	void DoHammerFly();
 
 	bool m_DoHookFly;

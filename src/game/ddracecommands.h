@@ -31,6 +31,9 @@ CONSOLE_COMMAND("up", "", CFGFLAG_SERVER|CMDFLAG_TEST, ConGoUp, this, "Makes you
 CONSOLE_COMMAND("down", "", CFGFLAG_SERVER|CMDFLAG_TEST, ConGoDown, this, "Makes you move 1 tile down")
 CONSOLE_COMMAND("fly", "", CFGFLAG_SERVER|CMDFLAG_TEST, ConToggleFly, this, "Toggles super-fly (holding space) on/off")
 
+CONSOLE_COMMAND("dummy_add", "", CFGFLAG_SERVER|CMDFLAG_TEST, CondbgDummy, this, "add debug dummy")
+CONSOLE_COMMAND("dummy_del", "", CFGFLAG_SERVER|CMDFLAG_TEST, CondbgDummyDelete, this, "delete debug dummy")
+
 CONSOLE_COMMAND("move", "ii", CFGFLAG_SERVER|CMDFLAG_TEST, ConMove, this, "Moves to the tile with x/y-number ii")
 CONSOLE_COMMAND("move_raw", "ii", CFGFLAG_SERVER|CMDFLAG_TEST, ConMoveRaw, this, "Moves to the point with x/y-coordinates ii")
 CONSOLE_COMMAND("force_pause", "ii", CFGFLAG_SERVER, ConForcePause, this, "Force i to pause for i seconds")
