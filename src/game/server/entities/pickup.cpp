@@ -86,6 +86,7 @@ void CPickup::Tick()
 					}
 					if(!pChr->m_FreezeTime && pChr->GetActiveWeapon() >= WEAPON_SHOTGUN)
 						pChr->SetActiveWeapon(WEAPON_HAMMER);
+					pChr->m_RescueFlags |= RESCUEFLAG_DISARM;
 					break;
 
 				case POWERUP_WEAPON:
