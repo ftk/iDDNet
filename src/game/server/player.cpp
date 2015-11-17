@@ -356,9 +356,9 @@ void CPlayer::FakeSnap(int SnappingClient)
 
 void CPlayer::OnDisconnect(const char *pReason)
 {
-	if(m_HasDummy)
+	if(m_HasDummy && GameServer()->m_apPlayers[m_DummyID]->m_DummyID == m_ClientID)
 	{
-		Server()->DummyLeave(m_DummyID, ("Dummy leave with %s", Server()->ClientName(m_ClientID)));
+		Server()->DummyLeave(m_DummyID, Server()->ClientName(m_ClientID));
 		m_HasDummy = false;
 		m_DummyID = -1;
 	}
