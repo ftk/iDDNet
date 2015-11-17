@@ -1468,7 +1468,7 @@ void CGameContext::CondbgDummyDelete(IConsole::IResult *pResult, void *pUserData
 	{  
 		//if(!pPlayer->m_HasDummy || !pSelf->m_apPlayers[i] || !pSelf->m_apPlayers[i]->m_IsDummy)
 		if(pSelf->m_apPlayers[i])
-			if(pSelf->m_apPlayers[i]->m_IsDummy)
+			if(pSelf->m_apPlayers[i]->m_IsDummy && pSelf->m_apPlayers[i]->m_DummyID == -1)
 			{
 				pSelf->Server()->DummyLeave(i, "Console quit");
 				return;
