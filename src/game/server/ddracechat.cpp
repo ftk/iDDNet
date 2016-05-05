@@ -1602,7 +1602,11 @@ void CGameContext::ConDummyHammerFly(IConsole::IResult *pResult, void *pUserData
 		pDumChr->m_HammerFlyRange = pResult->GetInteger(0);
 	else
 		pDumChr->m_HammerFlyRange = 83;
-
+	if(g_Config.m_SvDummyBroadcast == 1)
+		if(pDumChr->m_DoHammerFly)
+			pSelf->SendBroadcast("Dummy HammerFly: Disabled", ClientID);
+		else
+			pSelf->SendBroadcast("Dummy HammerFly: Enabled ", ClientID);
 	pDumChr->m_DoHammerFly = (pDumChr->m_DoHammerFly==true)?(pDumChr->m_DoHammerFly==false):(pDumChr->m_DoHammerFly=true);
 
 }
@@ -1630,6 +1634,11 @@ void CGameContext::ConDummyHook(IConsole::IResult *pResult, void *pUserData)
 		return;
 	}
 	CCharacter *pDumChr = pSelf->GetPlayerChar(DummyID);
+	if(g_Config.m_SvDummyBroadcast)
+		if(pDumChr->m_DoHookFly)
+			pSelf->SendBroadcast("Dummy HookFly: Disabled", ClientID);
+		else
+			pSelf->SendBroadcast("Dummy HookFly: Enabled ", ClientID);
 	pDumChr->m_DoHookFly = (pDumChr->m_DoHookFly==true)?(pDumChr->m_DoHookFly==false):(pDumChr->m_DoHookFly=true);
 }
 
@@ -1652,6 +1661,11 @@ void CGameContext::ConDummyAim(IConsole::IResult *pResult, void *pUserData)
 		return;
 	}
 	CCharacter *pDumChr = pSelf->GetPlayerChar(DummyID);
+	if(g_Config.m_SvDummyBroadcast == 1)
+		if(pDumChr->m_DoAim)
+			pSelf->SendBroadcast("Dummy Aim: Disabled", ClientID);
+		else
+			pSelf->SendBroadcast("Dummy Aim: Enabled ", ClientID);
 	pDumChr->m_DoAim = (pDumChr->m_DoAim==true)?(pDumChr->m_DoAim==false):(pDumChr->m_DoAim=true);
 }
 
@@ -1706,10 +1720,11 @@ void CGameContext::ConDummyCopyMove(IConsole::IResult *pResult, void *pUserData)
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "dcm", "Enter the game to use this command");
 		return;
 	}
-	if(pSelf->m_apPlayers[DummyID]->m_DummyCopiesMove)
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "dcm", "Dummy doesn\'t copy your actions anymore");
-	else
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "dcm", "Dummy will copy all your actions now");
+	if(g_Config.m_SvDummyBroadcast == 1)
+		if(pSelf->m_apPlayers[DummyID]->m_DummyCopiesMove)
+			pSelf->SendBroadcast("Dummy Copy Moves: Disabled", pResult->m_ClientID);
+		else
+			pSelf->SendBroadcast("Dummy Copy Moves: Enabled ", pResult->m_ClientID);
 	pSelf->m_apPlayers[DummyID]->m_DummyCopiesMove = (pSelf->m_apPlayers[DummyID]->m_DummyCopiesMove)?false:true;
 	if(!pSelf->m_apPlayers[DummyID]->m_DummyCopiesMove) //to avoid chat emote
 		pSelf->m_apPlayers[DummyID]->m_PlayerFlags = 0;

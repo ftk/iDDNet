@@ -330,6 +330,8 @@ MACRO_CONFIG_INT(SvDummyChangeDelay, sv_dummy_change_delay, 0, 0, 360, CFGFLAG_S
 MACRO_CONFIG_INT(SvDummyChangeSaveInput, sv_dummy_change_save_input, 0, 0, 1, CFGFLAG_SERVER, "Ability to save input on dummy change")
 MACRO_CONFIG_INT(SvDummyTpBeforeStart, sv_dummy_teleport_before_start, 0, 0, 1, CFGFLAG_SERVER, "Ability to teleport dummy before you or dummy cross the start line")
 
+MACRO_CONFIG_INT(SvDummyBroadcast, sv_dummy_broadcast, 1, 0, 1, CFGFLAG_SERVER, "Broadcast dummy actions")
+
 MACRO_CONFIG_INT(SvRescueSaveFrequency, sv_rescue_save_frequency, 7, 0, 70, CFGFLAG_SERVER, "/r saving positions frequency")
 MACRO_CONFIG_INT(SvRescueEffects, sv_rescue_effect, 0, 0, 1, CFGFLAG_SERVER, "Turns rescue effects on/off")
 
