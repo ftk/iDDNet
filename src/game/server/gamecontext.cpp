@@ -3109,7 +3109,8 @@ void CGameContext::ApplyPlayerState(const CPlayerRescueState& state, CCharacter 
 	if(g_Config.m_SvDummyChangeSaveInput == 1 && IsDummy)
 	{
 		//pChar->m_LatestPrevInput = state.m_LatestPrevInput;
-		pChar->m_LatestInput = state.m_LatestInput; //fire
+		if (state.m_Input.m_Fire&1)
+			pChar->m_LatestInput = state.m_LatestInput; //fire
 		//mem_zero(&pChar->m_Input, sizeof(pChar->m_Input));
 		//pChar->m_PrevInput = state.m_PrevInput;
 		pChar->m_Input = state.m_LatestInput; //direction
