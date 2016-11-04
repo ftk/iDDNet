@@ -318,7 +318,6 @@ private:
 	static void ConSayTimeAll(IConsole::IResult *pResult, void *pUserData);
 	static void ConTime(IConsole::IResult *pResult, void *pUserData);
 	static void ConSetTimerType(IConsole::IResult *pResult, void *pUserData);
-	static void ConRescue(IConsole::IResult *pResult, void *pUserData);
 	static void ConProtectedKill(IConsole::IResult *pResult, void *pUserData);
 
 
@@ -343,8 +342,12 @@ private:
 	static void ConDummyControl(IConsole::IResult *pResult, void *pUserData);
 	static void ConDummyCopyMove(IConsole::IResult *pResult, void *pUserData);
 	static void ConToggleFly(IConsole::IResult *pResult, void *pUserData);
-	
+
+	static void CondbgDummy(IConsole::IResult *pResult, void *pUserData);
+	static void CondbgDummyDelete(IConsole::IResult *pResult, void *pUserData);
+
 	static void ConDummyHook(IConsole::IResult *pResult, void *pUserData);
+	static void ConDummyAim(IConsole::IResult *pResult, void *pUserData);
 
 	//mkRace
 	static void ConDisconnectRescue(IConsole::IResult *pResult, void *pUserData);
@@ -424,7 +427,13 @@ public:
 		int m_JumpedTotal;
 		int m_Jumps;
 
+		// these are non-heldback inputs
+		CNetObj_PlayerInput m_LatestPrevInput;
+		CNetObj_PlayerInput m_LatestInput;
+		// input
+		CNetObj_PlayerInput m_PrevInput;
 		CNetObj_PlayerInput m_Input;
+		CNetObj_PlayerInput m_FreezedInput;
 
 		struct WeaponStat
 		{
@@ -438,12 +447,10 @@ public:
 		CNetObj_CharacterCore Core;
 	};
 
-	
-
 	std::map<std::string, CPlayerRescueState> m_SavedPlayers;
 
 	static CPlayerRescueState GetPlayerState(CCharacter * pChar);
-	static void ApplyPlayerState(const CPlayerRescueState& state, CCharacter * pChar);
+	static void ApplyPlayerState(const CPlayerRescueState& state, CCharacter * pChar, bool IsDummy);
 	static void ApplyRescueFlags(int TargetID, CCharacter * pChar);
 };
 

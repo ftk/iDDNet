@@ -3230,3 +3230,213 @@ void CGameContext::List(int ClientID, const char* filter)
 	str_format(buf, sizeof(buf), "%d players online", total);
 	SendChatTarget(ClientID, buf);
 }
+
+CGameContext::CPlayerRescueState CGameContext::GetPlayerState(CCharacter * pChar)
+{
+	CPlayerRescueState state;
+
+#define ST_PARAM(var) state. var = pChar->m_ ## var 
+	ST_PARAM(Pos);
+	ST_PARAM(PrevPos);
+	ST_PARAM(SavedPos);
+	ST_PARAM(RescueFlags);
+	ST_PARAM(StartTime);
+	ST_PARAM(DDRaceState);
+	ST_PARAM(EndlessHook);
+	ST_PARAM(DeepFreeze);
+	ST_PARAM(Solo);
+	ST_PARAM(Jetpack);
+	ST_PARAM(SuperJump);
+	ST_PARAM(Hit);
+	ST_PARAM(CpTick);
+	ST_PARAM(CpActive);
+	ST_PARAM(CpLastBroadcast);
+	ST_PARAM(TeleCheckpoint);
+	ST_PARAM(FreezeTime);
+	ST_PARAM(FreezeTick);
+	ST_PARAM(NinjaJetpack);
+	ST_PARAM(TuneZone);
+	ST_PARAM(TuneZoneOld);
+	ST_PARAM(LastPenalty);
+	ST_PARAM(LastWeapon);
+	ST_PARAM(QueuedWeapon);
+#undef ST_PARAM
+
+	pChar->Core()->Write(&state.Core);
+
+	mem_copy(state.CpCurrent, pChar->m_CpCurrent, sizeof(state.CpCurrent));
+
+	for(int i = 0; i< NUM_WEAPONS; i++)
+	{
+		state.m_aWeapons[i].m_AmmoRegenStart = pChar->m_aWeapons[i].m_AmmoRegenStart;
+		state.m_aWeapons[i].m_Ammo = pChar->m_aWeapons[i].m_Ammo;
+		state.m_aWeapons[i].m_Ammocost = pChar->m_aWeapons[i].m_Ammocost;
+		state.m_aWeapons[i].m_Got = pChar->m_aWeapons[i].m_Got;
+	}
+
+	state.m_ActiveWeapon = pChar->m_Core.m_ActiveWeapon;
+	state.m_Jumped = pChar->m_Core.m_Jumped;
+	state.m_JumpedTotal = pChar->m_Core.m_JumpedTotal;
+	state.m_Jumps = pChar->m_Core.m_Jumps;
+
+	if(g_Config.m_SvDummyChangeSaveInput == 1)
+	{
+		state.m_LatestPrevInput = pChar->m_LatestPrevInput;
+		state.m_LatestInput = pChar->m_LatestInput;
+		state.m_PrevInput = pChar->m_PrevInput;
+		state.m_Input = pChar->m_Input;
+		state.m_FreezedInput = pChar->m_FreezedInput;
+	}
+	//state.WFlags = 0;
+	//for(int i = WEAPON_HAMMER; i <= WEAPON_RIFLE; i++)
+	//	if(pChar->GetWeaponGot(i))
+	//		state.WFlags |= (1U << i);
+	return state;
+}
+
+void CGameContext::ApplyPlayerState(const CPlayerRescueState& state, CCharacter * pChar, bool IsDummy)
+{
+#define ST_PARAM(var) pChar->m_ ## var = state. var
+	ST_PARAM(Pos);
+	ST_PARAM(PrevPos);
+	ST_PARAM(SavedPos);
+	ST_PARAM(RescueFlags);
+	ST_PARAM(StartTime);
+	ST_PARAM(DDRaceState);
+	ST_PARAM(EndlessHook);
+	ST_PARAM(DeepFreeze);
+	ST_PARAM(Solo);
+	ST_PARAM(Jetpack);
+	ST_PARAM(SuperJump);
+	ST_PARAM(Hit);
+	ST_PARAM(CpTick);
+	ST_PARAM(CpActive);
+	ST_PARAM(CpLastBroadcast);
+	ST_PARAM(TeleCheckpoint);
+	ST_PARAM(FreezeTime);
+	ST_PARAM(FreezeTick);
+	ST_PARAM(NinjaJetpack);
+	ST_PARAM(TuneZone);
+	ST_PARAM(TuneZoneOld);
+	ST_PARAM(LastPenalty);
+	ST_PARAM(LastWeapon);
+	ST_PARAM(QueuedWeapon);
+#undef ST_PARAM
+
+	mem_copy(pChar->m_CpCurrent, state.CpCurrent, sizeof(state.CpCurrent));
+
+	pChar->m_Super = false;
+	pChar->ResetInput();
+	//pChar->SetWeaponGot(WEAPON_NINJA, false);
+	//pChar->SetWeapon(pChar->m_LastWeapon);
+	
+	/*for(int i = WEAPON_HAMMER; i <= WEAPON_RIFLE; i++)
+	{
+		pChar->SetWeaponGot(i, false);
+		pChar->SetWeaponAmmo(i, 0);
+		if(state.WFlags & (1U << i))
+			pChar->GiveWeapon(i, -1);
+	}*/
+
+	for(int i = 0; i< NUM_WEAPONS; i++)
+	{
+		pChar->m_aWeapons[i].m_AmmoRegenStart = state.m_aWeapons[i].m_AmmoRegenStart;
+		pChar->m_aWeapons[i].m_Ammo = state.m_aWeapons[i].m_Ammo;
+		pChar->m_aWeapons[i].m_Ammocost = state.m_aWeapons[i].m_Ammocost;
+		pChar->m_aWeapons[i].m_Got = state.m_aWeapons[i].m_Got;
+	}
+
+	pChar->m_Core.m_ActiveWeapon = state.m_ActiveWeapon;
+	pChar->m_Core.m_Jumped = state.m_Jumped;
+	pChar->m_Core.m_JumpedTotal = state.m_JumpedTotal;
+	pChar->m_Core.m_Jumps = state.m_Jumps;
+	if(g_Config.m_SvDummyChangeSaveInput == 1 && IsDummy)
+	{
+		//pChar->m_LatestPrevInput = state.m_LatestPrevInput;
+		if (state.m_Input.m_Fire&1)
+			pChar->m_LatestInput = state.m_LatestInput; //fire
+		//mem_zero(&pChar->m_Input, sizeof(pChar->m_Input));
+		//pChar->m_PrevInput = state.m_PrevInput;
+		pChar->m_Input = state.m_LatestInput; //direction
+		pChar->m_FreezedInput = state.m_LatestInput; //input in freeze
+	}
+	pChar->Core()->Read(&state.Core);
+
+}
+
+void CGameContext::ApplyRescueFlags(int TargetID, CCharacter * pChar)
+{
+	// disarm player
+	if(pChar->m_RescueFlags & RESCUEFLAG_DISARM)
+	{
+		bool disarmed = false;
+		for(int i = WEAPON_SHOTGUN; i < NUM_WEAPONS; i++)
+		{
+			if(pChar->GetWeaponGot(i) && i != WEAPON_NINJA)
+			{
+				pChar->SetWeaponGot(i, false);
+				pChar->SetWeaponAmmo(i, 0);
+				disarmed = true;
+			}
+		}
+		if(disarmed)
+			pChar->GameServer()->SendChatTarget(TargetID, "You have been disarmed");
+	}
+	// solo fix
+	if(pChar->m_RescueFlags & RESCUEFLAG_SOLOOUT && !pChar->m_Solo)
+	{
+		pChar->GameServer()->SendChatTarget(TargetID, "You are now in a solo part");
+		pChar->m_Solo = true;
+	}
+	else if(pChar->m_RescueFlags & RESCUEFLAG_SOLOIN && pChar->m_Solo)
+	{
+		pChar->GameServer()->SendChatTarget(TargetID, "You are now out of the solo part");
+		pChar->m_Solo = false;
+	}
+	// hit fix
+	if(pChar->m_RescueFlags & RESCUEFLAG_NOHIT)
+	{
+		pChar->GameServer()->SendChatTarget(TargetID, "You can hit others");
+		pChar->m_Hit = CCharacter::HIT_ALL;
+	}
+	else if(pChar->m_RescueFlags & RESCUEFLAG_HIT)
+	{
+		pChar->GameServer()->SendChatTarget(TargetID, "You can't hit others");
+		pChar->m_Hit = CCharacter::DISABLE_HIT_GRENADE|CCharacter::DISABLE_HIT_HAMMER|
+			CCharacter::DISABLE_HIT_RIFLE|CCharacter::DISABLE_HIT_SHOTGUN;
+	}
+	// endless hook fix
+	if(pChar->m_RescueFlags & RESCUEFLAG_NOEHOOK && !pChar->m_EndlessHook)
+	{
+		pChar->GameServer()->SendChatTarget(TargetID, "Endless hook has been activated");
+		pChar->m_EndlessHook = true;
+	}
+	else if(pChar->m_RescueFlags & RESCUEFLAG_EHOOK && pChar->m_EndlessHook)
+	{
+		pChar->GameServer()->SendChatTarget(TargetID, "Endless hook has been deactivated");
+		pChar->m_EndlessHook = false;
+	}
+	// jetpack fix
+	if(pChar->m_RescueFlags & RESCUEFLAG_JETPACK_START && !pChar->m_Jetpack)
+	{
+		pChar->GameServer()->SendChatTarget(TargetID, "You have a jetpack gun");
+		pChar->m_Jetpack = true;
+	}
+	else if(pChar->m_RescueFlags & RESCUEFLAG_JETPACK_END && pChar->m_Jetpack)
+	{
+		pChar->GameServer()->SendChatTarget(TargetID, "You lost your jetpack gun");
+		pChar->m_Jetpack = false;
+	}
+	// super jump fix
+	if(pChar->m_RescueFlags & RESCUEFLAG_SUPER_START && !pChar->m_SuperJump)
+	{
+		pChar->GameServer()->SendChatTarget(TargetID, "You have unlimited air jumps");
+		pChar->m_SuperJump = true;
+	}
+	else if(pChar->m_RescueFlags & RESCUEFLAG_SUPER_END && pChar->m_SuperJump)
+	{
+		pChar->GameServer()->SendChatTarget(TargetID, "You don't have unlimited air jumps");
+		pChar->m_SuperJump = false;
+	}
+	pChar->m_RescueFlags = RESCUEFLAG_NONE;
+}

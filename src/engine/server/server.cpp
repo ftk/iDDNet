@@ -2484,9 +2484,6 @@ int main(int argc, const char **argv) // ignore_convention
 
 	pConsole->Register("sv_test_cmds", "", CFGFLAG_SERVER|CFGFLAG_CLIENT, CServer::ConTestingCommands, pConsole, "Turns testing commands aka cheats on/off");
 
-	// restore empty config strings to their defaults
-	pConfig->RestoreStrings();
-
 	// iDDNet : magic with max clients
 	if(g_Config.m_SvDummies == 1)
 		g_Config.m_SvMaxClients = g_Config.m_SvMaxClients*2;

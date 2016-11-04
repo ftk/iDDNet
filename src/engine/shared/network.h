@@ -62,6 +62,7 @@ enum
 	NET_CONNSTATE_PENDING=2,
 	NET_CONNSTATE_ONLINE=3,
 	NET_CONNSTATE_ERROR=4,
+	NET_CONNSTATE_DUMMY=5,// iDDNet
 
 	NET_PACKETFLAG_CONTROL=1,
 	NET_PACKETFLAG_CONNLESS=2,
@@ -222,16 +223,16 @@ public:
 	int SecurityToken() const { return m_SecurityToken; }
 	TStaticRingBuffer<CNetChunkResend, NET_CONN_BUFFERSIZE> *ResendBuffer() { return &m_Buffer; };
 
+	// iDDNet
+	void DummyConnect();
+	void DummyDrop();
+	
 	void SetTimedOut(const NETADDR *pAddr, int Sequence, int Ack, SECURITY_TOKEN SecurityToken, TStaticRingBuffer<CNetChunkResend, NET_CONN_BUFFERSIZE> *pResendBuffer);
 
 	// anti spoof
 	void DirectInit(NETADDR &Addr, SECURITY_TOKEN SecurityToken);
 	void SetUnknownSeq() { m_UnknownSeq = true; }
 	void SetSequence(int Sequence) { m_Sequence = Sequence; }
-
-	// iDDNet
-	void DummyConnect();
-	void DummyDrop();
 };
 
 class CConsoleNetConnection
@@ -368,14 +369,14 @@ public:
 	int ResetErrorString(int ClientID);
 	const char *ErrorString(int ClientID);
 
+	// iDDNet
+	void DummyInit(int DummyID);
+	void DummyDelete(int DummyID);
+	
 	// anti spoof
 	SECURITY_TOKEN GetToken(const NETADDR &Addr);
 	// vanilla token/gametick shouldn't be negative
 	SECURITY_TOKEN GetVanillaToken(const NETADDR &Addr) { return absolute(GetToken(Addr)); }
-
-	// iDDNet
-	void DummyInit(int DummyID);
-	void DummyDelete(int DummyID);
 };
 
 class CNetConsole

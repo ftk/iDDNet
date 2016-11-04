@@ -99,18 +99,6 @@ private:
 	CEntity *m_apHitObjects[10];
 	int m_NumObjectsHit;
 
-	struct WeaponStat
-	{
-		int m_AmmoRegenStart;
-		int m_Ammo;
-		int m_Ammocost;
-		bool m_Got;
-
-	} m_aWeapons[NUM_WEAPONS];
-
-	int m_LastWeapon;
-	int m_QueuedWeapon;
-
 	int m_ReloadTimer;
 	int m_AttackTick;
 
@@ -123,14 +111,6 @@ private:
 	int m_LastAction;
 	int m_LastNoAmmoSound;
 
-	// these are non-heldback inputs
-	CNetObj_PlayerInput m_LatestPrevInput;
-	CNetObj_PlayerInput m_LatestInput;
-
-	// input
-	CNetObj_PlayerInput m_PrevInput;
-	CNetObj_PlayerInput m_Input;
-	CNetObj_PlayerInput m_SavedInput;
 	int m_NumInputs;
 	int m_Jumped;
 
@@ -147,9 +127,6 @@ private:
 		int m_CurrentMoveTime;
 		int m_OldVelAmount;
 	} m_Ninja;
-
-	// the player core for the physics
-	CCharacterCore m_Core;
 
 	// info for dead reckoning
 	int m_ReckoningTick; // tick that we are performing dead reckoning From
@@ -181,6 +158,7 @@ public:
 	// input
 	CNetObj_PlayerInput m_PrevInput;
 	CNetObj_PlayerInput m_Input;
+	CNetObj_PlayerInput m_SavedInput;
 	CNetObj_PlayerInput m_FreezedInput;
 	
 	CGameTeams* Teams();
@@ -266,6 +244,7 @@ public:
 	int m_TileSFlagsB;
 	vec2 m_Intersection;
 	int64 m_LastStartWarning;
+	int64 m_LastRescue;
 	bool m_LastRefillJumps;
 	bool m_LastPenalty;
 	bool m_LastBonus;
@@ -312,11 +291,14 @@ public:
 	//run for dummy only
 	//void ResetDummy();
 	bool m_DoHammerFly;
+	int m_HammerFlyRange;
 	void DoHammerFly();
 
 	bool m_DoHookFly;
 	void DoHookFly();
 
+	bool m_DoAim;
+	void DoAim();
 
 private:
 	int m_RescueUnfreeze;

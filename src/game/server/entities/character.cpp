@@ -649,18 +649,6 @@ void CCharacter::HandleWeapons()
 	return;
 }
 
-bool CCharacter::GiveWeapon(int Weapon, int Ammo)
-{
-	if(m_aWeapons[Weapon].m_Ammo < g_pData->m_Weapons.m_aId[Weapon].m_Maxammo || !m_aWeapons[Weapon].m_Got)
-	{
-		m_aWeapons[Weapon].m_Got = true;
-		if(!m_FreezeTime)
-			m_aWeapons[Weapon].m_Ammo = min(g_pData->m_Weapons.m_aId[Weapon].m_Maxammo, Ammo);
-		return true;
-	}
-	return false;
-}
-
 void CCharacter::GiveNinja()
 {
 	m_Ninja.m_ActivationTick = Server()->Tick();
@@ -1161,9 +1149,7 @@ void CCharacter::Snap(int SnappingClient)
 	{
 		pCharacter->m_Health = m_Health;
 		pCharacter->m_Armor = m_Armor;
-		if(m_aWeapons[m_Core.m_ActiveWeapon].m_Ammo > 0)
-			//pCharacter->m_AmmoCount = m_aWeapons[m_Core.m_ActiveWeapon].m_Ammo;
-			pCharacter->m_AmmoCount = (!m_FreezeTime)?m_aWeapons[m_Core.m_ActiveWeapon].m_Ammo:0;
+		pCharacter->m_AmmoCount = (!m_FreezeTime)?abs(m_aWeapons[m_Core.m_ActiveWeapon].m_Ammo):0;
 	}
 
 	if(GetPlayer()->m_Afk || GetPlayer()->m_Paused)
@@ -1542,6 +1528,10 @@ void CCharacter::HandleTiles(int Index)
 	{
 		GameServer()->SendChatTarget(GetPlayer()->GetCID(), "You can't hit others");
 		m_Hit = DISABLE_HIT_GRENADE|DISABLE_HIT_HAMMER|DISABLE_HIT_RIFLE|DISABLE_HIT_SHOTGUN;
+		if(m_RescueFlags & RESCUEFLAG_HIT)
+			m_RescueFlags &= ~RESCUEFLAG_HIT;
+		else
+			m_RescueFlags |= RESCUEFLAG_NOHIT;
 		m_NeededFaketuning |= FAKETUNE_NOHAMMER;
 		GameServer()->SendTuningParams(m_pPlayer->GetCID(), m_TuneZone); // update tunings
 	}
@@ -1594,6 +1584,10 @@ void CCharacter::HandleTiles(int Index)
 	{
 		GameServer()->SendChatTarget(GetPlayer()->GetCID(),"You have unlimited air jumps");
 		m_SuperJump = true;
+		if(m_RescueFlags & RESCUEFLAG_SUPER_END)
+			m_RescueFlags &= ~RESCUEFLAG_SUPER_END;
+		else
+			m_RescueFlags |= RESCUEFLAG_SUPER_START;
 		if (m_Core.m_Jumps == 0)
 		{
 			m_NeededFaketuning &= ~FAKETUNE_NOJUMP;
@@ -1631,6 +1625,11 @@ void CCharacter::HandleTiles(int Index)
 	{
 		GameServer()->SendChatTarget(GetPlayer()->GetCID(),"You have a jetpack gun");
 		m_Jetpack = true;
+		if(m_RescueFlags & RESCUEFLAG_JETPACK_END)
+			m_RescueFlags &= ~RESCUEFLAG_JETPACK_END;
+		else
+			m_RescueFlags |= RESCUEFLAG_JETPACK_START;
+		m_NeededFaketuning |= FAKETUNE_JETPACK;
 	}
 	else if(((m_TileIndex == TILE_JETPACK_END) || (m_TileFIndex == TILE_JETPACK_END)) && m_Jetpack)
 	{
@@ -2088,7 +2087,6 @@ void CCharacter::DDRaceTick()
 	m_Core.m_Id = GetPlayer()->GetCID();
 }
 
-
 void CCharacter::DDRacePostCoreTick()
 {
 	m_Time = (float)(Server()->Tick() - m_StartTime) / ((float)Server()->TickSpeed());
@@ -2145,6 +2143,7 @@ void CCharacter::DDRacePostCoreTick()
 			HandleTiles(*i);
 			//dbg_msg("Running","%d", *i);
 		}
+	}
 	else
 	{
 		HandleTiles(CurrentIndex);
