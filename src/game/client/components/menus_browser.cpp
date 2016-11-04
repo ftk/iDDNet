@@ -6,6 +6,7 @@
 #include <engine/keys.h>
 #include <engine/serverbrowser.h>
 #include <engine/textrender.h>
+#include <engine/updater.h>
 #include <engine/shared/config.h>
 
 #include <game/generated/client_data.h>
@@ -16,6 +17,7 @@
 #include <game/client/render.h>
 #include <game/client/ui.h>
 #include <game/client/components/countryflags.h>
+#include <game/client/components/console.h>
 
 #include "menus.h"
 
@@ -59,7 +61,7 @@ void CMenus::RenderServerbrowserServerList(CUIRect View)
 		COL_VERSION,
 	};
 
-	static CColumn s_aCols[] = {
+	CColumn s_aCols[] = {
 		{-1,			-1,						" ",		-1, 2.0f, 0, {0}, {0}},
 		{COL_FLAG_LOCK,	-1,						" ",		-1, 14.0f, 0, {0}, {0}},
 		{COL_FLAG_FAV,	-1,						" ",		-1, 14.0f, 0, {0}, {0}},
@@ -159,19 +161,26 @@ void CMenus::RenderServerbrowserServerList(CUIRect View)
 	int ScrollNum = NumServers-Num+1;
 	if(ScrollNum > 0)
 	{
-		if(m_ScrollOffset)
+		if(m_ScrollOffset >= 0)
 		{
 			s_ScrollValue = (float)(m_ScrollOffset)/ScrollNum;
-			m_ScrollOffset = 0;
+			m_ScrollOffset = -1;
 		}
-		if(Input()->KeyPresses(KEY_MOUSE_WHEEL_UP) && UI()->MouseInside(&View))
+		if(Input()->KeyPress(KEY_MOUSE_WHEEL_UP) && UI()->MouseInside(&View))
 			s_ScrollValue -= 3.0f/ScrollNum;
-		if(Input()->KeyPresses(KEY_MOUSE_WHEEL_DOWN) && UI()->MouseInside(&View))
+		if(Input()->KeyPress(KEY_MOUSE_WHEEL_DOWN) && UI()->MouseInside(&View))
 			s_ScrollValue += 3.0f/ScrollNum;
 	}
 	else
 		ScrollNum = 0;
 
+	if(Input()->KeyPress(KEY_TAB) && m_pClient->m_pGameConsole->IsClosed())
+	{
+		if(Input()->KeyIsPressed(KEY_LSHIFT) || Input()->KeyIsPressed(KEY_RSHIFT))
+			g_Config.m_UiToolboxPage = (g_Config.m_UiToolboxPage + 3 - 1) % 3;
+		else
+			g_Config.m_UiToolboxPage = (g_Config.m_UiToolboxPage + 3 + 1) % 3;
+	}
 	if(m_SelectedIndex > -1)
 	{
 		for(int i = 0; i < m_NumInputEvents; i++)
@@ -320,30 +329,18 @@ void CMenus::RenderServerbrowserServerList(CUIRect View)
 
 			if(ID == COL_FLAG_LOCK)
 			{
-#if defined(__ANDROID__)
-				Button.h = Button.w;
-				Button.y += ms_ListitemAdditionalHeight / 2;
-#endif
 				if(pItem->m_Flags & SERVER_FLAG_PASSWORD)
 					DoButton_Icon(IMAGE_BROWSEICONS, SPRITE_BROWSE_LOCK, &Button);
 			}
 			else if(ID == COL_FLAG_FAV)
 			{
-#if defined(__ANDROID__)
-				Button.h = Button.w;
-				Button.y += ms_ListitemAdditionalHeight / 2;
-#endif
 				if(pItem->m_Favorite)
 					DoButton_Icon(IMAGE_BROWSEICONS, SPRITE_BROWSE_HEART, &Button);
 			}
 			else if(ID == COL_NAME)
 			{
 				CTextCursor Cursor;
-#if defined(__ANDROID__)
-				TextRender()->SetCursor(&Cursor, Button.x, Button.y + ms_ListitemAdditionalHeight / 2, 12.0f * UI()->Scale(), TEXTFLAG_RENDER|TEXTFLAG_STOP_AT_END);
-#else
 				TextRender()->SetCursor(&Cursor, Button.x, Button.y, 12.0f * UI()->Scale(), TEXTFLAG_RENDER|TEXTFLAG_STOP_AT_END);
-#endif
 				Cursor.m_LineWidth = Button.w;
 
 				if(g_Config.m_BrFilterString[0] && (pItem->m_QuickSearchHit&IServerBrowser::QUICK_SERVERNAME))
@@ -367,11 +364,7 @@ void CMenus::RenderServerbrowserServerList(CUIRect View)
 			else if(ID == COL_MAP)
 			{
 				CTextCursor Cursor;
-#if defined(__ANDROID__)
-				TextRender()->SetCursor(&Cursor, Button.x, Button.y + ms_ListitemAdditionalHeight / 2, 12.0f * UI()->Scale(), TEXTFLAG_RENDER|TEXTFLAG_STOP_AT_END);
-#else
 				TextRender()->SetCursor(&Cursor, Button.x, Button.y, 12.0f * UI()->Scale(), TEXTFLAG_RENDER|TEXTFLAG_STOP_AT_END);
-#endif
 				Cursor.m_LineWidth = Button.w;
 
 				if(g_Config.m_BrFilterString[0] && (pItem->m_QuickSearchHit&IServerBrowser::QUICK_MAPNAME))
@@ -394,10 +387,6 @@ void CMenus::RenderServerbrowserServerList(CUIRect View)
 			}
 			else if(ID == COL_PLAYERS)
 			{
-#if defined(__ANDROID__)
-				Button.h -= ms_ListitemAdditionalHeight;
-				Button.y += ms_ListitemAdditionalHeight / 2;
-#endif
 				CUIRect Icon;
 				Button.VMargin(4.0f, &Button);
 				if(pItem->m_FriendState != IFriends::FRIEND_NO)
@@ -418,10 +407,6 @@ void CMenus::RenderServerbrowserServerList(CUIRect View)
 			}
 			else if(ID == COL_PING)
 			{
-#if defined(__ANDROID__)
-				Button.h -= ms_ListitemAdditionalHeight;
-				Button.y += ms_ListitemAdditionalHeight / 2;
-#endif
 				str_format(aTemp, sizeof(aTemp), "%i", pItem->m_Latency);
 				if (g_Config.m_UiColorizePing)
 				{
@@ -434,45 +419,33 @@ void CMenus::RenderServerbrowserServerList(CUIRect View)
 			}
 			else if(ID == COL_VERSION)
 			{
-#if defined(__ANDROID__)
-				Button.h -= ms_ListitemAdditionalHeight;
-				Button.y += ms_ListitemAdditionalHeight / 2;
-#endif
 				const char *pVersion = pItem->m_aVersion;
 				UI()->DoLabelScaled(&Button, pVersion, 12.0f, 1);
 			}
 			else if(ID == COL_GAMETYPE)
 			{
 				CTextCursor Cursor;
-#if defined(__ANDROID__)
-				TextRender()->SetCursor(&Cursor, Button.x, Button.y + ms_ListitemAdditionalHeight / 2, 12.0f*UI()->Scale(), TEXTFLAG_RENDER|TEXTFLAG_STOP_AT_END);
-#else
 				TextRender()->SetCursor(&Cursor, Button.x, Button.y, 12.0f*UI()->Scale(), TEXTFLAG_RENDER|TEXTFLAG_STOP_AT_END);
-#endif
 				Cursor.m_LineWidth = Button.w;
 
 				if (g_Config.m_UiColorizeGametype)
 				{
 					vec3 hsl = vec3(1.0f, 1.0f, 1.0f);
 
-					if (!str_comp(pItem->m_aGameType, "DM")
-							|| !str_comp(pItem->m_aGameType, "TDM")
-							|| !str_comp(pItem->m_aGameType, "CTF"))
-						hsl = vec3(0.33f, 1.0f, 0.75f); // Vanilla
-					else if (str_find_nocase(pItem->m_aGameType, "catch"))
-						hsl = vec3(0.17f, 1.0f, 0.75f); // Catch
-					else if (str_find_nocase(pItem->m_aGameType, "idm")
-							|| str_find_nocase(pItem->m_aGameType, "itdm")
-							|| str_find_nocase(pItem->m_aGameType, "ictf"))
-						hsl = vec3(0.00f, 1.0f, 0.75f); // Instagib
-					else if (str_find_nocase(pItem->m_aGameType, "fng"))
-						hsl = vec3(0.83f, 1.0f, 0.75f); // FNG
+					if (IsVanilla(pItem))
+						hsl = vec3(0.33f, 1.0f, 0.75f);
+					else if (IsCatch(pItem))
+						hsl = vec3(0.17f, 1.0f, 0.75f);
+					else if (IsInsta(pItem))
+						hsl = vec3(0.00f, 1.0f, 0.75f);
+					else if (IsFNG(pItem))
+						hsl = vec3(0.83f, 1.0f, 0.75f);
 					else if (IsDDNet(pItem))
-						hsl = vec3(0.58f, 1.0f, 0.75f); // DDNet
+						hsl = vec3(0.58f, 1.0f, 0.75f);
 					else if (IsDDRace(pItem))
-						hsl = vec3(0.75f, 1.0f, 0.75f); // DDRace
+						hsl = vec3(0.75f, 1.0f, 0.75f);
 					else if (IsRace(pItem))
-						hsl = vec3(0.46f, 1.0f, 0.75f); // Race
+						hsl = vec3(0.46f, 1.0f, 0.75f);
 
 					vec3 rgb = HslToRgb(hsl);
 					TextRender()->TextColor(rgb.r, rgb.g, rgb.b, 1.0f);
@@ -504,13 +477,13 @@ void CMenus::RenderServerbrowserServerList(CUIRect View)
 	Status.Margin(5.0f, &Status);
 
 	CUIRect QuickSearch, QuickExclude, Button, Status2, Status3;
-	Status.VSplitRight(240.0f, &Status2, &Status3);
+	Status.VSplitRight(250.0f, &Status2, &Status3);
 
 	Status2.VSplitMid(&QuickSearch, &QuickExclude);
 	QuickExclude.VSplitLeft(5.0f, 0, &QuickExclude);
 	// render quick search
 	{
-		const char *pLabel = Localize("⚲");
+		const char *pLabel = "⚲";
 		UI()->DoLabelScaled(&QuickSearch, pLabel, 12.0f, -1);
 		float w = TextRender()->TextWidth(0, 12.0f, pLabel, -1);
 		QuickSearch.VSplitLeft(w, 0, &QuickSearch);
@@ -710,11 +683,11 @@ void CMenus::RenderServerbrowserFilters(CUIRect View)
 			int NumTypes = ServerBrowser()->NumDDNetTypes();
 			int PerLine = 3;
 
-			if(MaxTypes <= 12)
-				ServerFilter.HSplitTop(8.0f, 0, &ServerFilter);
+			ServerFilter.HSplitTop(4.0f, 0, &ServerFilter);
+			ServerFilter.HSplitBottom(4.0f, &ServerFilter, 0);
 
 			const float TypesWidth = 40.0f;
-			const float TypesHeight = MaxTypes > 12 ? 15.0f : 20.0f;
+			const float TypesHeight = ServerFilter.h / ceil(MaxTypes / (float)PerLine);
 
 			CUIRect TypesRect, Left, Right;
 
@@ -1091,7 +1064,7 @@ void CMenus::RenderServerbrowserFriends(CUIRect View)
 	m_lFriends.sort_range();
 	for(int i = 0; i < m_lFriends.size(); ++i)
 	{
-		CListboxItem Item = UiDoListboxNextItem(&m_lFriends[i]);
+		CListboxItem Item = UiDoListboxNextItem(&m_lFriends[i], false, false);
 
 		if(Item.m_Visible)
 		{
@@ -1270,18 +1243,81 @@ void CMenus::RenderServerbrowser(CUIRect MainView)
 		StatusBox.HSplitTop(5.0f, 0, &StatusBox);
 
 		// version note
+#if defined(CONF_FAMILY_WINDOWS) || (defined(CONF_PLATFORM_LINUX) && !defined(__ANDROID__))
+		CUIRect Part;
+		StatusBox.HSplitBottom(15.0f, &StatusBox, &Button);
+		char aBuf[64];
+		int State = Updater()->GetCurrentState();
+		bool NeedUpdate = str_comp(Client()->LatestVersion(), "0");
+		if(State == IUpdater::CLEAN && NeedUpdate)
+		{
+			str_format(aBuf, sizeof(aBuf), "DDNet %s is out!", Client()->LatestVersion());
+			TextRender()->TextColor(1.0f, 0.4f, 0.4f, 1.0f);
+		}
+		else if(State == IUpdater::CLEAN)
+			str_format(aBuf, sizeof(aBuf), Localize("Current version: %s"), GAME_VERSION);
+		else if(State >= IUpdater::GETTING_MANIFEST && State < IUpdater::NEED_RESTART)
+			str_format(aBuf, sizeof(aBuf), "Downloading %s:", Updater()->GetCurrentFile());
+		else if(State == IUpdater::FAIL)
+		{
+			str_format(aBuf, sizeof(aBuf), "Failed to download a file! Restart client to retry...");
+			TextRender()->TextColor(1.0f, 0.4f, 0.4f, 1.0f);
+		}
+		else if(State == IUpdater::NEED_RESTART)
+		{
+			str_format(aBuf, sizeof(aBuf), "DDNet Client updated!");
+			TextRender()->TextColor(1.0f, 0.4f, 0.4f, 1.0f);
+		}
+		UI()->DoLabelScaled(&Button, aBuf, 14.0f, -1);
+		TextRender()->TextColor(1.0f, 1.0f, 1.0f, 1.0f);
+
+		Button.VSplitLeft(TextRender()->TextWidth(0, 14.0f, aBuf, -1) + 10.0f, &Button, &Part);
+
+		if(State == IUpdater::CLEAN && NeedUpdate)
+		{
+			CUIRect Update;
+			Part.VSplitLeft(100.0f, &Update, NULL);
+
+			static int s_ButtonUpdate = 0;
+			if(DoButton_Menu(&s_ButtonUpdate, Localize("Update now"), 0, &Update))
+			{
+				Updater()->InitiateUpdate();
+			}
+		}
+		else if(State == IUpdater::NEED_RESTART)
+		{
+			CUIRect Restart;
+			Part.VSplitLeft(50.0f, &Restart, &Part);
+
+			static int s_ButtonUpdate = 0;
+			if(DoButton_Menu(&s_ButtonUpdate, Localize("Restart"), 0, &Restart))
+			{
+				Client()->Restart();
+			}
+		}
+		else if(State >= IUpdater::GETTING_MANIFEST && State < IUpdater::NEED_RESTART)
+		{
+			CUIRect ProgressBar, Percent;
+			Part.VSplitLeft(100.0f, &ProgressBar, &Percent);
+			ProgressBar.y += 2.0f;
+			ProgressBar.HMargin(1.0f, &ProgressBar);
+			RenderTools()->DrawUIRect(&ProgressBar, vec4(1.0f, 1.0f, 1.0f, 0.25f), CUI::CORNER_ALL, 5.0f);
+			ProgressBar.w = clamp((float)Updater()->GetCurrentPercent(), 10.0f, 100.0f);
+			RenderTools()->DrawUIRect(&ProgressBar, vec4(1.0f, 1.0f, 1.0f, 0.5f), CUI::CORNER_ALL, 5.0f);
+		}
+#else
 		StatusBox.HSplitBottom(15.0f, &StatusBox, &Button);
 		char aBuf[64];
 		if(str_comp(Client()->LatestVersion(), "0") != 0)
 		{
-			str_format(aBuf, sizeof(aBuf), Localize("DDNet %s is out! Download it at ddnet.tw!"), Client()->LatestVersion());
+			str_format(aBuf, sizeof(aBuf), Localize("DDNet %s is out! Download it at DDNet.tw!"), Client()->LatestVersion());
 			TextRender()->TextColor(1.0f, 0.4f, 0.4f, 1.0f);
 		}
 		else
 			str_format(aBuf, sizeof(aBuf), Localize("Current version: %s"), GAME_VERSION);
 		UI()->DoLabelScaled(&Button, aBuf, 14.0f, -1);
 		TextRender()->TextColor(1.0f, 1.0f, 1.0f, 1.0f);
-
+#endif
 		// button area
 		//StatusBox.VSplitRight(80.0f, &StatusBox, 0);
 		StatusBox.VSplitRight(170.0f, &StatusBox, &ButtonArea);
@@ -1295,7 +1331,7 @@ void CMenus::RenderServerbrowser(CUIRect MainView)
 		else
 			str_copy(aBuf, Localize("Refresh"), sizeof(aBuf));
 
-		if(DoButton_Menu(&s_RefreshButton, aBuf, 0, &Button))
+		if(DoButton_Menu(&s_RefreshButton, aBuf, 0, &Button) || Input()->KeyPress(KEY_F5) || (Input()->KeyPress(KEY_R) && (Input()->KeyIsPressed(KEY_LCTRL) || Input()->KeyIsPressed(KEY_RCTRL))))
 		{
 			if(g_Config.m_UiPage == PAGE_INTERNET)
 				ServerBrowser()->Refresh(IServerBrowser::TYPE_INTERNET);

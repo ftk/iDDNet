@@ -72,6 +72,7 @@ class CGameContext : public IGameServer
 	static void ConTuneResetZone(IConsole::IResult *pResult, void *pUserData);
 	static void ConTuneSetZoneMsgEnter(IConsole::IResult *pResult, void *pUserData);
 	static void ConTuneSetZoneMsgLeave(IConsole::IResult *pResult, void *pUserData);
+	static void ConSwitchOpen(IConsole::IResult *pResult, void *pUserData);
 	static void ConPause(IConsole::IResult *pResult, void *pUserData);
 	static void ConChangeMap(IConsole::IResult *pResult, void *pUserData);
 	static void ConRandomMap(IConsole::IResult *pResult, void *pUserData);
@@ -138,7 +139,10 @@ public:
 	int m_VoteEnforce;
 	char m_ZoneEnterMsg[NUM_TUNINGZONES][256]; // 0 is used for switching from or to area without tunings
 	char m_ZoneLeaveMsg[NUM_TUNINGZONES][256];
-	
+
+	char m_aDeleteTempfile[128];
+	void DeleteTempfile();
+
 	enum
 	{
 		VOTE_ENFORCE_UNKNOWN=0,
@@ -187,16 +191,19 @@ public:
 	void CheckPureTuning();
 	void SendTuningParams(int ClientID, int Zone = 0);
 
-	class CVoteOptionServer *GetVoteOption(int Index);
+	struct CVoteOptionServer *GetVoteOption(int Index);
 	void ProgressVoteOptions(int ClientID);
 
 	//
 	//void SwapTeams();
 
+	void LoadMapSettings();
+
 	// engine events
 	virtual void OnInit();
 	virtual void OnConsoleInit();
-	virtual void OnShutdown();
+	virtual void OnMapChange(char *pNewMapName, int MapNameSize);
+	virtual void OnShutdown(bool FullShutdown = false);
 
 	virtual void OnTick();
 	virtual void OnPreSnap();
@@ -222,6 +229,8 @@ public:
 
 	int ProcessSpamProtection(int ClientID);
 	int GetDDRaceTeam(int ClientID);
+	// Describes the time when the first player joined the server.
+	int64 m_NonEmptySince;
 	int64 m_LastMapVote;
 
 private:
@@ -243,10 +252,12 @@ private:
 	static void ConShotgun(IConsole::IResult *pResult, void *pUserData);
 	static void ConGrenade(IConsole::IResult *pResult, void *pUserData);
 	static void ConRifle(IConsole::IResult *pResult, void *pUserData);
+	static void ConJetpack(IConsole::IResult *pResult, void *pUserData);
 	static void ConWeapons(IConsole::IResult *pResult, void *pUserData);
 	static void ConUnShotgun(IConsole::IResult *pResult, void *pUserData);
 	static void ConUnGrenade(IConsole::IResult *pResult, void *pUserData);
 	static void ConUnRifle(IConsole::IResult *pResult, void *pUserData);
+	static void ConUnJetpack(IConsole::IResult *pResult, void *pUserData);
 	static void ConUnWeapons(IConsole::IResult *pResult, void *pUserData);
 	static void ConAddWeapon(IConsole::IResult *pResult, void *pUserData);
 	static void ConRemoveWeapon(IConsole::IResult *pResult, void *pUserData);
@@ -307,6 +318,7 @@ private:
 	static void ConSayTimeAll(IConsole::IResult *pResult, void *pUserData);
 	static void ConTime(IConsole::IResult *pResult, void *pUserData);
 	static void ConSetTimerType(IConsole::IResult *pResult, void *pUserData);
+	static void ConRescue(IConsole::IResult *pResult, void *pUserData);
 	static void ConProtectedKill(IConsole::IResult *pResult, void *pUserData);
 
 

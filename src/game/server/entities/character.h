@@ -26,6 +26,7 @@ enum
 	FAKETUNE_NOCOLL = 8,
 	FAKETUNE_NOHOOK = 16,
 	FAKETUNE_JETPACK = 32,
+	FAKETUNE_NOHAMMER = 64,
 };
 
 class CCharacter : public CEntity
@@ -33,7 +34,7 @@ class CCharacter : public CEntity
 	MACRO_ALLOC_POOL_ID()
 
 	friend class CSaveTee; // need to use core
-	
+
 public:
 	//character's size
 	static const int ms_PhysSize = 28;
@@ -75,8 +76,9 @@ public:
 	bool IncreaseHealth(int Amount);
 	bool IncreaseArmor(int Amount);
 
-	bool GiveWeapon(int Weapon, int Ammo);
+	void GiveWeapon(int Weapon, bool Remove = false);
 	void GiveNinja();
+	void RemoveNinja();
 
 	void SetEmote(int Emote, int Tick);
 
@@ -97,8 +99,17 @@ private:
 	CEntity *m_apHitObjects[10];
 	int m_NumObjectsHit;
 
-	
+	struct WeaponStat
+	{
+		int m_AmmoRegenStart;
+		int m_Ammo;
+		int m_Ammocost;
+		bool m_Got;
 
+	} m_aWeapons[NUM_WEAPONS];
+
+	int m_LastWeapon;
+	int m_QueuedWeapon;
 
 	int m_ReloadTimer;
 	int m_AttackTick;
@@ -112,7 +123,14 @@ private:
 	int m_LastAction;
 	int m_LastNoAmmoSound;
 
+	// these are non-heldback inputs
+	CNetObj_PlayerInput m_LatestPrevInput;
+	CNetObj_PlayerInput m_LatestInput;
 
+	// input
+	CNetObj_PlayerInput m_PrevInput;
+	CNetObj_PlayerInput m_Input;
+	CNetObj_PlayerInput m_SavedInput;
 	int m_NumInputs;
 	int m_Jumped;
 
@@ -131,7 +149,7 @@ private:
 	} m_Ninja;
 
 	// the player core for the physics
-	
+	CCharacterCore m_Core;
 
 	// info for dead reckoning
 	int m_ReckoningTick; // tick that we are performing dead reckoning From
@@ -153,6 +171,8 @@ private:
 	void SendZoneMsgs();
 public:
 
+	bool m_SetSavePos;
+	vec2 m_PrevSavePos;
 
 	// these are non-heldback inputs
 	CNetObj_PlayerInput m_LatestPrevInput;
@@ -206,6 +226,7 @@ public:
 	int m_TuneZone;
 	int m_TuneZoneOld;
 	int m_PainSoundTimer;
+	int m_LastMove;
 	int m_StartTime;
 	vec2 m_PrevPos;
 	int m_TeleCheckpoint;
@@ -245,7 +266,9 @@ public:
 	int m_TileSFlagsB;
 	vec2 m_Intersection;
 	int64 m_LastStartWarning;
+	bool m_LastRefillJumps;
 	bool m_LastPenalty;
+	bool m_LastBonus;
 
 	// Setters/Getters because i don't want to modify vanilla vars access modifiers
 	int GetLastWeapon() { return m_LastWeapon; };

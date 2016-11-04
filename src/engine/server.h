@@ -166,6 +166,8 @@ public:
 
 	virtual int* GetIdMap(int ClientID) = 0;
 	
+	virtual bool DnsblWhite(int ClientID) = 0;
+
 	// iDDNet
 	virtual void DummyJoin(int DummyID, const char *pDummyName, const char *pDummyClan, int Country) = 0;
 	virtual void DummyLeave(int DummyID, const char *pDummyName = 0) = 0;
@@ -178,7 +180,10 @@ protected:
 public:
 	virtual void OnInit() = 0;
 	virtual void OnConsoleInit() = 0;
-	virtual void OnShutdown() = 0;
+	virtual void OnMapChange(char *pNewMapName, int MapNameSize) = 0;
+
+	// FullShutdown is true if the program is about to exit (not if the map is changed)
+	virtual void OnShutdown(bool FullShutdown = false) = 0;
 
 	virtual void OnTick() = 0;
 	virtual void OnPreSnap() = 0;

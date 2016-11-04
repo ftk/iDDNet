@@ -18,98 +18,21 @@ void CGameContext::ConCredits(IConsole::IResult *pResult, void *pUserData)
 	CGameContext *pSelf = (CGameContext *) pUserData;
 
 	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "credit",
-		"DDRaceNetwork is maintained by deen.");
+		"DDNet is run by the DDNet staff (DDNet.tw/staff)");
 	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "credit",
-		"Many ideas from the great community,");
+		"Great maps and many ideas from the great community");
 	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "credit",
-		"Help and code by eeeee, HMH, east, CookieMichal,");
+		"Help and code by eeeee, HMH, east, CookieMichal, Learath2,");
 	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "credit",
-		"Savander, laxa, Tobii, BeaR, Wohoo, nuborn, DoNe & others.");
+		"Savander, laxa, Tobii, BeaR, Wohoo, nuborn, timakro, Shiki,");
+	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "credit",
+		"trml, Soreu, hi_leute_gll, Lady Saavik, Chairn, heinrich5991,");
+	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "credit",
+		"swick, oy & others.");
 	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "credit",
 		"Based on DDRace by the DDRace developers,");
 	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "credit",
 		"which is a mod of Teeworlds by the Teeworlds developers.");
-	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "credit",
-		"Check the changes on ddnet.tw");
-}
-
-void CGameContext::ConCMDList(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *) pUserData;
-
-	if (pResult->NumArguments() == 0)
-	{
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
-			"~~~~~~~~~~~~~~~ CMDLIST ~~~~~~~~~~~~~~~");
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
-			"Dummy cmdlist: /cmdlist dummy");
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
-			"Race cmdlist: /cmdlist race");
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
-			"Chat cmdlist: /cmdlist chat");
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
-			"Other cmdlist: /cmdlist other");
-	}
-	else
-	{
-		const char *pArg = pResult->GetString(0);
-		if (str_comp(pArg, "dummy") == 0)
-		{
-			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
-				"~~~~~~~~~~ DUMMY CMDLIST ~~~~~~~~~~");
-			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
-				"/dummy, /d - Creates your own Dummy if it doesn\'t exist.");
-			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
-				"/dummy_del, /dummy_delete, /delete, /dd - Removes your Dummy.");
-			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
-				"/dummy_change, /dummy_swap, /dc, /ds - Swap you with your dummy.");
-			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
-				"/dummy_hammer, /dummy_hammerfly, /dh, /dhf - HammeFly.");
-			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
-				"/dhook - HookFly.");
-			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
-				"/dummy_copy_move, /dcm - Dummy copies all your movement.");
-			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
-				"/control_dummy, /cd - Go to spectators and control your dummy.");
-			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
-				"/rescue d, /r d - Rescue for dummy.");
-			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
-				"/disconnect_rescue d, /dr d - Disconnect rescue for dummy.");
-		}
-		if (str_comp(pArg, "race") == 0)
-		{
-			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
-				"~~~~~~~~~~ RACE CMDLIST ~~~~~~~~~~");
-			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
-				"/pause, /spec, /save, /load");
-			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
-				"/rank, /rankteam, /top5, /top5team");
-			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
-				"/team, /lock, /showothers, /specteam");
-			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
-				"/saytime, /saytimeall, /time, /timer");
-			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
-				"/kill, /times, /points, /top5points");
-			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
-				"/rescue, /r, /disconnect_rescue, /dr");
-		}
-		if (str_comp(pArg, "chat") == 0)
-		{
-			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
-				"~~~~~~~~~~ CHAT CMDLIST ~~~~~~~~~~");
-			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
-				"/me, /dnd, /whisper, /w, /pm, /converse, /c");
-		}
-		if (str_comp(pArg, "other") == 0)
-		{
-			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
-				"~~~~~~~~~~ OTHER CMDLIST ~~~~~~~~~~");
-			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
-				"/credits, /info, /help, /settings, /mapinfo");
-			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
-				"/emote, /eyeemote, /ninjajetpack, /timeout");
-		}
-	}
 }
 
 void CGameContext::ConInfo(IConsole::IResult *pResult, void *pUserData)
@@ -122,11 +45,11 @@ void CGameContext::ConInfo(IConsole::IResult *pResult, void *pUserData)
 			"Git revision hash: " GIT_SHORTREV_HASH);
 #endif
 	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "info",
-			"Official site: ddnet.tw");
+			"Official site: DDNet.tw");
 	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "info",
-			"For more Info /cmdlist");
+			"For more info: /cmdlist");
 	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "info",
-			"Or visit ddnet.tw");
+			"Or visit DDNet.tw");
 }
 
 void CGameContext::ConHelp(IConsole::IResult *pResult, void *pUserData)
@@ -147,9 +70,18 @@ void CGameContext::ConHelp(IConsole::IResult *pResult, void *pUserData)
 		const char *pArg = pResult->GetString(0);
 		const IConsole::CCommandInfo *pCmdInfo =
 				pSelf->Console()->GetCommandInfo(pArg, CFGFLAG_SERVER, false);
-		if (pCmdInfo && pCmdInfo->m_pHelp)
-			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "help",
-					pCmdInfo->m_pHelp);
+		if (pCmdInfo)
+		{
+			if (pCmdInfo->m_pParams)
+			{
+				char aBuf[256];
+				str_format(aBuf, sizeof(aBuf), "Usage: %s %s", pCmdInfo->m_pName, pCmdInfo->m_pParams);
+				pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "help", aBuf);
+			}
+
+			if (pCmdInfo->m_pHelp)
+				pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "help", pCmdInfo->m_pHelp);
+		}
 		else
 			pSelf->Console()->Print(
 					IConsole::OUTPUT_LEVEL_STANDARD,
@@ -414,10 +346,6 @@ void CGameContext::ConToggleSpec(IConsole::IResult *pResult, void *pUserData)
 	}
 
 	pPlayer->m_Paused = (pPlayer->m_Paused == CPlayer::PAUSED_PAUSED) ? CPlayer::PAUSED_NONE : CPlayer::PAUSED_PAUSED;
-
-	//iDDNet : follow dummy
-	if(pPlayer->m_Paused && pPlayer->m_HasDummy && pSelf->m_apPlayers[pPlayer->m_DummyID] && pSelf->m_apPlayers[pPlayer->m_DummyID]->m_DummyCopiesMove)
-		pPlayer->m_SpectatorID = pPlayer->m_DummyID;
 }
 
 void CGameContext::ConTogglePause(IConsole::IResult *pResult, void *pUserData)
@@ -445,10 +373,6 @@ void CGameContext::ConTogglePause(IConsole::IResult *pResult, void *pUserData)
 	}
 
 	pPlayer->m_Paused = (pPlayer->m_Paused == CPlayer::PAUSED_SPEC) ? CPlayer::PAUSED_NONE : CPlayer::PAUSED_SPEC;
-
-	//iDDNet : follow dummy
-	if(pPlayer->m_Paused && pPlayer->m_HasDummy && pSelf->m_apPlayers[pPlayer->m_DummyID] && pSelf->m_apPlayers[pPlayer->m_DummyID]->m_DummyCopiesMove)
-		pPlayer->m_SpectatorID = pPlayer->m_DummyID;
 }
 
 void CGameContext::ConTeamTop5(IConsole::IResult *pResult, void *pUserData)
@@ -470,7 +394,7 @@ void CGameContext::ConTeamTop5(IConsole::IResult *pResult, void *pUserData)
 		return;
 	}
 
-	if (pResult->NumArguments() > 0 && pResult->GetInteger(0) >= 0)
+	if (pResult->NumArguments() > 0 && pResult->GetInteger(0) > 0)
 		pSelf->Score()->ShowTeamTop5(pResult, pResult->m_ClientID, pUserData,
 				pResult->GetInteger(0));
 	else
@@ -501,7 +425,7 @@ void CGameContext::ConTop5(IConsole::IResult *pResult, void *pUserData)
 		return;
 	}
 
-	if (pResult->NumArguments() > 0 && pResult->GetInteger(0) >= 0)
+	if (pResult->NumArguments() > 0 && pResult->GetInteger(0) > 0)
 		pSelf->Score()->ShowTop5(pResult, pResult->m_ClientID, pUserData,
 				pResult->GetInteger(0));
 	else
@@ -705,16 +629,28 @@ void CGameContext::ConSave(IConsole::IResult *pResult, void *pUserData)
 	int Team = ((CGameControllerDDRace*) pSelf->m_pController)->m_Teams.m_Core.Team(pResult->m_ClientID);
 
 	const char* pCode = pResult->GetString(0);
-	char aCountry[4];
+	char aCountry[5];
 	if(str_length(pCode) > 3 && pCode[0] >= 'A' && pCode[0] <= 'Z' && pCode[1] >= 'A'
-		&& pCode[1] <= 'Z' && pCode[2] >= 'A' && pCode[2] <= 'Z' && pCode[3] == ' ')
+		&& pCode[1] <= 'Z' && pCode[2] >= 'A' && pCode[2] <= 'Z')
 	{
-		str_copy(aCountry, pCode, 4);
-		pCode = pCode + 4;
+		if(pCode[3] == ' ')
+		{
+			str_copy(aCountry, pCode, 4);
+			pCode = pCode + 4;
+		}
+		else if(str_length(pCode) > 4 && pCode[4] == ' ')
+		{
+			str_copy(aCountry, pCode, 5);
+			pCode = pCode + 5;
+		}
+		else
+		{
+			str_copy(aCountry, g_Config.m_SvSqlServerName, sizeof(aCountry));
+		}
 	}
 	else
 	{
-		str_copy(aCountry, g_Config.m_SvSqlServerName, 4);
+		str_copy(aCountry, g_Config.m_SvSqlServerName, sizeof(aCountry));
 	}
 
 	pSelf->Score()->SaveTeam(Team, pCode, pResult->m_ClientID, aCountry);
@@ -853,6 +789,13 @@ void CGameContext::ConLockTeam(IConsole::IResult *pResult, void *pUserData)
 				if (((CGameControllerDDRace*) pSelf->m_pController)->m_Teams.m_Core.Team(i) == Team)
 					pSelf->SendChatTarget(i, aBuf);
 		}
+		else if(!g_Config.m_SvTeamLock)
+		{
+			pSelf->Console()->Print(
+					IConsole::OUTPUT_LEVEL_STANDARD,
+					"print",
+					"Team locking is disabled on this server");
+		}
 		else
 		{
 			((CGameControllerDDRace*) pSelf->m_pController)->m_Teams.SetTeamLock(Team, true);
@@ -881,7 +824,7 @@ void CGameContext::ConJoinTeam(IConsole::IResult *pResult, void *pUserData)
 	if (!pPlayer)
 		return;
 
-	if (pSelf->m_VoteCloseTime && pSelf->m_VoteCreator == pResult->m_ClientID)
+	if (pSelf->m_VoteCloseTime && pSelf->m_VoteCreator == pResult->m_ClientID && (pSelf->m_VoteKick || pSelf->m_VoteSpec))
 	{
 		pSelf->Console()->Print(
 				IConsole::OUTPUT_LEVEL_STANDARD,
@@ -941,12 +884,6 @@ void CGameContext::ConJoinTeam(IConsole::IResult *pResult, void *pUserData)
 						pResult->GetInteger(0));
 				pSelf->SendChat(-1, CGameContext::CHAT_ALL, aBuf);
 				pPlayer->m_Last_Team = pSelf->Server()->Tick();
-
-				// iDDNet : kill dummy and put owner's id to CPlayer::m_DummyID
-				if(pPlayer->m_HasDummy && pSelf->m_apPlayers[pPlayer->m_DummyID]->GetCharacter())
-				{
-					pSelf->m_apPlayers[pPlayer->m_DummyID]->KillCharacter();
-				}
 			}
 			else
 			{
@@ -987,7 +924,7 @@ void CGameContext::ConMe(IConsole::IResult *pResult, void *pUserData)
 
 	char aBuf[256 + 24];
 
-	str_format(aBuf, 256 + 24, "%s %s",
+	str_format(aBuf, 256 + 24, "'%s' %s",
 			pSelf->Server()->ClientName(pResult->m_ClientID),
 			pResult->GetString(0));
 	if (g_Config.m_SvSlashMe)
@@ -1315,357 +1252,6 @@ void CGameContext::ConSetTimerType(IConsole::IResult *pResult, void *pUserData)
 	}
 	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD,"timer",aBuf);
 }
-
-// iDDNet
-void CGameContext::ConDummy(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *) pUserData;
-	if (!CheckClientID(pResult->m_ClientID))
-		return;
-	int ClientID = pResult->m_ClientID;
-	if(!g_Config.m_SvDummies)
-	{
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "dummy", "Dummies are disabled on the server. Set in config sv_dummies 1 to enable.");
-		return;
-	}
-	CPlayer *pPlayer = pSelf->m_apPlayers[ClientID];
-	if(!pPlayer)
-		return;
-	if(pPlayer->m_HasDummy)
-	{
-		if(!g_Config.m_SvDummy && !g_Config.m_SvDummyTpBeforeStart)
-		{
-			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "dummy", "Teleporting dummy to owner is disabled on the server. Set in config sv_dummy 1 to enable.");
-			return;
-		}
-
-		if (pPlayer->GetCharacter() == 0)
-		{
-			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "spec", "You can't teleport dummy while you are dead/a spectator.");
-			return;
-		}
-
-		int DummyID = pPlayer->m_DummyID;
-
-		CCharacter* pChr = pPlayer->GetCharacter();
-		CCharacter* pDummyChr = pSelf ->m_apPlayers[DummyID]->GetCharacter();
-
-		if(!g_Config.m_SvDummy && g_Config.m_SvDummyTpBeforeStart)
-			if(pChr->m_DDRaceState != DDRACE_NONE)
-				return;
-
-		if(!CheckClientID(DummyID) || !pSelf ->m_apPlayers[DummyID] || !pSelf ->m_apPlayers[DummyID]->m_IsDummy)
-		{
-			pPlayer->m_HasDummy = false;
-			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "dummy", "Your dummy not found, sorry. Try to reconnect.");
-			return;
-		}
-
-		if(pPlayer->GetTeam()!=TEAM_SPECTATORS && pPlayer->m_Paused == CPlayer::PAUSED_NONE &&
-		   pChr && pDummyChr &&
-		   pSelf->m_apPlayers[DummyID]->GetTeam()!=TEAM_SPECTATORS)
-		{
-			if(pPlayer->m_Last_Dummy + pSelf->Server()->TickSpeed() * g_Config.m_SvDummyDelay/2 <= pSelf->Server()->Tick())
-			{
-				if(!pChr->IsGrounded())
-				{
-					pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "dummy", "You can\'t teleport dummy in air.");
-					return;
-				}
-				CPlayerRescueState state = GetPlayerState(pChr);
-				ApplyPlayerState(state, pDummyChr);
-				pSelf->CreatePlayerSpawn(pDummyChr->Core()->m_Pos);
-				pDummyChr->m_PrevPos = pSelf->m_apPlayers[ClientID]->m_ViewPos;
-				pDummyChr->Core()->m_Pos = pSelf->m_apPlayers[ClientID]->m_ViewPos;
-				pPlayer->m_Last_Dummy = pSelf->Server()->Tick();			
-			}
-			else
-				pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "dummy", "You can\'t /dummy that often.");
-		}
-	}
-	else //hasn't dummy
-	{
-		//find free slot
-		int free_slot_id = -1;
-		for(int i = 0; i < g_Config.m_SvMaxClients; i++)
-		{
-			if(free_slot_id >=0) continue;
-			if(!pSelf->m_apPlayers[i]) free_slot_id = i;
-		}
-		if(free_slot_id == -1)
-		{
-			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "dummy", "Dummy was\'t created due to absence of free slots. Ask admin to set in config sv_dummies 1 and restart server, or just kick anybody ;)");
-			return;
-		}
-		char dummy_name[512],dummy_clan[512];
-		str_format(dummy_name, sizeof(dummy_name), "[D] %s", pSelf->Server()->ClientName(ClientID));
-		str_copy(dummy_clan, pSelf->Server()->ClientClan(ClientID), MAX_CLAN_LENGTH);
-		pSelf->NewDummy(free_slot_id, //id
-						pPlayer->m_TeeInfos.m_UseCustomColor, //custom color
-						pPlayer->m_TeeInfos.m_ColorFeet, //body color
-						pPlayer->m_TeeInfos.m_ColorBody, //feet color
-						pPlayer->m_TeeInfos.m_SkinName, //skin
-						dummy_name, //name
-						dummy_clan, //clan
-						pSelf->Server()->ClientCountry(ClientID));
-		if(pSelf->m_apPlayers[free_slot_id])
-		{
-			pPlayer->m_HasDummy = true;
-			pPlayer->m_DummyID = free_slot_id;
-			//dummy keeps owner's id in CPlayer::m_DummyID, sry for mess ;)
-			pSelf->m_apPlayers[free_slot_id]->m_DummyID = ClientID;
-		}
-	}
-}
-
-void CGameContext::ConDummyDelete(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	if(!CheckClientID(pResult->m_ClientID)) return;
-	int ClientID = pResult->m_ClientID;
-	CPlayer *pPlayer = pSelf->m_apPlayers[pResult->m_ClientID];
-	int DummyID = pPlayer->m_DummyID;
-	if (!pPlayer->m_HasDummy || !pSelf ->m_apPlayers[DummyID] || !pSelf ->m_apPlayers[DummyID]->m_IsDummy)
-		return;
-	pSelf->Server()->DummyLeave(DummyID/*, "Any Reason?"*/);
-	pPlayer->m_HasDummy = false;
-	pPlayer->m_DummyID = -1;
-}
-
-void CGameContext::ConRescue(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	CPlayer *pPlayer = pSelf->m_apPlayers[pResult->m_ClientID];
-	int TargetID;
-	if(g_Config.m_SvDummies && pSelf->m_apPlayers[pResult->m_ClientID]->m_HasDummy && str_comp_nocase(pResult->GetString(0), "d") == 0)
-		TargetID = pPlayer->m_DummyID;
-	else
-		TargetID = pResult->m_ClientID;
-
-	CCharacter* pChr = pSelf->m_apPlayers[TargetID]->GetCharacter();
-
-	if(!g_Config.m_SvRescue)
-	{
-		pSelf->SendChatTarget(pResult->m_ClientID, "Rescue is not activated.");
-		return;
-	}
-
-	if(!pChr || !pChr->IsAlive() || pChr->m_FreezeTime == 0)
-		return;
-
-	if(pChr->m_SavedPos == vec2(0,0))
-	{
-		pSelf->SendChatTarget(pResult->m_ClientID, "No position saved!");
-		return;
-	}
-
-	if(pChr->m_DeepFreeze)
-	{
-		pSelf->SendChatTarget(pResult->m_ClientID, "You are deepfreezed, undeepfreeze first!");
-		return;
-	}
-
-
-	// reset players' hook
-	for(int i = 0; i < MAX_CLIENTS; i++)
-	{
-		if(pSelf->m_apPlayers[i])
-		{
-			CCharacter* pChr2 = pSelf->m_apPlayers[i]->GetCharacter();
-			//who hooks me?
-			if(pChr2 && pChr2->Core()->m_HookedPlayer == TargetID)
-			{
-				//Release hook
-				pChr2->Core()->m_HookedPlayer = -1;
-				pChr2->Core()->m_HookState = HOOK_RETRACTED;
-				pChr2->Core()->m_HookPos = pChr2->Core()->m_Pos;
-			}
-		}
-	}
-	if(g_Config.m_SvRescueEffects)
-	{
-		//Blood effect
-		pChr->GameServer()->CreateDeath(pChr->m_Pos, TargetID);
-		//Spawn effect
-		pChr->GameServer()->CreatePlayerSpawn(pChr->m_SavedPos);
-	}
-	//Teleport player
-	pChr->Core()->m_Pos = pChr->m_PrevPos = pChr->m_Pos = pChr->m_SavedPos;
-	pChr->Core()->m_Vel = vec2(0.f, 0.f); // reset momentum
-
-	//RescueFlags
-	pSelf->ApplyRescueFlags(TargetID, pChr);
-
-	// if(pChr->m_FreezeTime && pChr->m_TileIndex != TILE_FREEZE && pChr->m_TileFIndex != TILE_FREEZE && pChr->Core()->m_Pos == pChr->m_SavedPos)
-	// {
-		pChr->UnFreeze();
-	// }
-}
-void CGameContext::ConDummyChange(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-
-	if(!CheckClientID(pResult->m_ClientID))
-		return;
-	int ClientID = pResult->m_ClientID;
-	CPlayer *pPlayer = pSelf->m_apPlayers[pResult->m_ClientID];
-	if(!pPlayer)
-		return;
-	CCharacter * pChar1 = pSelf->GetPlayerChar(ClientID);
-	CCharacter * pChar2 = pSelf->GetPlayerChar(pPlayer->m_DummyID);
-	if(!pChar1 || !pChar2 || pChar1->Team() != pChar2->Team() || !pPlayer->m_HasDummy)
-		return;
-
-	if(pPlayer->m_Last_DummyChange + pSelf->Server()->TickSpeed() * g_Config.m_SvDummyChangeDelay/2 <= pSelf->Server()->Tick())
-	{
-		CPlayerRescueState state1 = GetPlayerState(pChar1),
-		state2 = GetPlayerState(pChar2);
-		// swap
-		ApplyPlayerState(state2, pChar1);
-		ApplyPlayerState(state1, pChar2);
-	}
-	else
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "dc", "You can\'t /dummy_change that often.");
-}
-void CGameContext::ConDummyHammerFly(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	if(!CheckClientID(pResult->m_ClientID)) return;
-	int ClientID = pResult->m_ClientID;
-	CPlayer *pPlayer = pSelf->m_apPlayers[pResult->m_ClientID];
-	if(!pPlayer) return;
-	if (!g_Config.m_SvDummyHammer)
-	{
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "dhf", "Control dummy is not activated on the server. Set in config sv_dummy_hammer 1 to enable.");
-		return;
-	}
-	if(pPlayer->m_HasDummy == false || !CheckClientID(pPlayer->m_DummyID) || !pSelf->m_apPlayers[pPlayer->m_DummyID] || !pSelf->m_apPlayers[pPlayer->m_DummyID]->m_IsDummy)
-	{
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "dhf", "You don\'t have dummy.Type '/d' in chat to get it.");
-		return;
-	}
-	int DummyID = pPlayer->m_DummyID;
-	if(!pSelf->GetPlayerChar(DummyID))
-	{
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "dhf", "Dummy is not alive yet. Wait when i spawn again and retry.");
-		return;
-	}
-	CCharacter *pDumChr = pSelf->GetPlayerChar(DummyID);
-	pDumChr->m_DoHammerFly = (pDumChr->m_DoHammerFly==true)?(pDumChr->m_DoHammerFly==false):(pDumChr->m_DoHammerFly=true);
-}
-void CGameContext::ConDummyHook(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	if(!CheckClientID(pResult->m_ClientID)) return;
-	int ClientID = pResult->m_ClientID;
-	CPlayer *pPlayer = pSelf->m_apPlayers[pResult->m_ClientID];
-	if(!pPlayer) return;
-	if (!g_Config.m_SvDummyHook)
-	{
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "dhook", "Control dummy is not activated on the server. Set in config sv_dummy_hook 1 to enable.");
-		return;
-	}
-	if(pPlayer->m_HasDummy == false || !CheckClientID(pPlayer->m_DummyID) || !pSelf->m_apPlayers[pPlayer->m_DummyID] || !pSelf->m_apPlayers[pPlayer->m_DummyID]->m_IsDummy)
-	{
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "dhook", "You don\'t have dummy.Type '/d' in chat to get it.");
-		return;
-	}
-	int DummyID = pPlayer->m_DummyID;
-	if(!pSelf->GetPlayerChar(DummyID))
-	{
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "dhook", "Dummy is not alive yet. Wait when i spawn again and retry.");
-		return;
-	}
-	CCharacter *pDumChr = pSelf->GetPlayerChar(DummyID);
-	pDumChr->m_DoHookFly = (pDumChr->m_DoHookFly==true)?(pDumChr->m_DoHookFly==false):(pDumChr->m_DoHookFly=true);
-}
-void CGameContext::ConDummyControl(IConsole::IResult *pResult, void *pUserData)
-{
-	// NOTE: /cd = /dcm+/pause
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	if(!CheckClientID(pResult->m_ClientID)) return;
-	int ClientID = pResult->m_ClientID;
-	CPlayer *pPlayer = pSelf->m_apPlayers[pResult->m_ClientID];
-	if(!pPlayer) return;
-	if (!g_Config.m_SvControlDummy)
-	{
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cd", "Control dummy is not activated on the server. Set in config sv_control_dummy 1 to enable.");
-		return;
-	}
-	if(pPlayer->m_HasDummy == false || !CheckClientID(pPlayer->m_DummyID) || !pSelf->m_apPlayers[pPlayer->m_DummyID] || !pSelf->m_apPlayers[pPlayer->m_DummyID]->m_IsDummy)
-	{
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cd", "You don\'t have dummy.Type '/d' in chat to get it.");
-		return;
-	}
-	if(pPlayer->m_Paused != CPlayer::PAUSED_PAUSED && pSelf->m_apPlayers[pPlayer->m_DummyID]->m_DummyCopiesMove)
-		ConTogglePause(pResult,pUserData);
-	else if(pPlayer->m_Paused == CPlayer::PAUSED_PAUSED && !pSelf->m_apPlayers[pPlayer->m_DummyID]->m_DummyCopiesMove)
-		ConDummyCopyMove(pResult,pUserData);
-	else
-	{
-		ConDummyCopyMove(pResult,pUserData);
-		ConTogglePause(pResult,pUserData);
-	}
-}
-void CGameContext::ConDummyCopyMove(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	if(!CheckClientID(pResult->m_ClientID)) return;
-	int ClientID = pResult->m_ClientID;
-	CPlayer *pPlayer = pSelf->m_apPlayers[pResult->m_ClientID];
-	if(!pPlayer) return;
-	if (!g_Config.m_SvDummyCopyMove)
-	{
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "dcm", "Dummy copy move command is not activated on the server. Set in config sv_dummy_copy_move 1 to enable.");
-		return;
-	}
-	if(pPlayer->m_HasDummy == false || !CheckClientID(pPlayer->m_DummyID) || !pSelf->m_apPlayers[pPlayer->m_DummyID] || !pSelf->m_apPlayers[pPlayer->m_DummyID]->m_IsDummy)
-	{
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "dcm", "You don\'t have dummy.Type '/d' in chat to get it.");
-		return;
-	}
-	int DummyID = pPlayer->m_DummyID;
-	if(pPlayer->GetTeam()==TEAM_SPECTATORS || pSelf->m_apPlayers[DummyID]->GetTeam()==TEAM_SPECTATORS)
-	{
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "dcm", "Enter the game to use this command");
-		return;
-	}
-	if(pSelf->m_apPlayers[DummyID]->m_DummyCopiesMove)
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "dcm", "Dummy doesn\'t copy your actions anymore");
-	else
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "dcm", "Dummy will copy all your actions now");
-	pSelf->m_apPlayers[DummyID]->m_DummyCopiesMove = (pSelf->m_apPlayers[DummyID]->m_DummyCopiesMove)?false:true;
-	if(!pSelf->m_apPlayers[DummyID]->m_DummyCopiesMove) //to avoid chat emote
-		pSelf->m_apPlayers[DummyID]->m_PlayerFlags = 0;
-}
-
-void CGameContext::ConDisconnectRescue(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *) pUserData;
-	CPlayer *pPlayer = pSelf->m_apPlayers[pResult->m_ClientID];
-
-	int TargetID;
-	if(g_Config.m_SvDummies && pSelf->m_apPlayers[pResult->m_ClientID]->m_HasDummy && str_comp_nocase(pResult->GetString(0), "d") == 0)
-		TargetID = pPlayer->m_DummyID;
-	else
-		TargetID = pResult->m_ClientID;
-
-	CCharacter * pChar = pSelf->GetPlayerChar(TargetID);
-
-	if(!pChar)
-		return;
-
-	std::map<std::string, CPlayerRescueState>::iterator iterator = pSelf->m_SavedPlayers.find(pSelf->Server()->ClientName(TargetID));
-	if(iterator == pSelf->m_SavedPlayers.end())
-		return;
-
-	CPlayerRescueState& state = iterator->second;
-	if(state.Pos == vec2(0.f, 0.f))
-		return;
-	ApplyPlayerState(state, pChar);
-	pSelf->m_SavedPlayers.erase(iterator);
-}
-
 void CGameContext::ConProtectedKill(IConsole::IResult *pResult, void *pUserData){
 	CGameContext *pSelf = (CGameContext *) pUserData;
 	if (!CheckClientID(pResult->m_ClientID))
