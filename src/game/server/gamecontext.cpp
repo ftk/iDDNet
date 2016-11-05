@@ -3286,6 +3286,7 @@ CGameContext::CPlayerRescueState CGameContext::GetPlayerState(CCharacter * pChar
 		state.m_PrevInput = pChar->m_PrevInput;
 		state.m_Input = pChar->m_Input;
 		state.m_FreezedInput = pChar->m_FreezedInput;
+		state.m_SavedInput = pChar->m_SavedInput;
 	}
 	//state.WFlags = 0;
 	//for(int i = WEAPON_HAMMER; i <= WEAPON_RIFLE; i++)
@@ -3350,6 +3351,7 @@ void CGameContext::ApplyPlayerState(const CPlayerRescueState& state, CCharacter 
 	pChar->m_Core.m_Jumped = state.m_Jumped;
 	pChar->m_Core.m_JumpedTotal = state.m_JumpedTotal;
 	pChar->m_Core.m_Jumps = state.m_Jumps;
+
 	if(g_Config.m_SvDummyChangeSaveInput == 1 && IsDummy)
 	{
 		//pChar->m_LatestPrevInput = state.m_LatestPrevInput;
@@ -3359,6 +3361,7 @@ void CGameContext::ApplyPlayerState(const CPlayerRescueState& state, CCharacter 
 		//pChar->m_PrevInput = state.m_PrevInput;
 		pChar->m_Input = state.m_LatestInput; //direction
 		pChar->m_FreezedInput = state.m_LatestInput; //input in freeze
+		pChar->m_SavedInput = state.m_SavedInput; // idunno something new O.o
 	}
 	pChar->Core()->Read(&state.Core);
 

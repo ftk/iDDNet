@@ -1532,10 +1532,9 @@ void CGameContext::ConDummyDelete(IConsole::IResult *pResult, void *pUserData)
 	pPlayer->m_DummyID = -1;
 }
 
-
 // iDDNet  
-void CGameContext::CondbgDummy(IConsole::IResult *pResult, void *pUserData)  
-{  
+void CGameContext::CondbgDummy(IConsole::IResult *pResult, void *pUserData)
+{
 	CGameContext *pSelf = (CGameContext *) pUserData;
 	if (!CheckClientID(pResult->m_ClientID))
 		return;
@@ -1543,20 +1542,21 @@ void CGameContext::CondbgDummy(IConsole::IResult *pResult, void *pUserData)
 	CPlayer *pPlayer = pSelf->m_apPlayers[ClientID];
 	if(!pPlayer)
 		return;
-	for(int i = 0; i < g_Config.m_SvMaxClients; i++)  
-	{  
-		if(pSelf->m_apPlayers[i])  
+	for(int i = 0; i < g_Config.m_SvMaxClients; i++)
+	{
+		if(pSelf->m_apPlayers[i])
 			continue;
-		pSelf->NewDummy(i, true);  
-		return;  
-	}  
-}  
+		pSelf->NewDummy(i, true);
+		return;
+	}
+}
+
 void CGameContext::CondbgDummyDelete(IConsole::IResult *pResult, void *pUserData)  
 {  
 	CGameContext *pSelf = (CGameContext *) pUserData;
 	if(!CheckClientID(pResult->m_ClientID)) return;
 	for(int i = 0; i < g_Config.m_SvMaxClients; i++)
-	{  
+	{
 		//if(!pPlayer->m_HasDummy || !pSelf->m_apPlayers[i] || !pSelf->m_apPlayers[i]->m_IsDummy)
 		if(pSelf->m_apPlayers[i])
 			if(pSelf->m_apPlayers[i]->m_IsDummy && pSelf->m_apPlayers[i]->m_DummyID == -1)
@@ -1564,10 +1564,8 @@ void CGameContext::CondbgDummyDelete(IConsole::IResult *pResult, void *pUserData
 				pSelf->Server()->DummyLeave(i, "Console quit");
 				return;
 			}
-	}  
-}  
-
-
+	}
+}
 
 void CGameContext::ConRescue(IConsole::IResult *pResult, void *pUserData)
 {

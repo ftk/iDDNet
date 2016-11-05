@@ -434,6 +434,7 @@ public:
 		CNetObj_PlayerInput m_PrevInput;
 		CNetObj_PlayerInput m_Input;
 		CNetObj_PlayerInput m_FreezedInput;
+		CNetObj_PlayerInput m_SavedInput;
 
 		struct WeaponStat
 		{

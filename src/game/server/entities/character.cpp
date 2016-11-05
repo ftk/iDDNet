@@ -330,7 +330,8 @@ void CCharacter::HandleWeaponSwitch()
 
 void CCharacter::FireWeapon()
 {
-	if(GetPlayer()->m_IsDummy && !GetPlayer()->m_DummyCopiesMove && !m_DoHammerFly && m_Core.m_ActiveWeapon == WEAPON_HAMMER)
+	// iDDNet
+	if(GetPlayer()->m_IsDummy && !GetPlayer()->m_DummyCopiesMove && !m_DoHammerFly && (m_Core.m_ActiveWeapon == WEAPON_HAMMER || m_Core.m_ActiveWeapon == WEAPON_GUN))
 		return;
 	if(m_ReloadTimer != 0)
 		return;
@@ -2302,9 +2303,11 @@ void CCharacter::iDDNetInit()
 {
 	m_DoHammerFly = false;
 	m_DoHookFly = false;
+	m_DoAim = false;
 	m_RescueUnfreeze = 0;
 	m_SavedPos = vec2(0, 0);
 }
+
 void CCharacter::iDDNetTick()
 {
 	SavePos();
@@ -2313,18 +2316,17 @@ void CCharacter::iDDNetTick()
 	//for dummy only
 	if(!GetPlayer()->m_IsDummy)
 		return;
-	/*
-	if(!GetPlayer()->m_DummyCopiesMove && !m_DoHammerFly)
-	{
-		if(GetActiveWeapon() == WEAPON_HAMMER) SetActiveWeapon(WEAPON_GUN);
-		ResetDummy();
-	}*/
+
 	if(m_DoHammerFly)
 		DoHammerFly();
 
 	if(m_DoHookFly)
 		DoHookFly();
+
+	if(m_DoAim)
+		DoAim();
 }
+
 void CCharacter::SavePos()
 {
 	if(m_LastRescueSave || m_FreezeTime || m_DeepFreeze)
@@ -2351,6 +2353,7 @@ void CCharacter::SavePos()
 		m_LastRescueSave = g_Config.m_SvRescueSaveFrequency; // not every point will be stored
 	}
 }
+
 void CCharacter::RescueUnfreeze()
 {
 	if (m_RescueUnfreeze == 2)
@@ -2364,6 +2367,7 @@ void CCharacter::RescueUnfreeze()
 		
 	if(m_LastRescueSave > 0) m_LastRescueSave--;
 }
+
 void CCharacter::Rescue() //for Learath2
 {
 	if(m_SavedPos && m_FreezeTime && !(m_SavedPos== vec2(0,0)) && m_FreezeTime!=0)
@@ -2379,10 +2383,12 @@ void CCharacter::Rescue() //for Learath2
 	else if (!GetPlayer()->m_IsDummy) 
 		GameServer()->SendChatTarget(GetPlayer()->GetCID(),"You are not freezed");
 }
+
 void CCharacter::ResetSavedPos()
 {
 	m_SavedPos = vec2(0,0);	
 }
+
 /*void CCharacter::ResetDummy()
 {
 	m_Input.m_TargetX = 100;
@@ -2390,6 +2396,7 @@ void CCharacter::ResetSavedPos()
 	m_Input.m_Fire = 0;
 	m_LatestInput.m_Fire = 0;
 }*/
+
 void CCharacter::DoHammerFly()
 {
 	if(GetPlayer()->m_DummyCopiesMove) //under control
@@ -2410,21 +2417,24 @@ void CCharacter::DoHammerFly()
 		m_Input.m_TargetX = AimPos.x;
 		m_Input.m_TargetY = AimPos.y;
 
-		if (!m_aWeapons[m_Core.m_ActiveWeapon].m_Ammo) //frozen
+		//no need in shoot if we are not under the owner and owner is far away and frozen
+		if (m_Pos.y > pOwnerChr->m_Pos.y && distance(m_Pos, pOwnerChr->m_Pos)<m_HammerFlyRange && m_aWeapons[m_Core.m_ActiveWeapon].m_Ammo)
+		{
+			m_Input.m_Fire = 0;
+			m_LatestInput.m_Fire = 1;
+			m_FreezedInput.m_Fire = 0;
+			m_PrevInput.m_Fire = 0;
+			m_LatestPrevInput.m_Fire = 0;
 			return;
-
-		//no need in shoot if we are not under the owner or owner is far away
-		if (m_Pos.y <= pOwnerChr->m_Pos.y || distance(m_Pos, pOwnerChr->m_Pos)>100)
+		}
+		else
 		{
 			m_Input.m_Fire = 0;
 			m_LatestInput.m_Fire = 0;
-			return;
+			m_FreezedInput.m_Fire = 0;
+			m_PrevInput.m_Fire = 0;
+			m_LatestPrevInput.m_Fire = 0;
 		}
-
-		//also dummy should hammer on touch, so that's what TODO next
-
-		m_Input.m_Fire = 0;
-		m_LatestInput.m_Fire = 1;
 	}
 }
 
@@ -2459,6 +2469,47 @@ void CCharacter::DoHookFly()
 	//else do hook
 	m_Input.m_Hook = 1;
 	m_LatestInput.m_Hook = 1;
+}
+
+void CCharacter::DoAim()
+{
+	if(GetPlayer()->m_DummyCopiesMove) //under control
+		return;
+
+	//the character of dummy's owner, we put owner's ID to dummy's CPlayer::m_DummyID when ran chat cmd
+	CCharacter* pOwnerChr = GameServer()->m_apPlayers[GetPlayer()->m_DummyID]->GetCharacter();
+	if(!pOwnerChr) return;
+	//final target pos
+	vec2 AimPos = pOwnerChr->m_Pos - m_Pos;
+
+	//follow owner
+	m_LatestInput.m_TargetX = AimPos.x;
+	m_LatestInput.m_TargetY = AimPos.y;
+	m_Input.m_TargetX = AimPos.x;
+	m_Input.m_TargetY = AimPos.y;
+
+	//autofire for rifle
+	if (GetActiveWeapon() == WEAPON_RIFLE)
+	{
+		if(pOwnerChr->m_FreezeTime > 0 && (pOwnerChr->m_FreezeTime < g_Config.m_SvFreezeDelay*50-7) 
+			&& !GameServer()->Collision()->IntersectLine(m_Pos, pOwnerChr->m_Pos, NULL, NULL))
+		{
+			m_Input.m_Fire = 0;
+			m_LatestInput.m_Fire = 1;
+			m_FreezedInput.m_Fire = 0;
+			m_PrevInput.m_Fire = 0;
+			m_LatestPrevInput.m_Fire = 0;
+			return;
+		}
+		else
+		{
+			m_Input.m_Fire = 0;
+			m_LatestInput.m_Fire = 0;
+			m_FreezedInput.m_Fire = 0;
+			m_PrevInput.m_Fire = 0;
+			m_LatestPrevInput.m_Fire = 0;
+		}
+	}
 }
 
 //iDDNet

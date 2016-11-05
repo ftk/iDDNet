@@ -339,9 +339,8 @@ MACRO_CONFIG_INT(SvDummyHammer, sv_dummy_hammer, 1, 0, 1, CFGFLAG_SERVER, "Allow
 MACRO_CONFIG_INT(SvDummyHook, sv_dummy_hook, 1, 0, 1, CFGFLAG_SERVER, "Allow or not /dhook")
 MACRO_CONFIG_INT(SvDummyDelay, sv_dummy_delay, 1, 0, 720, CFGFLAG_SERVER, "Time in seconds between using /d. For disable dummyfly.")
 MACRO_CONFIG_INT(SvDummyChangeDelay, sv_dummy_change_delay, 0, 0, 360, CFGFLAG_SERVER, "Time in seconds between using /dc")
-MACRO_CONFIG_INT(SvDummyChangeSaveInput, sv_dummy_change_save_input, 0, 0, 1, CFGFLAG_SERVER, "Ability to save input on dummy change")
+MACRO_CONFIG_INT(SvDummyChangeSaveInput, sv_dummy_change_save_input, 1, 0, 1, CFGFLAG_SERVER, "Ability to save input on dummy change")
 MACRO_CONFIG_INT(SvDummyTpBeforeStart, sv_dummy_teleport_before_start, 0, 0, 1, CFGFLAG_SERVER, "Ability to teleport dummy before you or dummy cross the start line")
-
 MACRO_CONFIG_INT(SvDummyBroadcast, sv_dummy_broadcast, 1, 0, 1, CFGFLAG_SERVER, "Broadcast dummy actions")
 
 MACRO_CONFIG_INT(SvRescueSaveFrequency, sv_rescue_save_frequency, 7, 0, 70, CFGFLAG_SERVER, "/r saving positions frequency")
