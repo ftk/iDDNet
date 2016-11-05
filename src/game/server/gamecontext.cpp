@@ -3420,23 +3420,23 @@ void CGameContext::ApplyRescueFlags(int TargetID, CCharacter * pChar)
 		pChar->m_EndlessHook = false;
 	}
 	// jetpack fix
-	if(pChar->m_RescueFlags & RESCUEFLAG_JETPACK_START && !pChar->m_Jetpack)
+	if(pChar->m_RescueFlags & RESCUEFLAG_JETPACK_END && !pChar->m_Jetpack)
 	{
 		pChar->GameServer()->SendChatTarget(TargetID, "You have a jetpack gun");
 		pChar->m_Jetpack = true;
 	}
-	else if(pChar->m_RescueFlags & RESCUEFLAG_JETPACK_END && pChar->m_Jetpack)
+	else if(pChar->m_RescueFlags & RESCUEFLAG_JETPACK_START && pChar->m_Jetpack)
 	{
 		pChar->GameServer()->SendChatTarget(TargetID, "You lost your jetpack gun");
 		pChar->m_Jetpack = false;
 	}
 	// super jump fix
-	if(pChar->m_RescueFlags & RESCUEFLAG_SUPER_START && !pChar->m_SuperJump)
+	if(pChar->m_RescueFlags & RESCUEFLAG_SUPER_END && !pChar->m_SuperJump)
 	{
 		pChar->GameServer()->SendChatTarget(TargetID, "You have unlimited air jumps");
 		pChar->m_SuperJump = true;
 	}
-	else if(pChar->m_RescueFlags & RESCUEFLAG_SUPER_END && pChar->m_SuperJump)
+	else if(pChar->m_RescueFlags & RESCUEFLAG_SUPER_START && pChar->m_SuperJump)
 	{
 		pChar->GameServer()->SendChatTarget(TargetID, "You don't have unlimited air jumps");
 		pChar->m_SuperJump = false;

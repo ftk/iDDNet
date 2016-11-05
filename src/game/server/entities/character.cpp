@@ -1659,11 +1659,21 @@ void CCharacter::HandleTiles(int Index)
 	{
 		GameServer()->SendChatTarget(GetPlayer()->GetCID(), "You are now in a solo part");
 		SetSolo(true);
+		m_Solo = true;
+		if(m_RescueFlags & RESCUEFLAG_SOLOOUT)
+			m_RescueFlags &= ~RESCUEFLAG_SOLOOUT;
+		else
+			m_RescueFlags |= RESCUEFLAG_SOLOIN;
 	}
 	else if(((m_TileIndex == TILE_SOLO_END) || (m_TileFIndex == TILE_SOLO_END)) && Teams()->m_Core.GetSolo(m_pPlayer->GetCID()))
 	{
 		GameServer()->SendChatTarget(GetPlayer()->GetCID(), "You are now out of the solo part");
 		SetSolo(false);
+		m_Solo = false;
+		if(m_RescueFlags & RESCUEFLAG_SOLOIN)
+			m_RescueFlags &= ~RESCUEFLAG_SOLOIN;
+		else
+			m_RescueFlags |= RESCUEFLAG_SOLOOUT;
 	}
 
 	// refill jumps
