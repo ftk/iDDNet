@@ -350,7 +350,10 @@ private:
 	static void ConDummyAim(IConsole::IResult *pResult, void *pUserData);
 
 	//mkRace
+	static void ConSwap(IConsole::IResult *pResult, void *pUserData);
 	static void ConDisconnectRescue(IConsole::IResult *pResult, void *pUserData);
+	
+	int m_aSwapRequest[MAX_CLIENTS];
 	
 	enum
 	{

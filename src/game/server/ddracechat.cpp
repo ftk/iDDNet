@@ -53,7 +53,7 @@ void CGameContext::ConCMDList(IConsole::IResult *pResult, void *pUserData)
 	else
 	{
 		const char *pArg = pResult->GetString(0);
-		if (str_comp(pArg, "dummy") == 0)
+		if (str_comp_nocase(pArg, "dummy") == 0)
 		{
 			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
 				"~~~~~~~~~~ DUMMY CMDLIST ~~~~~~~~~~");
@@ -78,7 +78,7 @@ void CGameContext::ConCMDList(IConsole::IResult *pResult, void *pUserData)
 			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
 				"/disconnect_rescue d, /dr d - Disconnect rescue for dummy.");
 		}
-		if (str_comp(pArg, "race") == 0)
+		if (str_comp_nocase(pArg, "race") == 0)
 		{
 			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
 				"~~~~~~~~~~ RACE CMDLIST ~~~~~~~~~~");
@@ -95,14 +95,14 @@ void CGameContext::ConCMDList(IConsole::IResult *pResult, void *pUserData)
 			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
 				"/rescue, /r, /disconnect_rescue, /dr");
 		}
-		if (str_comp(pArg, "chat") == 0)
+		if (str_comp_nocase(pArg, "chat") == 0)
 		{
 			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
 				"~~~~~~~~~~ CHAT CMDLIST ~~~~~~~~~~");
 			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
 				"/me, /dnd, /whisper, /w, /pm, /converse, /c");
 		}
-		if (str_comp(pArg, "other") == 0)
+		if (str_comp_nocase(pArg, "other") == 0)
 		{
 			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cmdlist",
 				"~~~~~~~~~~ OTHER CMDLIST ~~~~~~~~~~");
@@ -1632,6 +1632,85 @@ void CGameContext::ConRescue(IConsole::IResult *pResult, void *pUserData)
 		pChr->UnFreeze();
 	// }
 }
+
+void CGameContext::ConSwap(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *) pUserData;
+	const int ClientID = pResult->m_ClientID;
+
+	if(!g_Config.m_SvSwap)
+	{
+		pSelf->SendChatTarget(ClientID, "Swap is not activated");
+		return;
+	}
+	int ToSwap;
+
+	for(int Victim = 0; Victim < MAX_CLIENTS; Victim++)
+		if (str_comp_nocase(pResult->GetString(0), pSelf->Server()->ClientName(Victim)) == 0)
+			ToSwap = Victim;
+
+	if(ClientID == ToSwap)
+		ToSwap = -1;
+
+	if(!CheckClientID(ClientID))
+		return;
+
+	pSelf->m_aSwapRequest[ClientID] = ToSwap;
+	if(ToSwap == -1)
+		return;
+
+	if(pSelf->m_apPlayers[ToSwap]->m_IsDummy)
+		return;
+
+	if(pSelf->ProcessSpamProtection(ClientID)) // dont spam
+		return;
+
+	char aBuf[256];
+
+	// check if ToSwap agrees
+	if(pSelf->m_aSwapRequest[ToSwap] != ClientID)
+	{
+		// send  notification to ToSwap
+		str_format(aBuf, sizeof(aBuf), "%s wants to swap places with you. Type \'/swap %s\' to accept.",
+			   pSelf->Server()->ClientName(ClientID), pSelf->Server()->ClientName(ToSwap));
+		pSelf->SendChatTarget(ToSwap, aBuf);
+		
+		str_format(aBuf, sizeof(aBuf), "Requst sent to %s.",
+			   pSelf->Server()->ClientName(ToSwap));
+		pSelf->SendChatTarget(ClientID, aBuf);
+	}
+	else
+	{
+		// ToSwap agreed
+		CCharacter * pChar1 = pSelf->GetPlayerChar(ClientID);
+		CCharacter * pChar2 = pSelf->GetPlayerChar(ToSwap);
+		if(!pChar1 || !pChar2 || pChar1->Team() != pChar2->Team())
+		{
+			// one is not alive or not in the same team
+			const char * pStr = "Can\'t swap!";
+			pSelf->SendChatTarget(ToSwap, pStr);
+			pSelf->SendChatTarget(ClientID, pStr);
+			return;
+		}
+
+		CPlayerRescueState state1 = GetPlayerState(pChar1),
+			state2 = GetPlayerState(pChar2);
+		
+		// swap
+		ApplyPlayerState(state2, pChar1, false);
+		ApplyPlayerState(state1, pChar2, false);
+		
+		str_format(aBuf, sizeof(aBuf), "%s swapped with %s.",
+			   pSelf->Server()->ClientName(ToSwap),
+			   pSelf->Server()->ClientName(ClientID));
+		pSelf->SendChat(-1, CGameContext::CHAT_ALL, aBuf);
+		// reset swap requests
+		pSelf->m_aSwapRequest[ToSwap] = -1;
+		pSelf->m_aSwapRequest[ClientID] = -1;
+	}
+}
+
+
 void CGameContext::ConDummyChange(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
