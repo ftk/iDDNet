@@ -3370,20 +3370,38 @@ void CGameContext::ApplyPlayerState(const CPlayerRescueState& state, CCharacter 
 void CGameContext::ApplyRescueFlags(int TargetID, CCharacter * pChar)
 {
 	// disarm player
-	if(pChar->m_RescueFlags & RESCUEFLAG_DISARM)
 	{
-		bool disarmed = false;
-		for(int i = WEAPON_SHOTGUN; i < NUM_WEAPONS; i++)
-		{
-			if(pChar->GetWeaponGot(i) && i != WEAPON_NINJA)
+		if(pChar->m_RescueFlags & RESCUEFLAG_DISARM)
+			for(int i = WEAPON_SHOTGUN; i < NUM_WEAPONS; i++)
 			{
-				pChar->SetWeaponGot(i, false);
-				pChar->SetWeaponAmmo(i, 0);
-				disarmed = true;
+				if(pChar->GetWeaponGot(i) && i != WEAPON_NINJA)
+				{
+					pChar->SetWeaponGot(i, false);
+					pChar->SetWeaponAmmo(i, 0);
+					pChar->GameServer()->SendChatTarget(TargetID, "You have been disarmed");
+				}
 			}
+		else
+		{
+			if(pChar->m_RescueFlags & RESCUEFLAG_WEAPON_GRENADE)
+				if(pChar->GetWeaponGot(WEAPON_GRENADE))
+				{
+					pChar->SetWeaponGot(WEAPON_GRENADE, false);
+					pChar->SetWeaponAmmo(WEAPON_GRENADE, 0);
+				}
+			if(pChar->m_RescueFlags & RESCUEFLAG_WEAPON_SHOTGUN)
+				if(pChar->GetWeaponGot(WEAPON_SHOTGUN))
+				{
+					pChar->SetWeaponGot(WEAPON_SHOTGUN, false);
+					pChar->SetWeaponAmmo(WEAPON_SHOTGUN, 0);
+				}
+			if(pChar->m_RescueFlags & RESCUEFLAG_WEAPON_RIFLE)
+				if(pChar->GetWeaponGot(WEAPON_RIFLE))
+				{
+					pChar->SetWeaponGot(WEAPON_RIFLE, false);
+					pChar->SetWeaponAmmo(WEAPON_RIFLE, 0);
+				}
 		}
-		if(disarmed)
-			pChar->GameServer()->SendChatTarget(TargetID, "You have been disarmed");
 	}
 	// solo fix
 	if(pChar->m_RescueFlags & RESCUEFLAG_SOLOOUT && !pChar->m_Solo)
