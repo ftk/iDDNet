@@ -86,6 +86,7 @@ void CPickup::Tick()
 					}
 					if(!pChr->m_FreezeTime && pChr->GetActiveWeapon() >= WEAPON_SHOTGUN)
 						pChr->SetActiveWeapon(WEAPON_HAMMER);
+					pChr->m_RescueFlags |= RESCUEFLAG_DISARM;
 					break;
 
 				case POWERUP_WEAPON:
@@ -97,11 +98,20 @@ void CPickup::Tick()
 						//RespawnTime = g_pData->m_aPickups[m_Type].m_Respawntime;
 
 						if (m_Subtype == WEAPON_GRENADE)
+						{
 							GameServer()->CreateSound(m_Pos, SOUND_PICKUP_GRENADE, pChr->Teams()->TeamMask(pChr->Team()));
+							pChr->m_RescueFlags |= RESCUEFLAG_WEAPON_GRENADE;
+						}
 						else if (m_Subtype == WEAPON_SHOTGUN)
+						{
 							GameServer()->CreateSound(m_Pos, SOUND_PICKUP_SHOTGUN, pChr->Teams()->TeamMask(pChr->Team()));
+							pChr->m_RescueFlags |= RESCUEFLAG_WEAPON_SHOTGUN;
+						}
 						else if (m_Subtype == WEAPON_RIFLE)
+						{
 							GameServer()->CreateSound(m_Pos, SOUND_PICKUP_SHOTGUN, pChr->Teams()->TeamMask(pChr->Team()));
+							pChr->m_RescueFlags |= RESCUEFLAG_WEAPON_RIFLE;
+						}
 
 						if (pChr->GetPlayer())
 							GameServer()->SendWeaponPickup(pChr->GetPlayer()->GetCID(), m_Subtype);

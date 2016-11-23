@@ -1590,12 +1590,11 @@ void CGameContext::ConRescue(IConsole::IResult *pResult, void *pUserData)
 		return;
 	}
 
-	if(pChr->m_DeepFreeze)
+	if(pChr->m_DeepFreeze && !g_Config.m_SvRescueDeep)
 	{
 		pSelf->SendChatTarget(pResult->m_ClientID, "You are deepfreezed, undeepfreeze first!");
 		return;
 	}
-
 
 	// reset players' hook
 	for(int i = 0; i < MAX_CLIENTS; i++)
@@ -1626,6 +1625,9 @@ void CGameContext::ConRescue(IConsole::IResult *pResult, void *pUserData)
 
 	//RescueFlags
 	pSelf->ApplyRescueFlags(TargetID, pChr);
+
+	if(pChr->m_DeepFreeze && g_Config.m_SvRescueDeep)
+		pChr->m_DeepFreeze = false;
 
 	// if(pChr->m_FreezeTime && pChr->m_TileIndex != TILE_FREEZE && pChr->m_TileFIndex != TILE_FREEZE && pChr->Core()->m_Pos == pChr->m_SavedPos)
 	// {

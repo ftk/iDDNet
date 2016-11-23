@@ -333,6 +333,7 @@ MACRO_CONFIG_INT(SvDummies, sv_dummies, 1, 0, 1, CFGFLAG_SERVER, "Enable dummies
 MACRO_CONFIG_INT(SvDummy, sv_dummy, 1, 0, 1, CFGFLAG_SERVER, "Allow or not /dummy or /d (dummy teleporting)")
 MACRO_CONFIG_INT(SvDummyChange, sv_dummy_change, 1, 0, 1, CFGFLAG_SERVER, "Allow or not /dummy_change or /dc")
 MACRO_CONFIG_INT(SvRescue, sv_rescue, 1, 0, 1, CFGFLAG_SERVER, "Allow using chat command /r rescue")
+MACRO_CONFIG_INT(SvRescueDeep, sv_rescue_deep, 1, 0, 1, CFGFLAG_SERVER, "Allow using chat command /r rescue in deepfreeze state (work only with sv_rescue 1)")
 MACRO_CONFIG_INT(SvControlDummy, sv_control_dummy, 1, 0, 1, CFGFLAG_SERVER, "Allow or not /control_dummy or /cd")
 MACRO_CONFIG_INT(SvDummyCopyMove, sv_dummy_copy_move, 1, 0, 1, CFGFLAG_SERVER, "Allow or not /dummy_copy_move or /dcm")
 MACRO_CONFIG_INT(SvDummyHammer, sv_dummy_hammer, 1, 0, 1, CFGFLAG_SERVER, "Allow or not /dummy_hammer or /dh")

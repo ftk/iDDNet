@@ -430,12 +430,12 @@ void CConsole::ExecuteLineStroked(int Stroke, const char *pStr, int ClientID)
 				Print(OUTPUT_LEVEL_STANDARD, "console", aBuf);
 			}
 		}
-		else if(Stroke)
-		{
-			char aBuf[256];
-			str_format(aBuf, sizeof(aBuf), "No such command: %s.", Result.m_pCommand);
-			Print(OUTPUT_LEVEL_STANDARD, "console", aBuf);
-		}
+		//else if(Stroke)
+		//{
+		//	char aBuf[256];
+		//	str_format(aBuf, sizeof(aBuf), "No such command: %s.", Result.m_pCommand);
+		//	Print(OUTPUT_LEVEL_STANDARD, "console", aBuf);
+		//}
 
 		pStr = pNextPart;
 	}
