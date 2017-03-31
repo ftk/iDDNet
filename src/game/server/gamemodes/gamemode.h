@@ -3,6 +3,6 @@
 #ifndef GAME_MODE_H
 #define GAME_MODE_H
 
-#define GAME_NAME "iDDNet:re"
-#define TEST_NAME "iDDNet:re`"
+#define GAME_NAME "iDDNet:re Race" //ugly DDNet clients fix
+#define TEST_NAME "iDDNet:re` Race"
 #endif
