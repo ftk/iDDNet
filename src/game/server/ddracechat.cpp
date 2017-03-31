@@ -1518,7 +1518,6 @@ void CGameContext::ConDummyDelete(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	if(!CheckClientID(pResult->m_ClientID)) return;
-	int ClientID = pResult->m_ClientID;
 	CPlayer *pPlayer = pSelf->m_apPlayers[pResult->m_ClientID];
 	int DummyID = pPlayer->m_DummyID;
 	if(!pPlayer->m_HasDummy || !pSelf->m_apPlayers[DummyID] || !pSelf->m_apPlayers[DummyID]->m_IsDummy)
@@ -1645,7 +1644,8 @@ void CGameContext::ConSwap(IConsole::IResult *pResult, void *pUserData)
 		pSelf->SendChatTarget(ClientID, "Swap is not activated");
 		return;
 	}
-	int ToSwap;
+
+	int ToSwap = -1;
 
 	for(int Victim = 0; Victim < MAX_CLIENTS; Victim++)
 		if (str_comp_nocase(pResult->GetString(0), pSelf->Server()->ClientName(Victim)) == 0)
@@ -1668,13 +1668,12 @@ void CGameContext::ConSwap(IConsole::IResult *pResult, void *pUserData)
 		return;
 
 	char aBuf[256];
-
 	// check if ToSwap agrees
 	if(pSelf->m_aSwapRequest[ToSwap] != ClientID)
 	{
 		// send  notification to ToSwap
 		str_format(aBuf, sizeof(aBuf), "%s wants to swap places with you. Type \'/swap %s\' to accept.",
-			   pSelf->Server()->ClientName(ClientID), pSelf->Server()->ClientName(ToSwap));
+			   pSelf->Server()->ClientName(ClientID), pSelf->Server()->ClientName(ClientID));
 		pSelf->SendChatTarget(ToSwap, aBuf);
 		
 		str_format(aBuf, sizeof(aBuf), "Requst sent to %s.",
@@ -1840,7 +1839,6 @@ void CGameContext::ConDummyControl(IConsole::IResult *pResult, void *pUserData)
 	// NOTE: /cd = /dcm+/pause
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	if(!CheckClientID(pResult->m_ClientID)) return;
-	int ClientID = pResult->m_ClientID;
 	CPlayer *pPlayer = pSelf->m_apPlayers[pResult->m_ClientID];
 	if(!pPlayer) return;
 	if (!g_Config.m_SvControlDummy)
@@ -1868,7 +1866,6 @@ void CGameContext::ConDummyCopyMove(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	if(!CheckClientID(pResult->m_ClientID)) return;
-	int ClientID = pResult->m_ClientID;
 	CPlayer *pPlayer = pSelf->m_apPlayers[pResult->m_ClientID];
 	if(!pPlayer) return;
 	if (!g_Config.m_SvDummyCopyMove)

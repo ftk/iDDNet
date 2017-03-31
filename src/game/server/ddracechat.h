@@ -77,7 +77,7 @@ CHAT_COMMAND("dhook", "", CFGFLAG_CHAT, ConDummyHook, this, "Dummy Hook Fly")
 CHAT_COMMAND("daim", "", CFGFLAG_CHAT, ConDummyAim, this, "Dummy watching for you!")
 
 //mkRace
-CHAT_COMMAND("swap", "?s[target]", CFGFLAG_CHAT, ConSwap, this, "Swap places with any player")
+CHAT_COMMAND("swap", "?r[playername]", CFGFLAG_CHAT, ConSwap, this, "Swap places with any player")
 CHAT_COMMAND("r", "?s[d]", CFGFLAG_CHAT, ConRescue, this, "/r-rescue, \'/r d\' for dummy rescue.")
 CHAT_COMMAND("rescue", "?s[d]", CFGFLAG_CHAT, ConRescue, this, "/r-rescue, \'/r d\' for dummy rescue.")
 CHAT_COMMAND("dr", "?s[d]", CFGFLAG_CHAT, ConDisconnectRescue, this, "Rescue to location before disconnect, \'/dr d\' for dummy rescue.")
