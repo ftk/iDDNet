@@ -60,6 +60,11 @@ void CGameContext::Construct(int Resetting)
 	}
 	m_ChatResponseTargetID = -1;
 	m_aDeleteTempfile[0] = 0;
+
+	for(int i = 0; i < MAX_CLIENTS; i++)
+	{
+		m_aSwapRequest[i] = -1;
+	}
 }
 
 CGameContext::CGameContext(int Resetting)
