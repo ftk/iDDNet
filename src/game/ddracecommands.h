@@ -1,7 +1,7 @@
 /* (c) Shereef Marzouk. See "licence DDRace.txt" and the readme.txt in the root of the distribution for more information. */
-#ifndef GAME_SERVER_DDRACECOMMANDS_H
-#define GAME_SERVER_DDRACECOMMANDS_H
-#undef GAME_SERVER_DDRACECOMMANDS_H // this file can be included several times
+
+// This file can be included several times.
+
 #ifndef CONSOLE_COMMAND
 #define CONSOLE_COMMAND(name, params, flags, callback, userdata, help)
 #endif
@@ -39,21 +39,21 @@ CONSOLE_COMMAND("dummy_del", "", CFGFLAG_SERVER|CMDFLAG_TEST, CondbgDummyDelete,
 
 CONSOLE_COMMAND("move", "i[x] i[y]", CFGFLAG_SERVER|CMDFLAG_TEST, ConMove, this, "Moves to the tile with x/y-number ii")
 CONSOLE_COMMAND("move_raw", "i[x] i[y]", CFGFLAG_SERVER|CMDFLAG_TEST, ConMoveRaw, this, "Moves to the point with x/y-coordinates ii")
-CONSOLE_COMMAND("force_pause", "i[id] i[seconds]", CFGFLAG_SERVER, ConForcePause, this, "Force i to pause for i seconds")
-CONSOLE_COMMAND("force_unpause", "i[id]", CFGFLAG_SERVER, ConForcePause, this, "Set force-pause timer of i to 0.")
-CONSOLE_COMMAND("showothers", "?i['0'|'1']", CFGFLAG_CHAT, ConShowOthers, this, "Whether to show players from other teams or not (off by default), optional i = 0 for off else for on")
-CONSOLE_COMMAND("showall", "?i['0'|'1']", CFGFLAG_CHAT, ConShowAll, this, "Whether to show players at any distance (off by default), optional i = 0 for off else for on")
+CONSOLE_COMMAND("force_pause", "v[id] i[seconds]", CFGFLAG_SERVER, ConForcePause, this, "Force i to pause for i seconds")
+CONSOLE_COMMAND("force_unpause", "v[id]", CFGFLAG_SERVER, ConForcePause, this, "Set force-pause timer of i to 0.")
 
 CONSOLE_COMMAND("list", "?s[filter]", CFGFLAG_CHAT, ConList, this, "List connected players with optional case-insensitive substring matching filter")
+CONSOLE_COMMAND("set_team_ddr", "v[id] ?i[team]", CFGFLAG_SERVER, ConSetDDRTeam, this, "Set ddrace team of a player")
 
-CONSOLE_COMMAND("mute", "", CFGFLAG_SERVER, ConMute, this, "");
-CONSOLE_COMMAND("muteid", "v[id] i[seconds]", CFGFLAG_SERVER, ConMuteID, this, "");
-CONSOLE_COMMAND("muteip", "s[ip] i[seconds]", CFGFLAG_SERVER, ConMuteIP, this, "");
-CONSOLE_COMMAND("unmute", "v[id]", CFGFLAG_SERVER, ConUnmute, this, "");
-CONSOLE_COMMAND("mutes", "", CFGFLAG_SERVER, ConMutes, this, "");
+CONSOLE_COMMAND("vote_mute", "v[id] i[seconds]", CFGFLAG_SERVER, ConVoteMute, this, "Remove v's right to vote for i seconds")
+CONSOLE_COMMAND("mute", "", CFGFLAG_SERVER, ConMute, this, "")
+CONSOLE_COMMAND("muteid", "v[id] i[seconds]", CFGFLAG_SERVER, ConMuteID, this, "")
+CONSOLE_COMMAND("muteip", "s[ip] i[seconds]", CFGFLAG_SERVER, ConMuteIP, this, "")
+CONSOLE_COMMAND("unmute", "v[id]", CFGFLAG_SERVER, ConUnmute, this, "")
+CONSOLE_COMMAND("mutes", "", CFGFLAG_SERVER, ConMutes, this, "")
+CONSOLE_COMMAND("moderate", "", CFGFLAG_SERVER, ConModerate, this, "Enables/disables active moderator mode for the player")
+CONSOLE_COMMAND("vote_no", "", CFGFLAG_SERVER, ConVoteNo, this, "Same as \"vote no\"")
 
-CONSOLE_COMMAND("freezehammer", "v[id]", CFGFLAG_SERVER, ConFreezeHammer, this, "Gives a player Freeze Hammer")
-CONSOLE_COMMAND("unfreezehammer", "v[id]", CFGFLAG_SERVER, ConUnFreezeHammer, this, "Removes Freeze Hammer from a player")
+CONSOLE_COMMAND("freezehammer", "v[id]", CFGFLAG_SERVER|CMDFLAG_TEST, ConFreezeHammer, this, "Gives a player Freeze Hammer")
+CONSOLE_COMMAND("unfreezehammer", "v[id]", CFGFLAG_SERVER|CMDFLAG_TEST, ConUnFreezeHammer, this, "Removes Freeze Hammer from a player")
 #undef CONSOLE_COMMAND
-
-#endif

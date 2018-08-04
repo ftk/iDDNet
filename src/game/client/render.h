@@ -43,6 +43,7 @@ typedef void (*ENVELOPE_EVAL)(float TimeOffset, int Env, float *pChannels, void 
 
 class CRenderTools
 {
+	int m_TeeQuadContainerIndex;
 public:
 	class IGraphics *m_pGraphics;
 	class CUI *m_pUI;
@@ -50,16 +51,23 @@ public:
 	class IGraphics *Graphics() const { return m_pGraphics; }
 	class CUI *UI() const { return m_pUI; }
 
+	void Init(class IGraphics *pGraphics, class CUI *pUI);
+
 	//typedef struct SPRITE;
 
 	void SelectSprite(struct CDataSprite *pSprite, int Flags=0, int sx=0, int sy=0);
 	void SelectSprite(int id, int Flags=0, int sx=0, int sy=0);
 
 	void DrawSprite(float x, float y, float size);
+	void QuadContainerAddSprite(int QuadContainerIndex, float x, float y, float size, bool DoSpriteScale = true);
+	void QuadContainerAddSprite(int QuadContainerIndex, float size, bool DoSpriteScale = true);
+	void QuadContainerAddSprite(int QuadContainerIndex, float X, float Y, float Width, float Height);
 
 	// rects
 	void DrawRoundRect(float x, float y, float w, float h, float r);
 	void DrawRoundRectExt(float x, float y, float w, float h, float r, int Corners);
+
+	int CreateRoundRectQuadContainer(float x, float y, float w, float h, float r, int Corners);
 
 	void DrawUIRect(const CUIRect *pRect, vec4 Color, int Corners, float Rounding);
 
@@ -76,6 +84,10 @@ public:
 	void RenderQuads(CQuad *pQuads, int NumQuads, int Flags, ENVELOPE_EVAL pfnEval, void *pUser);
 	void ForceRenderQuads(CQuad *pQuads, int NumQuads, int Flags, ENVELOPE_EVAL pfnEval, void *pUser, float Alpha = 1.0f);
 	void RenderTilemap(CTile *pTiles, int w, int h, float Scale, vec4 Color, int RenderFlags, ENVELOPE_EVAL pfnEval, void *pUser, int ColorEnv, int ColorEnvOffset);
+
+	// render a rectangle made of IndexIn tiles, over a background made of IndexOut tiles
+	// the rectangle include all tiles in [RectX, RectX+RectW-1] x [RectY, RectY+RectH-1]
+	void RenderTileRectangle(int RectX, int RectY, int RectW, int RectH, unsigned char IndexIn, unsigned char IndexOut, float Scale, vec4 Color, int RenderFlags, ENVELOPE_EVAL pfnEval, void *pUser, int ColorEnv, int ColorEnvOffset);
 
 	// helpers
 	void MapscreenToWorld(float CenterX, float CenterY, float ParallaxX, float ParallaxY,

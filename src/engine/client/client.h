@@ -3,6 +3,11 @@
 #ifndef ENGINE_CLIENT_CLIENT_H
 #define ENGINE_CLIENT_CLIENT_H
 
+#include <memory>
+
+#include <base/hash.h>
+#include <engine/shared/http.h>
+
 class CGraph
 {
 public:
@@ -61,7 +66,6 @@ class CClient : public IClient, public CDemoPlayer::IListener
 	IEngineMap *m_pMap;
 	IConsole *m_pConsole;
 	IStorage *m_pStorage;
-	IFetcher *m_pFetcher;
 	IUpdater *m_pUpdater;
 	IEngineMasterServer *m_pMasterServer;
 
@@ -75,12 +79,12 @@ class CClient : public IClient, public CDemoPlayer::IListener
 	class CDemoPlayer m_DemoPlayer;
 	class CDemoRecorder m_DemoRecorder[RECORDER_MAX];
 	class CDemoEditor m_DemoEditor;
+	class CGhostRecorder m_GhostRecorder;
+	class CGhostLoader m_GhostLoader;
 	class CServerBrowser m_ServerBrowser;
-	class CFetcher m_Fetcher;
 	class CUpdater m_Updater;
 	class CFriends m_Friends;
 	class CFriends m_Foes;
-	class CMapChecker m_MapChecker;
 
 	char m_aServerAddressStr[256];
 
@@ -98,6 +102,7 @@ class CClient : public IClient, public CDemoPlayer::IListener
 	int m_SnapCrcErrors;
 	bool m_AutoScreenshotRecycle;
 	bool m_AutoStatScreenshotRecycle;
+	bool m_AutoCSVRecycle;
 	bool m_EditorActive;
 	bool m_SoundInitFailed;
 	bool m_ResortServerBrowser;
@@ -107,6 +112,8 @@ class CClient : public IClient, public CDemoPlayer::IListener
 	int m_RconAuthed[2];
 	char m_RconPassword[32];
 	int m_UseTempRconCommands;
+	char m_Password[32];
+	bool m_SendPassword;
 
 	// version-checking
 	char m_aVersionStr[10];
@@ -114,10 +121,8 @@ class CClient : public IClient, public CDemoPlayer::IListener
 	// pinging
 	int64 m_PingStartTime;
 
-	//
 	char m_aCurrentMap[256];
 	char m_aCurrentMapPath[CEditor::MAX_PATH_LENGTH];
-	unsigned m_CurrentMapCrc;
 
 	char m_aTimeoutCodes[2][32];
 	bool m_aTimeoutCodeSent[2];
@@ -127,7 +132,7 @@ class CClient : public IClient, public CDemoPlayer::IListener
 	char m_aCmdConnect[256];
 
 	// map download
-	CFetchTask *m_pMapdownloadTask;
+	std::shared_ptr<CGetFile> m_pMapdownloadTask;
 	char m_aMapdownloadFilename[256];
 	char m_aMapdownloadName[256];
 	IOHANDLE m_MapdownloadFile;
@@ -135,6 +140,15 @@ class CClient : public IClient, public CDemoPlayer::IListener
 	int m_MapdownloadCrc;
 	int m_MapdownloadAmount;
 	int m_MapdownloadTotalsize;
+	bool m_MapdownloadSha256Present;
+	SHA256_DIGEST m_MapdownloadSha256;
+
+	bool m_MapDetailsPresent;
+	char m_aMapDetailsName[256];
+	int m_MapDetailsCrc;
+	SHA256_DIGEST m_MapDetailsSha256;
+
+	std::shared_ptr<CGetFile> m_pDDNetInfoTask;
 
 	// time
 	CSmoothTime m_GameTime[2];
@@ -152,7 +166,7 @@ class CClient : public IClient, public CDemoPlayer::IListener
 	int m_CurrentInput[2];
 	bool m_LastDummy;
 	bool m_LastDummy2;
-	CNetObj_PlayerInput HammerInput;
+	bool m_DummySendConnInfo;
 
 	// graphs
 	CGraph m_InputtimeMarginGraph;
@@ -194,9 +208,6 @@ class CClient : public IClient, public CDemoPlayer::IListener
 	void GraphicsThread();
 	vec3 GetColorV3(int v);
 
-	char m_aDDNetSrvListToken[4];
-	bool m_DDNetSrvListTokenSet;
-
 #if defined(CONF_FAMILY_UNIX)
 	CFifo m_Fifo;
 #endif
@@ -209,7 +220,6 @@ public:
 	IGameClient *GameClient() { return m_pGameClient; }
 	IEngineMasterServer *MasterServer() { return m_pMasterServer; }
 	IStorage *Storage() { return m_pStorage; }
-	IFetcher *Fetcher() { return m_pFetcher; }
 	IUpdater *Updater() { return m_pUpdater; }
 
 	CClient();
@@ -238,13 +248,11 @@ public:
 	void DirectInput(int *pInput, int Size);
 	void SendInput();
 
-	// TODO: OPT: do this alot smarter!
+	// TODO: OPT: do this a lot smarter!
 	virtual int *GetInput(int Tick);
 	virtual bool InputExists(int Tick);
 
 	const char *LatestVersion();
-	void VersionUpdate();
-	void CheckVersionUpdate();
 
 	// ------ state handling -----
 	void SetState(int s);
@@ -253,7 +261,7 @@ public:
 	void OnEnterGame();
 	virtual void EnterGame();
 
-	virtual void Connect(const char *pAddress);
+	virtual void Connect(const char *pAddress, const char *pPassword = NULL);
 	void DisconnectWithReason(const char *pReason);
 	virtual void Disconnect();
 
@@ -261,10 +269,8 @@ public:
 	virtual void DummyConnect();
 	virtual bool DummyConnected();
 	virtual bool DummyConnecting();
-	void DummyInfo();
 	int m_DummyConnected;
 	int m_LastDummyConnectTime;
-	int m_Fire;
 
 	virtual void GetServerInfo(CServerInfo *pServerInfo);
 	void ServerInfoRequest();
@@ -288,19 +294,24 @@ public:
 
 	virtual const char *ErrorString();
 
-	const char *LoadMap(const char *pName, const char *pFilename, unsigned WantedCrc);
-	const char *LoadMapSearch(const char *pMapName, int WantedCrc);
+	const char *LoadMap(const char *pName, const char *pFilename, SHA256_DIGEST *pWantedSha256, unsigned WantedCrc);
+	const char *LoadMapSearch(const char *pMapName, SHA256_DIGEST *pWantedSha256, int WantedCrc);
 
 	static int PlayerScoreNameComp(const void *a, const void *b);
 
 	void ProcessConnlessPacket(CNetChunk *pPacket);
+	void ProcessServerInfo(int Type, NETADDR *pFrom, const void *pData, int DataSize);
 	void ProcessServerPacket(CNetChunk *pPacket);
 	void ProcessServerPacketDummy(CNetChunk *pPacket);
 
 	void ResetMapDownload();
 	void FinishMapDownload();
 
-	virtual CFetchTask *MapDownloadTask() { return m_pMapdownloadTask; }
+	void RequestDDNetInfo();
+	void ResetDDNetInfo();
+	void FinishDDNetInfo();
+	void LoadDDNetInfo();
+
 	virtual const char *MapDownloadName() { return m_aMapdownloadName; }
 	virtual int MapDownloadAmount() { return !m_pMapdownloadTask ? m_MapdownloadAmount : (int)m_pMapdownloadTask->Current(); }
 	virtual int MapDownloadTotalsize() { return !m_pMapdownloadTask ? m_MapdownloadTotalsize : (int)m_pMapdownloadTask->Size(); }
@@ -333,6 +344,7 @@ public:
 	static void Con_Screenshot(IConsole::IResult *pResult, void *pUserData);
 	static void Con_Rcon(IConsole::IResult *pResult, void *pUserData);
 	static void Con_RconAuth(IConsole::IResult *pResult, void *pUserData);
+	static void Con_RconLogin(IConsole::IResult *pResult, void *pUserData);
 	static void Con_AddFavorite(IConsole::IResult *pResult, void *pUserData);
 	static void Con_RemoveFavorite(IConsole::IResult *pResult, void *pUserData);
 	static void Con_Play(IConsole::IResult *pResult, void *pUserData);
@@ -345,7 +357,8 @@ public:
 	static void ConchainWindowScreen(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 	static void ConchainWindowVSync(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 	static void ConchainTimeoutSeed(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
-
+	static void ConchainPassword(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
+	
 	static void Con_DemoSlice(IConsole::IResult *pResult, void *pUserData);
 	static void Con_DemoSliceBegin(IConsole::IResult *pResult, void *pUserData);
 	static void Con_DemoSliceEnd(IConsole::IResult *pResult, void *pUserData);
@@ -364,6 +377,9 @@ public:
 	void AutoScreenshot_Cleanup();
 	void AutoStatScreenshot_Cleanup();
 
+	void AutoCSV_Start();
+	void AutoCSV_Cleanup();
+
 	void ServerBrowserUpdate();
 
 	// gfx
@@ -377,18 +393,18 @@ public:
 	void GenerateTimeoutSeed();
 	void GenerateTimeoutCodes();
 
-	virtual const char* GetCurrentMap();
-	virtual int GetCurrentMapCrc();
-	virtual const char* GetCurrentMapPath();
-	virtual const char* RaceRecordStart(const char *pFilename);
-	virtual void RaceRecordStop();
-	virtual bool RaceRecordIsRecording();
+	const char *GetCurrentMap();
+	const char *GetCurrentMapPath();
+	unsigned GetMapCrc();
+
+	void RaceRecord_Start(const char *pFilename);
+	void RaceRecord_Stop();
+	bool RaceRecord_IsRecording();
 
 	virtual void DemoSliceBegin();
 	virtual void DemoSliceEnd();
-	virtual void DemoSlice(const char *pDstPath, bool RemoveChat);
+	virtual void DemoSlice(const char *pDstPath, CLIENTFUNC_FILTER pfnFilter, void *pUser);
 
-	void RequestDDNetSrvList();
 	bool EditorHasUnsavedData() { return m_pEditor->HasUnsavedData(); }
 
 	virtual IFriends* Foes() {return &m_Foes; }

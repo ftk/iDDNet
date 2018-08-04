@@ -43,6 +43,10 @@ class CGameConsole : public CComponent
 		float m_CompletionRenderOffset;
 		bool m_ReverseTAB;
 
+		char m_aUser[32];
+		bool m_UserGot;
+		bool m_UsernameReq;
+
 		bool m_IsCommand;
 		char m_aCommandName[IConsole::TEMPCMD_NAME_LENGTH];
 		char m_aCommandHelp[IConsole::TEMPCMD_HELP_LENGTH];
@@ -88,6 +92,8 @@ class CGameConsole : public CComponent
 	static void ConClearRemoteConsole(IConsole::IResult *pResult, void *pUserData);
 	static void ConDumpLocalConsole(IConsole::IResult *pResult, void *pUserData);
 	static void ConDumpRemoteConsole(IConsole::IResult *pResult, void *pUserData);
+	static void ConConsolePageUp(IConsole::IResult *pResult, void *pUserData);
+	static void ConConsolePageDown(IConsole::IResult *pResult, void *pUserData);
 	static void ConchainConsoleOutputLevelUpdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 
 public:
@@ -100,6 +106,7 @@ public:
 	CGameConsole();
 
 	void PrintLine(int Type, const char *pLine);
+	void RequireUsername(bool UsernameReq);
 
 	virtual void OnStateChange(int NewState, int OldState);
 	virtual void OnConsoleInit();

@@ -73,7 +73,7 @@ class CMenus : public CComponent
 	int DoKeyReader(void *pID, const CUIRect *pRect, int Key);
 
 	//static int ui_do_key_reader(void *id, const CUIRect *rect, int key);
-	void UiDoGetButtons(int Start, int Stop, CUIRect View);
+	void UiDoGetButtons(int Start, int Stop, CUIRect View, CUIRect ScopeView);
 
 	struct CListboxItem
 	{
@@ -87,7 +87,7 @@ class CMenus : public CComponent
 						int ItemsPerRow, int SelectedIndex, float ScrollValue);
 	CListboxItem UiDoListboxNextItem(const void *pID, bool Selected = false, bool KeyEvents = true);
 	CListboxItem UiDoListboxNextRow();
-	int UiDoListboxEnd(float *pScrollValue, bool *pItemActivated);
+	int UiDoListboxEnd(float *pScrollValue, bool *pItemActivated, bool *pListBoxActive = 0);
 
 	//static void demolist_listdir_callback(const char *name, int is_dir, void *user);
 	//static void demolist_list_callback(const CUIRect *rect, int index, void *user);
@@ -245,6 +245,7 @@ class CMenus : public CComponent
 	void RenderNews(CUIRect MainView);
 
 	// found in menus_demo.cpp
+	static bool DemoFilterChat(const void *pData, int Size, void *pUser);
 	void RenderDemoPlayer(CUIRect MainView);
 	void RenderDemoList(CUIRect MainView);
 
@@ -326,24 +327,33 @@ public:
 	void DemolistPopulate();
 	bool m_Dummy;
 
+	const char *GetCurrentDemoFolder() const { return m_aCurrentDemoFolder; }
+
 	// Ghost
 	struct CGhostItem
 	{
 		char m_aFilename[256];
 		char m_aPlayer[MAX_NAME_LENGTH];
 
-		float m_Time;
+		int m_Time;
+		int m_Slot;
+		bool m_Own;
 
-		bool m_Active;
-		int m_ID;
+		CGhostItem() : m_Slot(-1), m_Own(false) { m_aFilename[0] = 0; }
 
 		bool operator<(const CGhostItem &Other) { return m_Time < Other.m_Time; }
-		bool operator==(const CGhostItem &Other) { return m_ID == Other.m_ID; }
+		
+		bool Active() const { return m_Slot != -1; }
+		bool HasFile() const { return m_aFilename[0]; }
 	};
 
 	sorted_array<CGhostItem> m_lGhosts;
-	CGhostItem *m_OwnGhost;
+
 	void GhostlistPopulate();
+	CGhostItem *GetOwnGhost();
+	void UpdateOwnGhost(CGhostItem Item);
+	void DeleteGhostItem(int Index);
+
 	void setPopup(int Popup) { m_Popup = Popup; }
 
 	int m_DemoPlayerState;

@@ -7,7 +7,7 @@
 
 void Process(IStorage *pStorage, const char *pMapName, const char *pConfigName)
 {
-	IOHANDLE File = pStorage->OpenFile(pConfigName, IOFLAG_READ, IStorage::TYPE_ALL);
+	IOHANDLE File = pStorage->OpenFile(pConfigName, IOFLAG_READ, IStorage::TYPE_ABSOLUTE);
 	array<char *> aLines;
 	char *pSettings = NULL;
 	if(!File)
@@ -24,24 +24,25 @@ void Process(IStorage *pStorage, const char *pMapName, const char *pConfigName)
 	while((pLine = LineReader.Get()))
 	{
 		int Length = str_length(pLine) + 1;
-		char *pCopy = (char *)mem_alloc(Length, 1);
+		char *pCopy = (char *)malloc(Length);
 		mem_copy(pCopy, pLine, Length);
 		aLines.add(pCopy);
 		TotalLength += Length;
 	}
+	io_close(File);
 
-	pSettings = (char *)mem_alloc(TotalLength, 1);
+	pSettings = (char *)malloc(TotalLength);
 	int Offset = 0;
 	for(int i = 0; i < aLines.size(); i++)
 	{
 		int Length = str_length(aLines[i]) + 1;
 		mem_copy(pSettings + Offset, aLines[i], Length);
 		Offset += Length;
-		mem_free(aLines[i]);
+		free(aLines[i]);
 	}
 
 	CDataFileReader Reader;
-	Reader.Open(pStorage, pMapName, IStorage::TYPE_ALL);
+	Reader.Open(pStorage, pMapName, IStorage::TYPE_ABSOLUTE);
 
 	CDataFileWriter Writer;
 	Writer.Init();
@@ -53,8 +54,7 @@ void Process(IStorage *pStorage, const char *pMapName, const char *pConfigName)
 		int TypeID;
 		int ItemID;
 		int *pData = (int *)Reader.GetItem(i, &TypeID, &ItemID);
-		// GetItemSize returns item size including header, remove that.
-		int Size = Reader.GetItemSize(i) - sizeof(int) * 2;
+		int Size = Reader.GetItemSize(i);
 		CMapItemInfoSettings MapInfo;
 		if(TypeID == MAPITEMTYPE_INFO && ItemID == 0)
 		{
@@ -69,7 +69,7 @@ void Process(IStorage *pStorage, const char *pMapName, const char *pConfigName)
 				{
 					SettingsIndex = pInfo->m_Settings;
 					char *pMapSettings = (char *)Reader.GetData(SettingsIndex);
-					int DataSize = Reader.GetUncompressedDataSize(SettingsIndex);
+					int DataSize = Reader.GetDataSize(SettingsIndex);
 					if(DataSize == TotalLength && mem_comp(pSettings, pMapSettings, DataSize) == 0)
 					{
 						dbg_msg("config_store", "configs coincide, not updating map");
@@ -116,7 +116,7 @@ void Process(IStorage *pStorage, const char *pMapName, const char *pConfigName)
 			continue;
 		}
 		unsigned char *pData = (unsigned char *)Reader.GetData(i);
-		int Size = Reader.GetUncompressedDataSize(i);
+		int Size = Reader.GetDataSize(i);
 		Writer.AddData(Size, pData);
 		Reader.UnloadData(i);
 	}

@@ -2,7 +2,7 @@
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #include <base/system.h>
 #include <base/math.h>
-#include <engine/external/pnglite/pnglite.h>
+#include <pnglite.h>
 
 typedef struct
 {
@@ -62,9 +62,9 @@ int DilateFile(const char *pFileName)
 		return 1;
 	}
 
-	pBuffer[0] = (CPixel*)mem_alloc(Png.width*Png.height*sizeof(CPixel), 1);
-	pBuffer[1] = (CPixel*)mem_alloc(Png.width*Png.height*sizeof(CPixel), 1);
-	pBuffer[2] = (CPixel*)mem_alloc(Png.width*Png.height*sizeof(CPixel), 1);
+	pBuffer[0] = (CPixel *)malloc(Png.width * Png.height * sizeof(CPixel));
+	pBuffer[1] = (CPixel *)malloc(Png.width * Png.height * sizeof(CPixel));
+	pBuffer[2] = (CPixel *)malloc(Png.width * Png.height * sizeof(CPixel));
 	png_get_data(&Png, (unsigned char *)pBuffer[0]);
 	png_close_file(&Png);
 

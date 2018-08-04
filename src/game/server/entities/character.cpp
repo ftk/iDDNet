@@ -11,7 +11,6 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <engine/server/server.h>
 #include <game/server/gamemodes/DDRace.h>
 #include <game/server/score.h>
 #include "light.h"
@@ -42,6 +41,11 @@ bool CCharacter::Spawn(CPlayer *pPlayer, vec2 Pos)
 	m_LastRefillJumps = false;
 	m_LastPenalty = false;
 	m_LastBonus = false;
+
+	m_HasTeleGun = false;
+	m_HasTeleLaser = false;
+	m_HasTeleGrenade = false;
+	m_TeleGunTeleport = false;
 
 	m_pPlayer = pPlayer;
 	m_Pos = Pos;
@@ -167,7 +171,7 @@ void CCharacter::HandleJetpack()
 					Strength = GameServer()->Tuning()->m_JetpackStrength;
 				else
 					Strength = GameServer()->TuningList()[m_TuneZone].m_JetpackStrength;
-				TakeDamage(Direction * -1.0f * (Strength / 100.0f / 6.11f), g_pData->m_Weapons.m_Hammer.m_pBase->m_Damage, m_pPlayer->GetCID(), m_Core.m_ActiveWeapon);
+				TakeDamage(Direction * -1.0f * (Strength / 100.0f / 6.11f), 0, m_pPlayer->GetCID(), m_Core.m_ActiveWeapon);
 			}
 		}
 	}
@@ -274,7 +278,7 @@ void CCharacter::HandleNinja()
 void CCharacter::DoWeaponSwitch()
 {
 	// make sure we can switch
-	if(m_ReloadTimer != 0 || m_QueuedWeapon == -1 || m_aWeapons[WEAPON_NINJA].m_Got)
+	if(m_ReloadTimer != 0 || m_QueuedWeapon == -1 || m_aWeapons[WEAPON_NINJA].m_Got || !m_aWeapons[m_QueuedWeapon].m_Got)
 		return;
 
 	// switch Weapon
@@ -669,7 +673,7 @@ void CCharacter::RemoveNinja()
 	m_Ninja.m_CurrentMoveTime = 0;
 	m_aWeapons[WEAPON_NINJA].m_Got = false;
 	m_Core.m_ActiveWeapon = m_LastWeapon;
-	
+
 		SetWeapon(m_Core.m_ActiveWeapon);
 }
 
@@ -686,7 +690,6 @@ void CCharacter::OnPredictedInput(CNetObj_PlayerInput *pNewInput)
 		m_LastAction = Server()->Tick();
 
 	// copy new input
-	mem_copy(&m_SavedInput, pNewInput, sizeof(m_SavedInput));
 	mem_copy(&m_Input, pNewInput, sizeof(m_Input));
 	if(m_FreezeTime > 0 || m_FreezeTime == -1) //iDDNet
 		mem_copy(&m_FreezedInput, pNewInput, sizeof(m_Input)); 
@@ -696,6 +699,8 @@ void CCharacter::OnPredictedInput(CNetObj_PlayerInput *pNewInput)
 	// it is not allowed to aim in the center
 	if(m_Input.m_TargetX == 0 && m_Input.m_TargetY == 0)
 		m_Input.m_TargetY = -1;
+
+	mem_copy(&m_SavedInput, &m_Input, sizeof(m_SavedInput));
 }
 
 void CCharacter::OnDirectInput(CNetObj_PlayerInput *pNewInput)
@@ -1010,7 +1015,7 @@ bool CCharacter::TakeDamage(vec2 Force, int Dmg, int From, int Weapon)
 	else
 		GameServer()->CreateSound(m_Pos, SOUND_PLAYER_PAIN_SHORT);*/
 
-	if (!m_Jetpack || m_Core.m_ActiveWeapon != WEAPON_GUN)
+	if (Dmg)
 	{
 		m_EmoteType = EMOTE_PAIN;
 		m_EmoteStop = Server()->Tick() + 500 * Server()->TickSpeed() / 1000;
@@ -1045,15 +1050,15 @@ void CCharacter::Snap(int SnappingClient)
 		CCharacter* SnapChar = GameServer()->GetPlayerChar(SnappingClient);
 		CPlayer* SnapPlayer = GameServer()->m_apPlayers[SnappingClient];
 
-		if((SnapPlayer->GetTeam() == TEAM_SPECTATORS || SnapPlayer->m_Paused) && SnapPlayer->m_SpectatorID != -1
+		if((SnapPlayer->GetTeam() == TEAM_SPECTATORS || SnapPlayer->IsPaused()) && SnapPlayer->m_SpectatorID != -1
 			&& !CanCollide(SnapPlayer->m_SpectatorID) && !SnapPlayer->m_ShowOthers)
 			return;
 
-		if( SnapPlayer->GetTeam() != TEAM_SPECTATORS && !SnapPlayer->m_Paused && SnapChar && !SnapChar->m_Super
+		if( SnapPlayer->GetTeam() != TEAM_SPECTATORS && !SnapPlayer->IsPaused() && SnapChar && !SnapChar->m_Super
 			&& !CanCollide(SnappingClient) && !SnapPlayer->m_ShowOthers)
 			return;
 
-		if((SnapPlayer->GetTeam() == TEAM_SPECTATORS || SnapPlayer->m_Paused) && SnapPlayer->m_SpectatorID == -1
+		if((SnapPlayer->GetTeam() == TEAM_SPECTATORS || SnapPlayer->IsPaused()) && SnapPlayer->m_SpectatorID == -1
 			&& !CanCollide(SnappingClient) && SnapPlayer->m_SpecTeam)
 			return;
 	}
@@ -1153,8 +1158,13 @@ void CCharacter::Snap(int SnappingClient)
 		pCharacter->m_AmmoCount = (!m_FreezeTime)?abs(m_aWeapons[m_Core.m_ActiveWeapon].m_Ammo):0;
 	}
 
-	if(GetPlayer()->m_Afk || GetPlayer()->m_Paused)
-		pCharacter->m_Emote = EMOTE_BLINK;
+	if(GetPlayer()->m_Afk || GetPlayer()->IsPaused())
+	{
+		if(m_FreezeTime > 0 || m_FreezeTime == -1 || m_DeepFreeze)
+			pCharacter->m_Emote = EMOTE_NORMAL;
+		else
+			pCharacter->m_Emote = EMOTE_BLINK;
+	}
 
 	if(pCharacter->m_Emote == EMOTE_NORMAL)
 	{
@@ -1230,12 +1240,12 @@ void CCharacter::HandleBroadcast()
 		m_CpLastBroadcast = m_CpActive;
 		m_LastBroadcast = Server()->Tick();
 	}
-	else if ((m_pPlayer->m_TimerType == 1 || m_pPlayer->m_TimerType == 2) && m_DDRaceState == DDRACE_STARTED && m_LastBroadcast + Server()->TickSpeed() * g_Config.m_SvTimeInBroadcastInterval <= Server()->Tick())
+	else if ((m_pPlayer->m_TimerType == CPlayer::TIMERTYPE_BROADCAST || m_pPlayer->m_TimerType == CPlayer::TIMERTYPE_GAMETIMER_AND_BROADCAST) && m_DDRaceState == DDRACE_STARTED && m_LastBroadcast + Server()->TickSpeed() * g_Config.m_SvTimeInBroadcastInterval <= Server()->Tick())
 	{
 		char aBuftime[64];
 		int IntTime = (int)((float)(Server()->Tick() - m_StartTime) / ((float)Server()->TickSpeed()));
 		str_format(aBuftime, sizeof(aBuftime), "%s%d:%s%d", ((IntTime/60) > 9)?"":"0", IntTime/60, ((IntTime%60) > 9)?"":"0", IntTime%60);
-		GameServer()->SendBroadcast(aBuftime, m_pPlayer->GetCID());
+		GameServer()->SendBroadcast(aBuftime, m_pPlayer->GetCID(), false);
 		m_CpLastBroadcast = m_CpActive;
 		m_LastBroadcast = Server()->Tick();
 	}
@@ -1688,6 +1698,40 @@ void CCharacter::HandleTiles(int Index)
 		m_LastRefillJumps = false;
 	}
 
+	// Teleport gun
+	if (((m_TileIndex == TILE_TELE_GUN_ENABLE) || (m_TileFIndex == TILE_TELE_GUN_ENABLE)) && !m_HasTeleGun)
+	{
+		m_HasTeleGun = true;
+		GameServer()->SendChatTarget(GetPlayer()->GetCID(), "Teleport gun enabled");
+	}
+	else if (((m_TileIndex == TILE_TELE_GUN_DISABLE) || (m_TileFIndex == TILE_TELE_GUN_DISABLE)) && m_HasTeleGun)
+	{
+		m_HasTeleGun = false;
+		GameServer()->SendChatTarget(GetPlayer()->GetCID(), "Teleport gun disabled");
+	}
+
+	if (((m_TileIndex == TILE_TELE_GRENADE_ENABLE) || (m_TileFIndex == TILE_TELE_GRENADE_ENABLE)) && !m_HasTeleGrenade)
+	{
+		m_HasTeleGrenade = true;
+		GameServer()->SendChatTarget(GetPlayer()->GetCID(), "Teleport grenade enabled");
+	}
+	else if (((m_TileIndex == TILE_TELE_GRENADE_DISABLE) || (m_TileFIndex == TILE_TELE_GRENADE_DISABLE)) && m_HasTeleGrenade)
+	{
+		m_HasTeleGrenade = false;
+		GameServer()->SendChatTarget(GetPlayer()->GetCID(), "Teleport grenade disabled");
+	}
+
+	if (((m_TileIndex == TILE_TELE_LASER_ENABLE) || (m_TileFIndex == TILE_TELE_LASER_ENABLE)) && !m_HasTeleLaser)
+	{
+		m_HasTeleLaser = true;
+		GameServer()->SendChatTarget(GetPlayer()->GetCID(), "Teleport laser enabled");
+	}
+	else if (((m_TileIndex == TILE_TELE_LASER_DISABLE) || (m_TileFIndex == TILE_TELE_LASER_DISABLE)) && m_HasTeleLaser)
+	{
+		m_HasTeleLaser = false;
+		GameServer()->SendChatTarget(GetPlayer()->GetCID(), "Teleport laser disabled");
+	}
+
 	// stopper
 	if(((m_TileIndex == TILE_STOP && m_TileFlags == ROTATION_270) || (m_TileIndexL == TILE_STOP && m_TileFlagsL == ROTATION_270) || (m_TileIndexL == TILE_STOPS && (m_TileFlagsL == ROTATION_90 || m_TileFlagsL ==ROTATION_270)) || (m_TileIndexL == TILE_STOPA) || (m_TileFIndex == TILE_STOP && m_TileFFlags == ROTATION_270) || (m_TileFIndexL == TILE_STOP && m_TileFFlagsL == ROTATION_270) || (m_TileFIndexL == TILE_STOPS && (m_TileFFlagsL == ROTATION_90 || m_TileFFlagsL == ROTATION_270)) || (m_TileFIndexL == TILE_STOPA) || (m_TileSIndex == TILE_STOP && m_TileSFlags == ROTATION_270) || (m_TileSIndexL == TILE_STOP && m_TileSFlagsL == ROTATION_270) || (m_TileSIndexL == TILE_STOPS && (m_TileSFlagsL == ROTATION_90 || m_TileSFlagsL == ROTATION_270)) || (m_TileSIndexL == TILE_STOPA)) && m_Core.m_Vel.x > 0)
 	{
@@ -1722,25 +1766,25 @@ void CCharacter::HandleTiles(int Index)
 	}
 
 	// handle switch tiles
-	if(GameServer()->Collision()->IsSwitch(MapIndex) == TILE_SWITCHOPEN && Team() != TEAM_SUPER)
+	if(GameServer()->Collision()->IsSwitch(MapIndex) == TILE_SWITCHOPEN && Team() != TEAM_SUPER && GameServer()->Collision()->GetSwitchNumber(MapIndex) > 0)
 	{
 		GameServer()->Collision()->m_pSwitchers[GameServer()->Collision()->GetSwitchNumber(MapIndex)].m_Status[Team()] = true;
 		GameServer()->Collision()->m_pSwitchers[GameServer()->Collision()->GetSwitchNumber(MapIndex)].m_EndTick[Team()] = 0;
 		GameServer()->Collision()->m_pSwitchers[GameServer()->Collision()->GetSwitchNumber(MapIndex)].m_Type[Team()] = TILE_SWITCHOPEN;
 	}
-	else if(GameServer()->Collision()->IsSwitch(MapIndex) == TILE_SWITCHTIMEDOPEN && Team() != TEAM_SUPER)
+	else if(GameServer()->Collision()->IsSwitch(MapIndex) == TILE_SWITCHTIMEDOPEN && Team() != TEAM_SUPER && GameServer()->Collision()->GetSwitchNumber(MapIndex) > 0)
 	{
 		GameServer()->Collision()->m_pSwitchers[GameServer()->Collision()->GetSwitchNumber(MapIndex)].m_Status[Team()] = true;
 		GameServer()->Collision()->m_pSwitchers[GameServer()->Collision()->GetSwitchNumber(MapIndex)].m_EndTick[Team()] = Server()->Tick() + 1 + GameServer()->Collision()->GetSwitchDelay(MapIndex)*Server()->TickSpeed() ;
 		GameServer()->Collision()->m_pSwitchers[GameServer()->Collision()->GetSwitchNumber(MapIndex)].m_Type[Team()] = TILE_SWITCHTIMEDOPEN;
 	}
-	else if(GameServer()->Collision()->IsSwitch(MapIndex) == TILE_SWITCHTIMEDCLOSE && Team() != TEAM_SUPER)
+	else if(GameServer()->Collision()->IsSwitch(MapIndex) == TILE_SWITCHTIMEDCLOSE && Team() != TEAM_SUPER && GameServer()->Collision()->GetSwitchNumber(MapIndex) > 0)
 	{
 		GameServer()->Collision()->m_pSwitchers[GameServer()->Collision()->GetSwitchNumber(MapIndex)].m_Status[Team()] = false;
 		GameServer()->Collision()->m_pSwitchers[GameServer()->Collision()->GetSwitchNumber(MapIndex)].m_EndTick[Team()] = Server()->Tick() + 1 + GameServer()->Collision()->GetSwitchDelay(MapIndex)*Server()->TickSpeed();
 		GameServer()->Collision()->m_pSwitchers[GameServer()->Collision()->GetSwitchNumber(MapIndex)].m_Type[Team()] = TILE_SWITCHTIMEDCLOSE;
 	}
-	else if(GameServer()->Collision()->IsSwitch(MapIndex) == TILE_SWITCHCLOSE && Team() != TEAM_SUPER)
+	else if(GameServer()->Collision()->IsSwitch(MapIndex) == TILE_SWITCHCLOSE && Team() != TEAM_SUPER && GameServer()->Collision()->GetSwitchNumber(MapIndex) > 0)
 	{
 		GameServer()->Collision()->m_pSwitchers[GameServer()->Collision()->GetSwitchNumber(MapIndex)].m_Status[Team()] = false;
 		GameServer()->Collision()->m_pSwitchers[GameServer()->Collision()->GetSwitchNumber(MapIndex)].m_EndTick[Team()] = 0;
@@ -1751,13 +1795,15 @@ void CCharacter::HandleTiles(int Index)
 		if(GameServer()->Collision()->GetSwitchNumber(MapIndex) == 0 || GameServer()->Collision()->m_pSwitchers[GameServer()->Collision()->GetSwitchNumber(MapIndex)].m_Status[Team()])
 			Freeze(GameServer()->Collision()->GetSwitchDelay(MapIndex));
 	}
-	else if(GameServer()->Collision()->IsSwitch(MapIndex) == TILE_DFREEZE && Team() != TEAM_SUPER && GameServer()->Collision()->m_pSwitchers[GameServer()->Collision()->GetSwitchNumber(MapIndex)].m_Status[Team()])
+	else if(GameServer()->Collision()->IsSwitch(MapIndex) == TILE_DFREEZE && Team() != TEAM_SUPER)
 	{
-		m_DeepFreeze = true;
+		if(GameServer()->Collision()->GetSwitchNumber(MapIndex) == 0 || GameServer()->Collision()->m_pSwitchers[GameServer()->Collision()->GetSwitchNumber(MapIndex)].m_Status[Team()])
+			m_DeepFreeze = true;
 	}
-	else if(GameServer()->Collision()->IsSwitch(MapIndex) == TILE_DUNFREEZE && Team() != TEAM_SUPER && GameServer()->Collision()->m_pSwitchers[GameServer()->Collision()->GetSwitchNumber(MapIndex)].m_Status[Team()])
+	else if(GameServer()->Collision()->IsSwitch(MapIndex) == TILE_DUNFREEZE && Team() != TEAM_SUPER)
 	{
-		m_DeepFreeze = false;
+		if(GameServer()->Collision()->GetSwitchNumber(MapIndex) == 0 || GameServer()->Collision()->m_pSwitchers[GameServer()->Collision()->GetSwitchNumber(MapIndex)].m_Status[Team()])
+			m_DeepFreeze = false;
 	}
 	else if(GameServer()->Collision()->IsSwitch(MapIndex) == TILE_HIT_START && m_Hit&DISABLE_HIT_HAMMER && GameServer()->Collision()->GetSwitchDelay(MapIndex) == WEAPON_HAMMER)
 	{
@@ -1948,14 +1994,19 @@ void CCharacter::HandleTiles(int Index)
 		{
 			if(Controller->m_TeleCheckOuts[k].size())
 			{
-				m_Core.m_HookedPlayer = -1;
-				m_Core.m_HookState = HOOK_RETRACTED;
-				m_Core.m_TriggeredEvents |= COREEVENT_HOOK_RETRACT;
 				int Num = Controller->m_TeleCheckOuts[k].size();
 				m_Core.m_Pos = Controller->m_TeleCheckOuts[k][(!Num)?Num:rand() % Num];
-				GameWorld()->ReleaseHooked(GetPlayer()->GetCID());
 				m_Core.m_Vel = vec2(0,0);
-				m_Core.m_HookPos = m_Core.m_Pos;
+
+				if(!g_Config.m_SvTeleportHoldHook)
+				{
+					m_Core.m_HookedPlayer = -1;
+					m_Core.m_HookState = HOOK_RETRACTED;
+					m_Core.m_TriggeredEvents |= COREEVENT_HOOK_RETRACT;
+					GameWorld()->ReleaseHooked(GetPlayer()->GetCID());
+					m_Core.m_HookPos = m_Core.m_Pos;
+				}
+
 				return;
 			}
 		}
@@ -1963,13 +2014,17 @@ void CCharacter::HandleTiles(int Index)
 		vec2 SpawnPos;
 		if(GameServer()->m_pController->CanSpawn(m_pPlayer->GetTeam(), &SpawnPos))
 		{
-			m_Core.m_HookedPlayer = -1;
-			m_Core.m_HookState = HOOK_RETRACTED;
-			m_Core.m_TriggeredEvents |= COREEVENT_HOOK_RETRACT;
 			m_Core.m_Pos = SpawnPos;
-			GameWorld()->ReleaseHooked(GetPlayer()->GetCID());
 			m_Core.m_Vel = vec2(0,0);
-			m_Core.m_HookPos = m_Core.m_Pos;
+
+			if(!g_Config.m_SvTeleportHoldHook)
+			{
+				m_Core.m_HookedPlayer = -1;
+				m_Core.m_HookState = HOOK_RETRACTED;
+				m_Core.m_TriggeredEvents |= COREEVENT_HOOK_RETRACT;
+				GameWorld()->ReleaseHooked(GetPlayer()->GetCID());
+				m_Core.m_HookPos = m_Core.m_Pos;
+			}
 		}
 		return;
 	}
@@ -1982,12 +2037,17 @@ void CCharacter::HandleTiles(int Index)
 		{
 			if(Controller->m_TeleCheckOuts[k].size())
 			{
-				m_Core.m_HookedPlayer = -1;
-				m_Core.m_HookState = HOOK_RETRACTED;
-				m_Core.m_TriggeredEvents |= COREEVENT_HOOK_RETRACT;
 				int Num = Controller->m_TeleCheckOuts[k].size();
 				m_Core.m_Pos = Controller->m_TeleCheckOuts[k][(!Num)?Num:rand() % Num];
-				m_Core.m_HookPos = m_Core.m_Pos;
+
+				if(!g_Config.m_SvTeleportHoldHook)
+				{
+					m_Core.m_HookedPlayer = -1;
+					m_Core.m_HookState = HOOK_RETRACTED;
+					m_Core.m_TriggeredEvents |= COREEVENT_HOOK_RETRACT;
+					m_Core.m_HookPos = m_Core.m_Pos;
+				}
+
 				return;
 			}
 		}
@@ -1995,11 +2055,15 @@ void CCharacter::HandleTiles(int Index)
 		vec2 SpawnPos;
 		if(GameServer()->m_pController->CanSpawn(m_pPlayer->GetTeam(), &SpawnPos))
 		{
-			m_Core.m_HookedPlayer = -1;
-			m_Core.m_HookState = HOOK_RETRACTED;
-			m_Core.m_TriggeredEvents |= COREEVENT_HOOK_RETRACT;
 			m_Core.m_Pos = SpawnPos;
-			m_Core.m_HookPos = m_Core.m_Pos;
+
+			if(!g_Config.m_SvTeleportHoldHook)
+			{
+				m_Core.m_HookedPlayer = -1;
+				m_Core.m_HookState = HOOK_RETRACTED;
+				m_Core.m_TriggeredEvents |= COREEVENT_HOOK_RETRACT;
+				m_Core.m_HookPos = m_Core.m_Pos;
+			}
 		}
 		return;
 	}
@@ -2017,7 +2081,7 @@ void CCharacter::HandleTuneLayer()
 	else
 		m_Core.m_pWorld->m_Tuning[g_Config.m_ClDummy] = *GameServer()->Tuning();
 
-	if (m_TuneZone != m_TuneZoneOld) // dont send tunigs all the time
+	if (m_TuneZone != m_TuneZoneOld) // don't send tunigs all the time
 	{
 		// send zone msgs
 		SendZoneMsgs();
@@ -2027,34 +2091,35 @@ void CCharacter::HandleTuneLayer()
 void CCharacter::SendZoneMsgs()
 {
 	// send zone leave msg
-	if (m_TuneZoneOld >= 0 && GameServer()->m_ZoneLeaveMsg[m_TuneZoneOld]) // m_TuneZoneOld >= 0: avoid zone leave msgs on spawn
+	// (m_TuneZoneOld >= 0: avoid zone leave msgs on spawn)
+	if (m_TuneZoneOld >= 0 && GameServer()->m_aaZoneLeaveMsg[m_TuneZoneOld])
 	{
-		const char* cur = GameServer()->m_ZoneLeaveMsg[m_TuneZoneOld];
-		const char* pos;
-		while ((pos = str_find(cur, "\\n")))
+		const char *pCur = GameServer()->m_aaZoneLeaveMsg[m_TuneZoneOld];
+		const char *pPos;
+		while ((pPos = str_find(pCur, "\\n")))
 		{
 			char aBuf[256];
-			str_copy(aBuf, cur, pos - cur + 1);
-			aBuf[pos - cur + 1] = '\0';
-			cur = pos + 2;
+			str_copy(aBuf, pCur, pPos - pCur + 1);
+			aBuf[pPos - pCur + 1] = '\0';
+			pCur = pPos + 2;
 			GameServer()->SendChatTarget(m_pPlayer->GetCID(), aBuf);
 		}
-		GameServer()->SendChatTarget(m_pPlayer->GetCID(), cur);
+		GameServer()->SendChatTarget(m_pPlayer->GetCID(), pCur);
 	}
 	// send zone enter msg
-	if (GameServer()->m_ZoneEnterMsg[m_TuneZone])
+	if (GameServer()->m_aaZoneEnterMsg[m_TuneZone])
 	{
-		const char* cur = GameServer()->m_ZoneEnterMsg[m_TuneZone];
-		const char* pos;
-		while ((pos = str_find(cur, "\\n")))
+		const char* pCur = GameServer()->m_aaZoneEnterMsg[m_TuneZone];
+		const char* pPos;
+		while ((pPos = str_find(pCur, "\\n")))
 		{
 			char aBuf[256];
-			str_copy(aBuf, cur, pos - cur + 1);
-			aBuf[pos - cur + 1] = '\0';
-			cur = pos + 2;
+			str_copy(aBuf, pCur, pPos - pCur + 1);
+			aBuf[pPos - pCur + 1] = '\0';
+			pCur = pPos + 2;
 			GameServer()->SendChatTarget(m_pPlayer->GetCID(), aBuf);
 		}
-		GameServer()->SendChatTarget(m_pPlayer->GetCID(), cur);
+		GameServer()->SendChatTarget(m_pPlayer->GetCID(), pCur);
 	}
 }
 
@@ -2161,6 +2226,17 @@ void CCharacter::DDRacePostCoreTick()
 		//dbg_msg("Running","%d", CurrentIndex);
 	}
 
+	// teleport gun
+	if (m_TeleGunTeleport)
+	{
+		GameServer()->CreateDeath(m_Pos, m_pPlayer->GetCID(), Teams()->TeamMask(Team(), -1, m_pPlayer->GetCID()));
+		m_Core.m_Pos = m_TeleGunPos;
+		m_Core.m_Vel = vec2(0, 0);
+		GameServer()->CreateDeath(m_TeleGunPos, m_pPlayer->GetCID(), Teams()->TeamMask(Team(), -1, m_pPlayer->GetCID()));
+		GameServer()->CreateSound(m_TeleGunPos, SOUND_WEAPON_SPAWN, Teams()->TeamMask(Team(), -1, m_pPlayer->GetCID()));
+		m_TeleGunTeleport = false;
+	}
+
 	HandleBroadcast();
 }
 
@@ -2218,7 +2294,7 @@ void CCharacter::GiveWeapon(int Weapon, bool Remove)
 			GiveNinja();
 		return;
 	}
-	
+
 	if (Remove)
 	{
 		if (GetActiveWeapon()== Weapon)

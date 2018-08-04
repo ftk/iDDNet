@@ -5,9 +5,12 @@
 
 #include <engine/sound.h>
 
+#include "SDL.h"
+
 class CSound : public IEngineSound
 {
 	int m_SoundEnabled;
+	SDL_AudioDeviceID m_Device;
 
 public:
 	IEngineGraphics *m_pGraphics;
@@ -22,8 +25,6 @@ public:
 	static void RateConvert(int SampleID);
 
 	// TODO: Refactor: clean this mess up
-	static IOHANDLE ms_File;
-	static int ReadData(void *pBuffer, int Size);
 	static int DecodeWV(int SampleID, const void *pData, unsigned DataSize);
 	static int DecodeOpus(int SampleID, const void *pData, unsigned DataSize);
 

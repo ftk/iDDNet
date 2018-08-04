@@ -10,9 +10,6 @@
 
 ##### translated strings #####
 
-%d%% loaded
-== Załadowano %d%%
-
 %ds left
 == Pozostało %ds
 
@@ -48,9 +45,6 @@ Address
 
 All
 == Wszyscy
-
-Always show name plates
-== Zawsze pokazuj nicki graczy
 
 Are you sure that you want to delete the demo?
 == Czy na pewno chcesz usunąć to demo?
@@ -253,9 +247,6 @@ Kick player
 Language
 == Język
 
-Loading
-== Ładowanie
-
 MOTD
 == Wiadomość dnia
 
@@ -355,9 +346,6 @@ Quality Textures
 Quit
 == Wyjście
 
-REC %3d:%02d
-== REC %3d:%02d
-
 Reason:
 == Powód:
 
@@ -423,9 +411,6 @@ Server info
 
 Server not full
 == Nie pokazuj pełnych
-
-Settings
-== Opcje
 
 Shotgun
 == Shotgun
@@ -493,9 +478,6 @@ Team
 Team chat
 == Czat drużynowy
 
-Teeworlds %s is out! Download it at www.teeworlds.com!
-== Nowa wersja Teeworlds %s jest dostępna! Do ściągnięcia na www.teeworlds.com!
-
 Texture Compression
 == Kompresja tekstur
 
@@ -559,9 +541,6 @@ Warmup
 Weapon
 == Broń
 
-Welcome to Teeworlds
-== Witaj w Teeworlds
-
 Yes
 == Tak
 
@@ -570,328 +549,26 @@ You must restart the game for all settings to take effect.
 
 ##### needs translation #####
 
-%.3f KiB
-== 
-
-%d player left
-== 
-
-%d player not ready
-== 
-
-%d players left
-== 
-
-%d players not ready
-== 
-
-%d servers, %d players
-== %d serwerów, %d graczy
-
-'%s' called for vote to kick '%s' (%s)
-== '%s' zagłosował za wyrzuceniem '%s' (%s)
-
-'%s' called for vote to move '%s' to spectators (%s)
-== '%s' zagłosował za przesunięciem '%s' do obserwatorów (%s)
-
-'%s' called vote to change server option '%s' (%s)
-== '%s' zagłosował za zmianą opcji serwera '%s' (%s)
-
-'%s' entered and joined the %s
-== '%s' wszedł i dołączył do %s
-
-'%s' has left the game
-== '%s' opuścił grę
-
-'%s' has left the game (%s)
-== '%s' opuścił grę (%s)
-
-'%s' joined the %s
-== '%s' dołączył do %s
-
-Admin forced server option '%s' (%s)
-== Admin wymusił opcję serwera '%s' (%s)
-
-Admin forced vote no
-== Admin wymusił głos na nie
-
-Admin forced vote yes
-== Admin wymusił głos na tak
-
-Admin moved '%s' to spectator (%s)
-== Admin przesunął '%s' do obserwatorów (%s)
-
-Alp:
-== Alfa
-
-Anti Aliasing
-== Antyaliasing
-
-Are you sure you want to rename the demo?
-== Czy na pewno chcesz zmienić nazwę dema?
-
-Are you sure you want to save your skin? If a skin with this name already exists, it will be replaced.
-== Czy na pewno chcesz zapisać skin? Jeśli skin z taką nazwą już istnieje, zostanie on podmieniony przez twój.
-
-Back
-== Wróć
-
-Basic
-== Podstawowe
-
-Bodies
-== Ciała
-
-Borderless window
-== 
-
-Color
-== Kolor
-
-Crc
-== 
-
-Created
-== Stworzone
-
-Custom
-== Niestandardowe
-
-Customize
-== Dostosuj
-
-Decoration
-== Dekoracje
-
 Demo
 == Demo
-
-Detail
-== Detale
-
-Editor
-== Edytor
-
-Eyes
-== Oczy
-
-Format
-== Format
 
 Game paused
 == Gra wstrzymana
 
-Game starts in
-== Gra zacznie się za
-
-Global
-== Globalne
-
-Hands
-== Ręce
-
-Host address:
-== Adres serwera:
-
-Hue:
-== Barwa 
-
-Join
-== Dołącz
-
-Joined
-== Dołączył
-
-Joined blue
-== Dołączył do niebieskich
-
-Joined red
-== Dołączył do czerwonych
-
-Kick voting requires %d players on the server
-== Głosowanie za wyrzuceniem wymaga co najmniej %d graczy na serwerze.
-
 Laser
 == Laser
-
-Length
-== Długość
-
-Letterbox
-== 
-
-Lgt:
-== Jasność
-
-Local
-== Lokalne
-
-Local server
-== Serwer lokalny
-
-Match
-== Mecz
-
-Max
-== Maksymalnie
-
-Misc
-== Różne
-
-Netversion
-== Wersja sieciowa
-
-Nickname is empty.
-== Nick jest pusty.
-
-Normal:
-== Normalny:
-
-Only %d active players are allowed
-== Dozwolono tylko %d graczy.
-
-Personal
-== Osobiste
-
-Ready
-== Gotowy
-
-Record
-== Nagrywaj
-
-Recorded
-== Nagrane
 
 Reset
 == Reset
 
-Resolutions
-== Rozdzielczości
-
 Respawn
 == Odrodzenie
-
-Round over
-== Koniec rundy
-
-Round over!
-== Koniec rundy!
-
-Sat:
-== Nasycenie:
-
-Save
-== Zapisz
-
-Save skin
-== Zapisz skin
 
 Screen
 == Ekran
 
-Search:
-== Szukaj:
-
-Server does not allow voting to kick players
-== Serwer nie pozwala głosować za wyrzucaniem graczy
-
-Server does not allow voting to move players to spectators
-== Serwer nie pozwala głosować za przesuwaniem graczy do obserwatorów
-
-Servers
-== Serwery
-
 Show only chat messages from friends
 == Pokazuj wiadomości tylko od znajomych
-
-Size
-== Rozmiar
-
-Skin
-== Skin
-
-Spectating
-== Obserwowanie
-
-Spectators aren't allowed to start a vote.
-== Obserwatorzy nie mogą głosować.
-
-Standard Gametype
-== Standardowy typ gry 
-
-Tattoo
-== Tatuaż
-
-Tattoos
-== Tatuaże
-
-Team:
-== Drużyna
-
-Teams are locked
-== Drużyny są zablokowane
-
-Teams are locked. Time to wait before changing team: %02d:%02d
-== Drużyny są zablokowane. Czas, zanim będzie można zmienić drużynę: %02d:%02d
-
-Teams were locked
-== Drużyny zostały zablokowane
-
-Teams were unlocked
-== Drużyny zostały odblokowane
-
-Tee
-== 
-
-Texture
-== Tekstura
-
-Volume
-== Głośność
-
-Vote aborted
-== Głosowanie anulowane
-
-Vote failed
-== Głosowanie się nie powiodło
-
-Vote passed
-== Głosowanie się powiodło
-
-Wait for current vote to end before calling a new one.
-== Poczekaj aż skończy się obecne głosowanie, zanim rozpoczniesz nowe.
-
-Wait for next round
-== Czekaj na następną rundę
-
-Wide
-== Szeroki
-
-You must wait %d seconds before making another vote
-== Musisz poczekać %d sekund, zanim rozpoczniesz inne głosowanie
-
-blue
-== niebieski
-
-blue team
-== drużyny niebieskiej
-
-game
-== gra
-
-red
-== czerwony
-
-red team
-== drużyny czerwonej
-
-spectators
-== obserwatorów
-
-wait for more players
-== czekać na więcej graczy
-
-##### old translations #####
 
 New name:
 == Nowa nazwa:
@@ -932,26 +609,14 @@ Max Screenshots
 Length:
 == Długość:
 
-Skin name
-== Nazwa skina
-
 Rifle
 == Laser
-
-Patterns
-== 
 
 Netversion:
 == Wersja sieciowa:
 
 Map:
 == Mapa:
-
-%d Bytes
-== %d Bajtów
-
-Coloration
-== 
 
 Info
 == Info
@@ -986,12 +651,6 @@ Round
 Lht.
 == Jasność
 
-no limit
-== bez limitu
-
-Quick search:
-== Szybkie wyszukiwanie:
-
 UI Color
 == Kolor menu
 
@@ -1003,9 +662,6 @@ Crc:
 
 Alpha
 == Alfa
-
-Are you sure you want to save your skin ? If a skin with this name already exists, it will be replaced.
-== Czy na pewno chcesz zapisać skin? Jeśli skin z taką nazwą już istnieje, zostanie on podmieniony przez twój.
 
 Current version: %s
 == Aktualna wersja: %s
@@ -1082,17 +738,8 @@ Switch weapon when out of ammo
 Reset wanted weapon on death
 == Zresetuj broń, którą chcesz podnieść po śmierci
 
-Automatically take game over scoreboard screenshot
-== Automatycznie zrób zrzut ekranu tabeli wyników po grze
-
-Automatically take game over statboard screenshot
-== Automatycznie zrób zrzut ekranu tabeli statystyk po grze
-
 Dummy settings
 == Ustawienia dummy
-
-Show new skins ingame
-== Pokazuj nowe skiny w grze
 
 Show score
 == Pokazuj wyniki
@@ -1132,9 +779,6 @@ Show kill messages
 
 Show client IDs in Scoreboard
 == Pokazuj ID graczy w tabeli wyników
-
-Hook collision: 
-== Linia kolizyjna
 
 Countries
 == Kraje
@@ -1202,11 +846,205 @@ We will win
 Hello and welcome
 == Cześć i siema
 
-CPU Throttle
-== Ograniczenie CPU
-
-none
-== żadne
-
 DDNet Client needs to be restarted to complete update!
 == DDNet Client wymaga ponownego uruchomienia, aby zakończyć aktualizację!
+
+##### generated by copy_fix.py, please translate this #####
+
+
+##### generated by copy_fix.py, please translate this #####
+
+Ratio
+== 
+
+Kitty skins (DDCat)
+== 
+
+\n\nReconnect in %d sec
+== 
+
+Grabs
+== 
+
+Auto %3d:%02d  
+== 
+
+Friend message
+== 
+
+second
+== 
+
+\xEE\x85\x8B
+== 
+
+Fat skins (DDFat)
+== 
+
+AntiPing limit
+== 
+
+Hi o/
+== 
+
+Deaths
+== 
+
+may cause delay
+== 
+
+Unfinished map
+== 
+
+Deactivate
+== 
+
+Please use a different name
+== 
+
+Wait before try for
+== 
+
+Welcome to DDNet
+== 
+
+Restart
+== 
+
+Old mouse mode
+== 
+
+Browser
+== 
+
+Follow
+== 
+
+Preinit VBO (iGPUs only)
+== 
+
+Manual %3d:%02d  
+== 
+
+Automatically create statboard csv
+== 
+
+Show tiles layers from BG map
+== 
+
+Are you sure that you want to disconnect?
+== 
+
+Race %3d:%02d  
+== 
+
+Activate
+== 
+
+Show console window
+== 
+
+DDNet %s is out! Download it at DDNet.tw!
+== 
+
+Multiple texture units (disable for MacOS)
+== 
+
+Frags
+== 
+
+Use OpenGL 3.3 (experimental)
+== 
+
+Automatically take statboard screenshot
+== 
+
+Enable long pain sound (used when shooting in freeze)
+== 
+
+Messages
+== 
+
+UI mouse s.
+== 
+
+%.2f MiB
+== 
+
+Refresh Rate
+== 
+
+New random timeout code
+== 
+
+Suicides
+== 
+
+File already exists, do you want to overwrite it?
+== 
+
+Indicate map finish
+== 
+
+Clan plates size
+== 
+
+Net
+== 
+
+Save
+== 
+
+Loading DDNet Client
+== 
+
+FPM
+== 
+
+Spree
+== 
+
+Max CSVs
+== 
+
+seconds
+== 
+
+Borderless window
+== 
+
+Remove chat
+== 
+
+%.2f KiB
+== 
+
+Vanilla skins only
+== 
+
+Best
+== 
+
+DDNet
+== 
+
+Date
+== 
+
+Connecting dummy
+== 
+
+Show DDNet map finishes in server browser\n(transmits your player name to info.ddnet.tw)
+== 
+
+Show clan above name plates
+== 
+
+Friend
+== 
+
+HUD
+== 
+
+Reload
+== 

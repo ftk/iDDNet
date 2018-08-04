@@ -213,7 +213,7 @@ public:
 		return m_lLayers.size() == 0; // stupid function, since its bad for Fillselection: TODO add a function for Fillselection that returns whether a specific tile is used in the given layer
 	}
 
-	/*bool IsUsedInThisLayer(int Layer, int Index) // <--------- this is what i meant but cause i dont know which Indexes belongs to which layers i cant finish yet
+	/*bool IsUsedInThisLayer(int Layer, int Index) // <--------- this is what i meant but cause i don't know which Indexes belongs to which layers i can't finish yet
 	{
 		switch Layer
 		{
@@ -343,6 +343,11 @@ public:
 		Clean();
 	}
 
+	~CEditorMap()
+	{
+		Clean();
+	}
+
 	array<CLayerGroup*> m_lGroups;
 	array<CEditorImage*> m_lImages;
 	array<CEnvelope*> m_lEnvelopes;
@@ -378,7 +383,7 @@ public:
 
 	struct CSetting
 	{
-		char m_aCommand[64];
+		char m_aCommand[256];
 	};
 	array<CSetting> m_lSettings;
 
@@ -751,9 +756,9 @@ public:
 		void (*pfnFunc)(const char *pFilename, int StorageType, void *pUser), void *pUser);
 
 	void Reset(bool CreateDefault=true);
-	int Save(const char *pFilename);
-	int Load(const char *pFilename, int StorageType);
-	int Append(const char *pFilename, int StorageType); 
+	virtual int Save(const char *pFilename);
+	virtual int Load(const char *pFilename, int StorageType);
+	int Append(const char *pFilename, int StorageType);
 	void LoadCurrentMap();
 	void Render();
 
@@ -762,8 +767,9 @@ public:
 	CLayer *GetSelectedLayer(int Index);
 	CLayerGroup *GetSelectedGroup();
 	CSoundSource *GetSelectedSource();
+	void SelectLayer(int Index);
 
-	int DoProperties(CUIRect *pToolbox, CProperty *pProps, int *pIDs, int *pNewVal, vec4 color = vec4(1,1,1,0.5f));
+	int DoProperties(CUIRect *pToolbox, CProperty *pProps, int *pIDs, int *pNewVal, vec4 Color = vec4(1,1,1,0.5f));
 
 	int m_Mode;
 	int m_Dialog;
@@ -872,7 +878,7 @@ public:
 	bool m_ShowServerSettingsEditor;
 	bool m_ShowPicker;
 
-	int m_SelectedLayer;
+	array<int> m_lSelectedLayers;
 	int m_SelectedGroup;
 	int m_SelectedQuad;
 	int m_SelectedPoints;
@@ -900,7 +906,7 @@ public:
 	static void EnvelopeEval(float TimeOffset, int Env, float *pChannels, void *pUser);
 
 	float m_CommandBox;
-	char m_aSettingsCommand[64];
+	char m_aSettingsCommand[256];
 
 	void DoMapBorder();
 	int DoButton_Editor_Common(const void *pID, const char *pText, int Checked, const CUIRect *pRect, int Flags, const char *pToolTip);
@@ -928,7 +934,7 @@ public:
 	void UiInvokePopupMenu(void *pID, int Flags, float X, float Y, float W, float H, int (*pfnFunc)(CEditor *pEditor, CUIRect Rect), void *pExtra=0);
 	void UiDoPopupMenu();
 
-	int UiDoValueSelector(void *pID, CUIRect *pRect, const char *pLabel, int Current, int Min, int Max, int Step, float Scale, const char *pToolTip, bool isDegree=false, bool isHex=false, int corners=CUI::CORNER_ALL, vec4* color=0);
+	int UiDoValueSelector(void *pID, CUIRect *pRect, const char *pLabel, int Current, int Min, int Max, int Step, float Scale, const char *pToolTip, bool IsDegree=false, bool IsHex=false, int corners=CUI::CORNER_ALL, vec4* Color=0);
 
 	static int PopupGroup(CEditor *pEditor, CUIRect View);
 	static int PopupLayer(CEditor *pEditor, CUIRect View);
@@ -972,7 +978,7 @@ public:
 
 	void DoSoundSource(CSoundSource *pSource, int Index);
 
-	void DoMapEditor(CUIRect View, CUIRect Toolbar);
+	void DoMapEditor(CUIRect View);
 	void DoToolbar(CUIRect Toolbar);
 	void DoQuad(CQuad *pQuad, int Index);
 	float UiDoScrollbarV(const void *pID, const CUIRect *pRect, float Current);
@@ -983,9 +989,9 @@ public:
 	static void AddImage(const char *pFilename, int StorageType, void *pUser);
 	static void AddSound(const char *pFileName, int StorageType, void *pUser);
 
-	void RenderImages(CUIRect Toolbox, CUIRect Toolbar, CUIRect View);
-	void RenderLayers(CUIRect Toolbox, CUIRect Toolbar, CUIRect View);
-	void RenderSounds(CUIRect Toolbox, CUIRect Toolbar, CUIRect View);
+	void RenderImages(CUIRect Toolbox, CUIRect View);
+	void RenderLayers(CUIRect Toolbox, CUIRect View);
+	void RenderSounds(CUIRect Toolbox, CUIRect View);
 	void RenderModebar(CUIRect View);
 	void RenderStatusbar(CUIRect View);
 	void RenderEnvelopeEditor(CUIRect View);
@@ -997,21 +1003,6 @@ public:
 
 	void AddFileDialogEntry(int Index, CUIRect *pView);
 	void SortImages();
-	static void ExtractName(const char *pFileName, char *pName, int BufferSize)
-	{
-		const char *pExtractedName = pFileName;
-		const char *pEnd = 0;
-		for(; *pFileName; ++pFileName)
-		{
-			if(*pFileName == '/' || *pFileName == '\\')
-				pExtractedName = pFileName+1;
-			else if(*pFileName == '.')
-				pEnd = pFileName;
-		}
-
-		int Length = pEnd > pExtractedName ? min(BufferSize, (int)(pEnd-pExtractedName+1)) : BufferSize;
-		str_copy(pName, pExtractedName, Length);
-	}
 
 	int GetLineDistance();
 	void ZoomMouseTarget(float ZoomFactor);

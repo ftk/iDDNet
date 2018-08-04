@@ -12,7 +12,7 @@ def decode(fileobj, elements_per_key):
     data = {}
     current_key = None
     for index, line in enumerate(fileobj):
-        line = line.decode("utf-8-sig").encode("utf-8")
+        line = line.encode("utf-8").decode("utf-8-sig")
         line = line[:-1]
         if line and line[-1] == "\r":
             line = line[:-1]
@@ -31,7 +31,7 @@ def decode(fileobj, elements_per_key):
                     raise LanguageDecodeError("Wrong number of elements per key", fileobj.name, index)
                 data[current_key].append(index)
             if line in data:
-                raise LanguageDecodeError("Key defined multiple times", fileobj.name, index)
+                raise LanguageDecodeError("Key defined multiple times: " + line, fileobj.name, index)
             data[line] = [index]
             current_key = line
     if len(data[current_key]) != 1+elements_per_key:
@@ -60,7 +60,7 @@ def check_folder(path):
 
 def languages():
     index = decode(open("../index.txt"), 2)
-    langs = {"../"+key+".txt" : [key]+elements for key, elements in index.iteritems()}
+    langs = {"../"+key+".txt" : [key]+elements for key, elements in index.items()}
     return langs
 
 

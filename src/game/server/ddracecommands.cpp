@@ -1,11 +1,9 @@
 /* (c) Shereef Marzouk. See "licence DDRace.txt" and the readme.txt in the root of the distribution for more information. */
 #include "gamecontext.h"
 #include <engine/shared/config.h>
-#include <engine/server/server.h>
 #include <game/server/teams.h>
 #include <game/server/gamemodes/DDRace.h>
 #include <game/version.h>
-#include <game/generated/nethash.cpp>
 #if defined(CONF_SQL)
 #include <game/server/score/sql_score.h>
 #endif
@@ -241,9 +239,9 @@ void CGameContext::ModifyWeapons(IConsole::IResult *pResult, void *pUserData,
 
 	if (Weapon == -1)
 	{
-		pChr->GiveWeapon(WEAPON_SHOTGUN);
-		pChr->GiveWeapon(WEAPON_GRENADE);
-		pChr->GiveWeapon(WEAPON_RIFLE);
+		pChr->GiveWeapon(WEAPON_SHOTGUN, Remove);
+		pChr->GiveWeapon(WEAPON_GRENADE, Remove);
+		pChr->GiveWeapon(WEAPON_RIFLE, Remove);
 	}
 	else
 	{
@@ -297,21 +295,18 @@ void CGameContext::ConToCheckTeleporter(IConsole::IResult *pResult, void *pUserD
 void CGameContext::ConTeleport(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *) pUserData;
-	int TeleTo = pResult->GetInteger(0);
+	int TeleTo = pResult->GetInteger(1);
 	int Tele = pResult->m_ClientID;
 	if (pResult->NumArguments() > 0)
 		Tele = pResult->GetVictim();
 
-	if (pSelf->m_apPlayers[TeleTo])
+	CCharacter* pChr = pSelf->GetPlayerChar(Tele);
+	if (pChr && pSelf->GetPlayerChar(TeleTo))
 	{
-		CCharacter* pChr = pSelf->GetPlayerChar(Tele);
-		if (pChr && pSelf->GetPlayerChar(TeleTo))
-		{
-			pChr->Core()->m_Pos = pSelf->m_apPlayers[TeleTo]->m_ViewPos;
-			pChr->m_Pos = pSelf->m_apPlayers[TeleTo]->m_ViewPos;
-			pChr->m_PrevPos = pSelf->m_apPlayers[TeleTo]->m_ViewPos;
-			pChr->m_DDRaceState = DDRACE_CHEAT;
-		}
+		pChr->Core()->m_Pos = pSelf->m_apPlayers[TeleTo]->m_ViewPos;
+		pChr->m_Pos = pSelf->m_apPlayers[TeleTo]->m_ViewPos;
+		pChr->m_PrevPos = pSelf->m_apPlayers[TeleTo]->m_ViewPos;
+		pChr->m_DDRaceState = DDRACE_CHEAT;
 	}
 }
 
@@ -338,18 +333,60 @@ void CGameContext::ConKill(IConsole::IResult *pResult, void *pUserData)
 void CGameContext::ConForcePause(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
-	CServer* pServ = (CServer*)pSelf->Server();
 	int Victim = pResult->GetVictim();
 	int Seconds = 0;
-	if (pResult->NumArguments() > 0)
-		Seconds = clamp(pResult->GetInteger(0), 0, 360);
+	if (pResult->NumArguments() > 1)
+		Seconds = clamp(pResult->GetInteger(1), 0, 360);
 
 	CPlayer *pPlayer = pSelf->m_apPlayers[Victim];
 	if (!pPlayer)
 		return;
 
-	pPlayer->m_ForcePauseTime = Seconds*pServ->TickSpeed();
-	pPlayer->m_Paused = CPlayer::PAUSED_FORCE;
+	pPlayer->ForcePause(Seconds);
+}
+
+void CGameContext::VoteMute(IConsole::IResult *pResult, NETADDR *pAddr, int Secs,
+	const char *pDisplayName, int AuthedID)
+{
+	char aBuf[128];
+	bool Found = 0;
+
+	pAddr->port = 0; // ignore port number for vote mutes
+
+	// find a matching vote mute for this ip, update expiration time if found
+	for(int i = 0; i < m_NumVoteMutes; i++)
+	{
+		if(net_addr_comp(&m_aVoteMutes[i].m_Addr, pAddr) == 0)
+		{
+			m_aVoteMutes[i].m_Expire = Server()->Tick()
+				+ Secs * Server()->TickSpeed();
+			Found = 1;
+			break;
+		}
+	}
+
+	if(!Found) // nothing found so far, find a free slot..
+	{
+		if(m_NumVoteMutes < MAX_VOTE_BANS)
+		{
+			m_aVoteMutes[m_NumVoteMutes].m_Addr = *pAddr;
+			m_aVoteMutes[m_NumVoteMutes].m_Expire = Server()->Tick()
+				+ Secs * Server()->TickSpeed();
+			m_NumVoteMutes++;
+			Found = 1;
+		}
+	}
+	if(Found)
+	{
+		if(pDisplayName)
+		{
+			str_format(aBuf, sizeof aBuf, "'%s' banned '%s' for %d seconds from voting.",
+				Server()->ClientName(AuthedID), pDisplayName, Secs);
+			Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "votemute", aBuf);
+		}
+	}
+	else // no free slot found
+		Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "votemute", "vote mute array is full");
 }
 
 void CGameContext::Mute(IConsole::IResult *pResult, NETADDR *Addr, int Secs,
@@ -357,6 +394,9 @@ void CGameContext::Mute(IConsole::IResult *pResult, NETADDR *Addr, int Secs,
 {
 	char aBuf[128];
 	int Found = 0;
+
+	Addr->port = 0; // ignore port number for mutes
+
 	// find a matching mute for this ip, update expiration time if found
 	for (int i = 0; i < m_NumMutes; i++)
 	{
@@ -381,12 +421,33 @@ void CGameContext::Mute(IConsole::IResult *pResult, NETADDR *Addr, int Secs,
 	}
 	if (Found)
 	{
-		str_format(aBuf, sizeof aBuf, "'%s' has been muted for %d seconds.",
-				pDisplayName, Secs);
-		SendChat(-1, CHAT_ALL, aBuf);
+		if (pDisplayName)
+		{
+			str_format(aBuf, sizeof aBuf, "'%s' has been muted for %d seconds.",
+					pDisplayName, Secs);
+			SendChat(-1, CHAT_ALL, aBuf);
+		}
 	}
 	else // no free slot found
 		Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "mutes", "mute array is full");
+}
+
+void CGameContext::ConVoteMute(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	int Victim = pResult->GetVictim();
+
+	if(Victim < 0 || Victim > MAX_CLIENTS || !pSelf->m_apPlayers[Victim])
+	{
+		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "votemute", "Client ID not found");
+		return;
+	}
+
+	NETADDR Addr;
+	pSelf->Server()->GetClientAddr(Victim, &Addr);
+
+	pSelf->VoteMute(pResult, &Addr, clamp(pResult->GetInteger(1), 1, 86400),
+		pSelf->Server()->ClientName(Victim), pResult->m_ClientID);
 }
 
 void CGameContext::ConMute(IConsole::IResult *pResult, void *pUserData)
@@ -403,11 +464,17 @@ void CGameContext::ConMuteID(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *) pUserData;
 	int Victim = pResult->GetVictim();
+	
+	if (Victim < 0 || Victim > MAX_CLIENTS || !pSelf->m_apPlayers[Victim])
+	{
+		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "muteid", "Client id not found.");
+		return;
+	}
 
 	NETADDR Addr;
 	pSelf->Server()->GetClientAddr(Victim, &Addr);
 
-	pSelf->Mute(pResult, &Addr, clamp(pResult->GetInteger(0), 1, 86400),
+	pSelf->Mute(pResult, &Addr, clamp(pResult->GetInteger(1), 1, 86400),
 			pSelf->Server()->ClientName(Victim));
 }
 
@@ -421,8 +488,7 @@ void CGameContext::ConMuteIP(IConsole::IResult *pResult, void *pUserData)
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "mutes",
 				"Invalid network address to mute");
 	}
-	pSelf->Mute(pResult, &Addr, clamp(pResult->GetInteger(1), 1, 86400),
-			pResult->GetString(0));
+	pSelf->Mute(pResult, &Addr, clamp(pResult->GetInteger(1), 1, 86400), NULL);
 }
 
 // unmute by mute list index
@@ -448,6 +514,16 @@ void CGameContext::ConUnmute(IConsole::IResult *pResult, void *pUserData)
 void CGameContext::ConMutes(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *) pUserData;
+	
+	if (pSelf->m_NumMutes <= 0)
+	{
+		// Just to make sure.
+		pSelf->m_NumMutes = 0;
+		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "mutes",
+			"There are no active mutes.");
+		return;
+	}
+	
 	char aIpBuf[64];
 	char aBuf[128];
 	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "mutes",
@@ -467,6 +543,33 @@ void CGameContext::ConMutes(IConsole::IResult *pResult, void *pUserData)
 	}
 }
 
+void CGameContext::ConModerate(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	if (!CheckClientID(pResult->m_ClientID))
+		return;
+
+	bool HadModerator = pSelf->PlayerModerating();
+
+	CPlayer *pPlayer = pSelf->m_apPlayers[pResult->m_ClientID];
+	pPlayer->m_Moderating = !pPlayer->m_Moderating;
+
+	char aBuf[256];
+
+	if(!HadModerator && pPlayer->m_Moderating)
+		str_format(aBuf, sizeof(aBuf), "Server kick/spec votes will now be actively moderated.");
+
+	if(!pSelf->PlayerModerating())
+		str_format(aBuf, sizeof(aBuf), "Server kick/spec votes are no longer actively moderated.");
+
+	pSelf->SendChat(-1, CHAT_ALL, aBuf, 0);
+	
+	if(pPlayer->m_Moderating)
+		pSelf->SendChatTarget(pResult->m_ClientID, "Active moderator mode enabled for you.");
+	else
+		pSelf->SendChatTarget(pResult->m_ClientID, "Active moderator mode disabled for you.");
+}
+
 void CGameContext::ConList(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
@@ -478,6 +581,21 @@ void CGameContext::ConList(IConsole::IResult *pResult, void *pUserData)
 		pSelf->List(ClientID, pResult->GetString(0));
 	else
 		pSelf->List(ClientID, &zerochar);
+}
+
+
+void CGameContext::ConSetDDRTeam(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	CGameControllerDDRace *pController = (CGameControllerDDRace *)pSelf->m_pController;
+
+	int Target = pResult->GetVictim();
+	int Team = pResult->GetInteger(1);
+
+	if(pController->m_Teams.m_Core.Team(Target) && pController->m_Teams.GetDDRaceState(pSelf->m_apPlayers[Target]) == DDRACE_STARTED)
+		pSelf->m_apPlayers[Target]->KillCharacter(WEAPON_SELF);
+
+	pController->m_Teams.SetForceCharacterTeam(pResult->GetVictim(), Team);
 }
 
 void CGameContext::ConFreezeHammer(IConsole::IResult *pResult, void *pUserData)
@@ -531,4 +649,10 @@ void CGameContext::ConToggleFly(IConsole::IResult *pResult, void *pUserData)
 		pChr->m_Fly = !pChr->m_Fly;
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "info", (pChr->m_Fly) ? "Fly enabled" : "Fly disabled");
 	}
+}
+void CGameContext::ConVoteNo(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	
+	pSelf->ForceVote(pResult->m_ClientID, false);
 }

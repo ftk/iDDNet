@@ -24,8 +24,15 @@ class CChat : public CComponent
 		int m_NameColor;
 		char m_aName[64];
 		char m_aText[512];
+		bool m_Friend;
 		bool m_Highlighted;
+
+		int m_TextContainerIndex;
+		float m_TextYOffset;
 	};
+
+	bool m_PrevScoreBoardShowed;
+	bool m_PrevShowChat;
 
 	CLine m_aLines[MAX_LINES];
 	int m_CurrentLine;
@@ -70,6 +77,7 @@ class CChat : public CComponent
 	static void ConSayTeam(IConsole::IResult *pResult, void *pUserData);
 	static void ConChat(IConsole::IResult *pResult, void *pUserData);
 	static void ConShowChat(IConsole::IResult *pResult, void *pUserData);
+	static void ConEcho(IConsole::IResult *pResult, void *pUserData);
 
 	bool LineShouldHighlight(const char *pLine, const char *pName);
 
@@ -86,10 +94,12 @@ public:
 
 	void SayChat(const char *pLine);
 
+	virtual void OnWindowResize();
 	virtual void OnReset();
 	virtual void OnConsoleInit();
 	virtual void OnStateChange(int NewState, int OldState);
 	virtual void OnRender();
+	virtual void OnPrepareLines();
 	virtual void OnRelease();
 	virtual void OnMessage(int MsgType, void *pRawMsg);
 	virtual bool OnInput(IInput::CEvent Event);

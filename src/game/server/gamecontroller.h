@@ -6,13 +6,13 @@
 #include <base/vmath.h>
 
 class CDoor;
-#ifdef _MSC_VER
+#if !defined(_MSC_VER) || _MSC_VER >= 1600
+#include <stdint.h>
+#else
 typedef __int32 int32_t;
 typedef unsigned __int32 uint32_t;
 typedef __int64 int64_t;
 typedef unsigned __int64 uint64_t;
-#else
-#include <stdint.h>
 #endif
 
 /*
@@ -22,7 +22,7 @@ typedef unsigned __int64 uint64_t;
 */
 class IGameController
 {
-	friend class CSaveTeam; // need acces to GameServer() and Server()
+	friend class CSaveTeam; // need access to GameServer() and Server()
 
 	vec2 m_aaSpawnPoints[3][64];
 	int m_aNumSpawnPoints[3];
@@ -51,7 +51,6 @@ protected:
 
 	float EvaluateSpawnPos(CSpawnEval *pEval, vec2 Pos);
 	void EvaluateSpawnType(CSpawnEval *pEval, int Type);
-	bool EvaluateSpawn(class CPlayer *pP, vec2 *pPos);
 
 	//void CycleMap();
 	void ResetGame();

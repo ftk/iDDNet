@@ -12,9 +12,10 @@
 
 #include "sound.h"
 
-extern "C" { // wavpack
-	#include <engine/external/wavpack/wavpack.h>
+extern "C"
+{
 	#include <opusfile.h>
+	#include <wavpack.h>
 }
 #include <math.h>
 
@@ -77,9 +78,9 @@ static int m_NextVoice = 0;
 static int *m_pMixBuffer = 0;	// buffer only used by the thread callback function
 static unsigned m_MaxFrames = 0;
 
-static const void *ms_pWVBuffer = 0x0;
-static int ms_WVBufferPosition = 0;
-static int ms_WVBufferSize = 0;
+static const void *s_pWVBuffer = 0x0;
+static int s_WVBufferPosition = 0;
+static int s_WVBufferSize = 0;
 
 const int DefaultDistance = 1500;
 
@@ -106,7 +107,7 @@ static void Mix(short *pFinalOut, unsigned Frames)
 	mem_zero(m_pMixBuffer, m_MaxFrames*2*sizeof(int));
 	Frames = min(Frames, m_MaxFrames);
 
-	// aquire lock while we are mixing
+	// acquire lock while we are mixing
 	lock_wait(m_SoundLock);
 
 	MasterVol = m_SoundVolume;
@@ -215,8 +216,8 @@ static void Mix(short *pFinalOut, unsigned Frames)
 					}
 
 					{
-						Lvol *= FalloffX;
-						Rvol *= FalloffY;
+						Lvol *= FalloffX * FalloffY;
+						Rvol *= FalloffX * FalloffY;
 					}
 				}
 				else
@@ -310,7 +311,9 @@ int CSound::Init()
 	Format.userdata = NULL; // ignore_convention
 
 	// Open the audio device and start playing sound!
-	if(SDL_OpenAudio(&Format, &FormatOut) < 0)
+	m_Device = SDL_OpenAudioDevice(NULL, 0, &Format, &FormatOut, SDL_AUDIO_ALLOW_FORMAT_CHANGE | SDL_AUDIO_ALLOW_FREQUENCY_CHANGE);
+
+	if (m_Device == 0)
 	{
 		dbg_msg("client/sound", "unable to open audio: %s", SDL_GetError());
 		return -1;
@@ -319,9 +322,9 @@ int CSound::Init()
 		dbg_msg("client/sound", "sound init successful");
 
 	m_MaxFrames = FormatOut.samples*2;
-	m_pMixBuffer = (int *)mem_alloc(m_MaxFrames*2*sizeof(int), 1);
+	m_pMixBuffer = (int *)calloc(m_MaxFrames * 2, sizeof(int));
 
-	SDL_PauseAudio(0);
+	SDL_PauseAudioDevice(m_Device, 0);
 
 	m_SoundEnabled = 1;
 	Update(); // update the volume
@@ -348,14 +351,16 @@ int CSound::Update()
 
 int CSound::Shutdown()
 {
-	SDL_CloseAudio();
+	for(unsigned SampleID = 0; SampleID < NUM_SAMPLES; SampleID++)
+	{
+		UnloadSample(SampleID);
+	}
+
+	SDL_CloseAudioDevice(m_Device);
 	SDL_QuitSubSystem(SDL_INIT_AUDIO);
 	lock_destroy(m_SoundLock);
-	if(m_pMixBuffer)
-	{
-		mem_free(m_pMixBuffer);
-		m_pMixBuffer = 0;
-	}
+	free(m_pMixBuffer);
+	m_pMixBuffer = 0;
 	return 0;
 }
 
@@ -383,11 +388,11 @@ void CSound::RateConvert(int SampleID)
 
 	// allocate new data
 	NumFrames = (int)((pSample->m_NumFrames/(float)pSample->m_Rate)*m_MixingRate);
-	pNewData = (short *)mem_alloc(NumFrames*pSample->m_Channels*sizeof(short), 1);
+	pNewData = (short *)calloc(NumFrames * pSample->m_Channels, sizeof(short));
 
 	for(int i = 0; i < NumFrames; i++)
 	{
-		// resample TODO: this should be done better, like linear atleast
+		// resample TODO: this should be done better, like linear at least
 		float a = i/(float)NumFrames;
 		int f = (int)(a*pSample->m_NumFrames);
 		if(f >= pSample->m_NumFrames)
@@ -404,18 +409,10 @@ void CSound::RateConvert(int SampleID)
 	}
 
 	// free old data and apply new
-	mem_free(pSample->m_pData);
+	free(pSample->m_pData);
 	pSample->m_pData = pNewData;
 	pSample->m_NumFrames = NumFrames;
 	pSample->m_Rate = m_MixingRate;
-}
-
-int CSound::ReadData(void *pBuffer, int Size)
-{
-	int ChunkSize = min(Size, ms_WVBufferSize - ms_WVBufferPosition);
-	mem_copy(pBuffer, (const char *)ms_pWVBuffer + ms_WVBufferPosition, ChunkSize);
-	ms_WVBufferPosition += ChunkSize;
-	return ChunkSize;
 }
 
 int CSound::DecodeOpus(int SampleID, const void *pData, unsigned DataSize)
@@ -439,7 +436,7 @@ int CSound::DecodeOpus(int SampleID, const void *pData, unsigned DataSize)
 			return -1;
 		}
 
-		pSample->m_pData = (short *)mem_alloc(NumSamples * sizeof(short) * NumChannels, 1);
+		pSample->m_pData = (short *)calloc(NumSamples * NumChannels, sizeof(short));
 
 		int Read;
 		int Pos = 0;
@@ -464,6 +461,46 @@ int CSound::DecodeOpus(int SampleID, const void *pData, unsigned DataSize)
 	return SampleID;
 }
 
+static int ReadDataOld(void *pBuffer, int Size)
+{
+	int ChunkSize = min(Size, s_WVBufferSize - s_WVBufferPosition);
+	mem_copy(pBuffer, (const char *)s_pWVBuffer + s_WVBufferPosition, ChunkSize);
+	s_WVBufferPosition += ChunkSize;
+	return ChunkSize;
+}
+
+#if defined(CONF_WAVPACK_OPEN_FILE_INPUT_EX)
+static int ReadData(void *pId, void *pBuffer, int Size)
+{
+	(void)pId;
+	return ReadDataOld(pBuffer, Size);
+}
+
+static int ReturnFalse(void *pId)
+{
+	(void)pId;
+	return 0;
+}
+
+static unsigned int GetPos(void *pId)
+{
+	(void)pId;
+	return s_WVBufferPosition;
+}
+
+static unsigned int GetLength(void *pId)
+{
+	(void)pId;
+	return s_WVBufferSize;
+}
+
+static int PushBackByte(void *pId, int Char)
+{
+	s_WVBufferPosition -= 1;
+	return 0;
+}
+#endif
+
 int CSound::DecodeWV(int SampleID, const void *pData, unsigned DataSize)
 {
 	if(SampleID == -1 || SampleID >= NUM_SAMPLES)
@@ -473,12 +510,22 @@ int CSound::DecodeWV(int SampleID, const void *pData, unsigned DataSize)
 	char aError[100];
 	WavpackContext *pContext;
 
-	ms_pWVBuffer = pData;
-	ms_WVBufferSize = DataSize;
-	ms_WVBufferPosition = 0;
+	s_pWVBuffer = pData;
+	s_WVBufferSize = DataSize;
+	s_WVBufferPosition = 0;
 
-	pContext = WavpackOpenFileInput(ReadData, aError);
-	if (pContext)
+#if defined(CONF_WAVPACK_OPEN_FILE_INPUT_EX)
+	WavpackStreamReader Callback = {0};
+	Callback.can_seek = ReturnFalse;
+	Callback.get_length = GetLength;
+	Callback.get_pos = GetPos;
+	Callback.push_back_byte = PushBackByte;
+	Callback.read_bytes = ReadData;
+	pContext = WavpackOpenFileInputEx(&Callback, (void *)1, 0, aError, 0, 0);
+#else
+	pContext = WavpackOpenFileInput(ReadDataOld, aError);
+#endif
+	if(pContext)
 	{
 		int NumSamples = WavpackGetNumSamples(pContext);
 		int BitsPerSample = WavpackGetBitsPerSample(pContext);
@@ -503,17 +550,17 @@ int CSound::DecodeWV(int SampleID, const void *pData, unsigned DataSize)
 			return -1;
 		}
 
-		int *pBuffer = (int *)mem_alloc(4*NumSamples*NumChannels, 1);
+		int *pBuffer = (int *)calloc(NumSamples * NumChannels, sizeof(int));
 		WavpackUnpackSamples(pContext, pBuffer, NumSamples); // TODO: check return value
 		pSrc = pBuffer;
 
-		pSample->m_pData = (short *)mem_alloc(2*NumSamples*NumChannels, 1);
+		pSample->m_pData = (short *)calloc(NumSamples * NumChannels, sizeof(short));
 		pDst = pSample->m_pData;
 
 		for (i = 0; i < NumSamples*NumChannels; i++)
 			*pDst++ = (short)*pSrc++;
 
-		mem_free(pBuffer);
+		free(pBuffer);
 
 		pSample->m_NumFrames = NumSamples;
 		pSample->m_LoopStart = -1;
@@ -532,8 +579,10 @@ int CSound::DecodeWV(int SampleID, const void *pData, unsigned DataSize)
 int CSound::LoadOpus(const char *pFilename)
 {
 	// don't waste memory on sound when we are stress testing
+#ifdef CONF_DEBUG
 	if(g_Config.m_DbgStress)
 		return -1;
+#endif
 
 	// no need to load sound when we are running with no sound
 	if(!m_SoundEnabled)
@@ -542,35 +591,32 @@ int CSound::LoadOpus(const char *pFilename)
 	if(!m_pStorage)
 		return -1;
 
-	ms_File = m_pStorage->OpenFile(pFilename, IOFLAG_READ, IStorage::TYPE_ALL);
-	if(!ms_File)
+	IOHANDLE File = m_pStorage->OpenFile(pFilename, IOFLAG_READ, IStorage::TYPE_ALL);
+	if(!File)
 	{
 		dbg_msg("sound/opus", "failed to open file. filename='%s'", pFilename);
 		return -1;
 	}
 
 	int SampleID = AllocID();
-	if(SampleID < 0)
-		return -1;
-
-	// read the whole file into memory
-	int DataSize = io_length(ms_File);
-
-	if(DataSize <= 0)
+	int DataSize = io_length(File);
+	if(SampleID < 0 || DataSize <= 0)
 	{
-		io_close(ms_File);
+		io_close(File);
+		File = NULL;
 		dbg_msg("sound/opus", "failed to open file. filename='%s'", pFilename);
 		return -1;
 	}
 
+	// read the whole file into memory
 	char *pData = new char[DataSize];
-	io_read(ms_File, pData, DataSize);
+	io_read(File, pData, DataSize);
 
 	SampleID = DecodeOpus(SampleID, pData, DataSize);
 
 	delete[] pData;
-	io_close(ms_File);
-	ms_File = NULL;
+	io_close(File);
+	File = NULL;
 
 	if(g_Config.m_Debug)
 		dbg_msg("sound/opus", "loaded %s", pFilename);
@@ -583,8 +629,10 @@ int CSound::LoadOpus(const char *pFilename)
 int CSound::LoadWV(const char *pFilename)
 {
 	// don't waste memory on sound when we are stress testing
+#ifdef CONF_DEBUG
 	if(g_Config.m_DbgStress)
 		return -1;
+#endif
 
 	// no need to load sound when we are running with no sound
 	if(!m_SoundEnabled)
@@ -593,35 +641,32 @@ int CSound::LoadWV(const char *pFilename)
 	if(!m_pStorage)
 		return -1;
 
-	ms_File = m_pStorage->OpenFile(pFilename, IOFLAG_READ, IStorage::TYPE_ALL);
-	if(!ms_File)
+	IOHANDLE File = m_pStorage->OpenFile(pFilename, IOFLAG_READ, IStorage::TYPE_ALL);
+	if(!File)
 	{
 		dbg_msg("sound/wv", "failed to open file. filename='%s'", pFilename);
 		return -1;
 	}
 
 	int SampleID = AllocID();
-	if(SampleID < 0)
-		return -1;
-
-	// read the whole file into memory
-	int DataSize = io_length(ms_File);
-
-	if(DataSize <= 0)
+	int DataSize = io_length(File);
+	if(SampleID < 0 || DataSize <= 0)
 	{
-		io_close(ms_File);
+		io_close(File);
+		File = NULL;
 		dbg_msg("sound/wv", "failed to open file. filename='%s'", pFilename);
 		return -1;
 	}
 
+	// read the whole file into memory
 	char *pData = new char[DataSize];
-	io_read(ms_File, pData, DataSize);
+	io_read(File, pData, DataSize);
 
 	SampleID = DecodeWV(SampleID, pData, DataSize);
 
 	delete[] pData;
-	io_close(ms_File);
-	ms_File = NULL;
+	io_close(File);
+	File = NULL;
 
 	if(g_Config.m_Debug)
 		dbg_msg("sound/wv", "loaded %s", pFilename);
@@ -633,8 +678,10 @@ int CSound::LoadWV(const char *pFilename)
 int CSound::LoadOpusFromMem(const void *pData, unsigned DataSize, bool FromEditor = false)
 {
 	// don't waste memory on sound when we are stress testing
+#ifdef CONF_DEBUG
 	if(g_Config.m_DbgStress)
 		return -1;
+#endif
 
 	// no need to load sound when we are running with no sound
 	if(!m_SoundEnabled && !FromEditor)
@@ -656,8 +703,10 @@ int CSound::LoadOpusFromMem(const void *pData, unsigned DataSize, bool FromEdito
 int CSound::LoadWVFromMem(const void *pData, unsigned DataSize, bool FromEditor = false)
 {
 	// don't waste memory on sound when we are stress testing
+#ifdef CONF_DEBUG
 	if(g_Config.m_DbgStress)
 		return -1;
+#endif
 
 	// no need to load sound when we are running with no sound
 	if(!m_SoundEnabled && !FromEditor)
@@ -682,7 +731,7 @@ void CSound::UnloadSample(int SampleID)
 		return;
 
 	Stop(SampleID);
-	mem_free(m_aSamples[SampleID].m_pData);
+	free(m_aSamples[SampleID].m_pData);
 
 	m_aSamples[SampleID].m_pData = 0x0;
 }
@@ -923,7 +972,5 @@ void CSound::StopVoice(CVoiceHandle Voice)
 	lock_unlock(m_SoundLock);
 }
 
-
-IOHANDLE CSound::ms_File = 0;
 
 IEngineSound *CreateEngineSound() { return new CSound; }

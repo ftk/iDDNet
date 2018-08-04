@@ -10,11 +10,11 @@ void CHeap::NewChunk()
 	char *pMem;
 
 	// allocate memory
-	pMem = (char*)mem_alloc(sizeof(CChunk)+CHUNK_SIZE, 1);
+	pMem = (char *)malloc(sizeof(CChunk) + CHUNK_SIZE);
 	if(!pMem)
 		return;
 
-	// the chunk structure is located in the begining of the chunk
+	// the chunk structure is located in the beginning of the chunk
 	// init it and return the chunk
 	pChunk = (CChunk*)pMem;
 	pChunk->m_pMemory = (char*)(pChunk+1);
@@ -68,7 +68,7 @@ void CHeap::Clear()
 	while(pChunk)
 	{
 		pNext = pChunk->m_pNext;
-		mem_free(pChunk);
+		free(pChunk);
 		pChunk = pNext;
 	}
 

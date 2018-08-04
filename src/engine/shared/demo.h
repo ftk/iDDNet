@@ -3,6 +3,8 @@
 #ifndef ENGINE_SHARED_DEMO_H
 #define ENGINE_SHARED_DEMO_H
 
+#include <base/hash.h>
+
 #include <engine/demo.h>
 #include <engine/shared/protocol.h>
 
@@ -19,19 +21,21 @@ class CDemoRecorder : public IDemoRecorder
 	class CSnapshotDelta *m_pSnapshotDelta;
 	int m_NumTimelineMarkers;
 	int m_aTimelineMarkers[MAX_TIMELINE_MARKERS];
-	bool m_DelayedMapData;
+	bool m_NoMapData;
 	unsigned int m_MapSize;
 	unsigned char *m_pMapData;
-	bool m_RemoveChat;
+
+	DEMOFUNC_FILTER m_pfnFilter;
+	void *m_pUser;
 
 	void WriteTickMarker(int Tick, int Keyframe);
 	void Write(int Type, const void *pData, int Size);
 public:
-	CDemoRecorder(class CSnapshotDelta *pSnapshotDelta, bool DelayedMapData = false);
+	CDemoRecorder(class CSnapshotDelta *pSnapshotDelta, bool NoMapData = false);
 	CDemoRecorder() {}
 
-	int Start(class IStorage *pStorage, class IConsole *pConsole, const char *pFilename, const char *pNetversion, const char *pMap, unsigned MapCrc, const char *pType, unsigned int MapSize = 0, unsigned char *pMapData = 0, bool RemoveChat = false);
-	int Stop(bool Finalize = false);
+	int Start(class IStorage *pStorage, class IConsole *pConsole, const char *pFilename, const char *pNetversion, const char *pMap, SHA256_DIGEST Sha256, unsigned MapCrc, const char *pType, unsigned int MapSize, unsigned char *pMapData, IOHANDLE MapFile = 0, DEMOFUNC_FILTER pfnFilter = 0, void *pUser = 0);
+	int Stop();
 	void AddDemoMarker();
 
 	void RecordSnapshot(int Tick, const void *pData, int Size);
@@ -75,6 +79,7 @@ public:
 	struct CMapInfo
 	{
 		char m_aName[128];
+		SHA256_DIGEST m_Sha256;
 		int m_Crc;
 		int m_Size;
 	};
@@ -156,7 +161,7 @@ class CDemoEditor : public IDemoEditor, public CDemoPlayer::IListener
 
 public:
 	virtual void Init(const char *pNetVersion, class CSnapshotDelta *pSnapshotDelta, class IConsole *pConsole, class IStorage *pStorage);
-	virtual void Slice(const char *pDemo, const char *pDst, int StartTick, int EndTick, bool RemoveChat);
+	virtual void Slice(const char *pDemo, const char *pDst, int StartTick, int EndTick, DEMOFUNC_FILTER pfnFilter, void *pUser);
 
 	virtual void OnDemoPlayerSnapshot(void *pData, int Size);
 	virtual void OnDemoPlayerMessage(void *pData, int Size);

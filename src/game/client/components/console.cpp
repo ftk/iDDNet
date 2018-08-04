@@ -4,11 +4,13 @@
 #include <base/tl/sorted_array.h>
 
 #include <math.h>
+#include <limits.h>
 
 #include <game/generated/client_data.h>
 
 #include <base/system.h>
 
+#include <engine/serverbrowser.h>
 #include <engine/shared/ringbuffer.h>
 #include <engine/shared/config.h>
 #include <engine/graphics.h>
@@ -47,6 +49,10 @@ CGameConsole::CInstance::CInstance(int Type)
 	m_CompletionRenderOffset = 0.0f;
 	m_ReverseTAB = false;
 
+	m_aUser[0] = '\0';
+	m_UserGot = false;
+	m_UsernameReq = false;
+
 	m_IsCommand = false;
 }
 
@@ -76,7 +82,18 @@ void CGameConsole::CInstance::ExecuteLine(const char *pLine)
 		if(m_pGameConsole->Client()->RconAuthed())
 			m_pGameConsole->Client()->Rcon(pLine);
 		else
-			m_pGameConsole->Client()->RconAuth("", pLine);
+		{
+			if(!m_UserGot && m_UsernameReq)
+			{
+				m_UserGot = true;
+				str_copy(m_aUser, pLine, sizeof m_aUser);
+			}
+			else
+			{
+				m_pGameConsole->Client()->RconAuth(m_aUser, pLine);
+				m_UserGot = false;
+			}
+		}
 	}
 }
 
@@ -130,7 +147,7 @@ void CGameConsole::CInstance::OnInput(IInput::CEvent Event)
 	{
 		if(Event.m_Key == KEY_RETURN || Event.m_Key == KEY_KP_ENTER)
 		{
-			if(m_Input.GetString()[0])
+			if(m_Input.GetString()[0] || (m_UsernameReq && !m_pGameConsole->Client()->RconAuthed() && !m_UserGot))
 			{
 				if(m_Type == CONSOLETYPE_LOCAL || m_pGameConsole->Client()->RconAuthed())
 				{
@@ -202,6 +219,14 @@ void CGameConsole::CInstance::OnInput(IInput::CEvent Event)
 			--m_BacklogActPage;
 			if(m_BacklogActPage < 0)
 				m_BacklogActPage = 0;
+		}
+		else if(Event.m_Key == KEY_HOME)
+		{
+			m_BacklogActPage = INT_MAX;
+		}
+		else if(Event.m_Key == KEY_END)
+		{
+			m_BacklogActPage = 0;
 		}
 		else if(Event.m_Key == KEY_LSHIFT)
 		{
@@ -318,8 +343,8 @@ void CGameConsole::PossibleCommandsRenderCallback(const char *pStr, void *pUser)
 		float tw = pInfo->m_pSelf->TextRender()->TextWidth(pInfo->m_Cursor.m_pFont, pInfo->m_Cursor.m_FontSize, pStr, -1);
 		pInfo->m_pSelf->Graphics()->TextureSet(-1);
 		pInfo->m_pSelf->Graphics()->QuadsBegin();
-			pInfo->m_pSelf->Graphics()->SetColor(229.0f/255.0f,185.0f/255.0f,4.0f/255.0f,0.85f);
-			pInfo->m_pSelf->RenderTools()->DrawRoundRect(pInfo->m_Cursor.m_X-3, pInfo->m_Cursor.m_Y, tw+5, pInfo->m_Cursor.m_FontSize+4, pInfo->m_Cursor.m_FontSize/3);
+		pInfo->m_pSelf->Graphics()->SetColor(229.0f/255.0f,185.0f/255.0f,4.0f/255.0f,0.85f);
+		pInfo->m_pSelf->RenderTools()->DrawRoundRect(pInfo->m_Cursor.m_X - 2.5f, pInfo->m_Cursor.m_Y - 4.f / 2.f, tw + 5.f, pInfo->m_Cursor.m_FontSize + 4.f, pInfo->m_Cursor.m_FontSize / 3.f);
 		pInfo->m_pSelf->Graphics()->QuadsEnd();
 
 		// scroll when out of sight
@@ -465,12 +490,22 @@ void CGameConsole::OnRender()
 		const char *pPrompt = "> ";
 		if(m_ConsoleType == CONSOLETYPE_REMOTE)
 		{
-			if(Client()->State() == IClient::STATE_ONLINE)
+			if(Client()->State() == IClient::STATE_LOADING || Client()->State() == IClient::STATE_ONLINE)
 			{
 				if(Client()->RconAuthed())
 					pPrompt = "rcon> ";
 				else
-					pPrompt = "ENTER PASSWORD> ";
+				{
+					if(pConsole->m_UsernameReq)
+					{
+						if(!pConsole->m_UserGot)
+							pPrompt = "Enter Username> ";
+						else
+							pPrompt = "Enter Password> ";
+					}
+					else
+						pPrompt = "Enter Password> ";
+				}
 			}
 			else
 				pPrompt = "NOT CONNECTED> ";
@@ -495,7 +530,7 @@ void CGameConsole::OnRender()
 		//hide rcon password
 		char aInputString[512];
 		str_copy(aInputString, pConsole->m_Input.GetString(Editing), sizeof(aInputString));
-		if(m_ConsoleType == CONSOLETYPE_REMOTE && Client()->State() == IClient::STATE_ONLINE && !Client()->RconAuthed())
+		if(m_ConsoleType == CONSOLETYPE_REMOTE && Client()->State() == IClient::STATE_ONLINE && !Client()->RconAuthed() && (pConsole->m_UserGot || !pConsole->m_UsernameReq))
 		{
 			for(int i = 0; i < pConsole->m_Input.GetLength(Editing); ++i)
 				aInputString[i] = '*';
@@ -608,12 +643,12 @@ void CGameConsole::OnRender()
 		char aBuf[128];
 		TextRender()->TextColor(1,1,1,1);
 		str_format(aBuf, sizeof(aBuf), Localize("-Page %d-"), pConsole->m_BacklogActPage+1);
-		TextRender()->Text(0, 10.0f, 0.0f, FontSize, aBuf, -1);
+		TextRender()->Text(0, 10.0f, FontSize / 2.f, FontSize, aBuf, -1);
 
 		// render version
 		str_format(aBuf, sizeof(aBuf), "v%s", GAME_VERSION);
 		float Width = TextRender()->TextWidth(0, FontSize, aBuf, -1);
-		TextRender()->Text(0, Screen.w-Width-10.0f, 0.0f, FontSize, aBuf, -1);
+		TextRender()->Text(0, Screen.w-Width-10.0f, FontSize / 2.f, FontSize, aBuf, -1);
 	}
 }
 
@@ -736,6 +771,20 @@ void CGameConsole::ClientConsolePrintCallback(const char *pStr, void *pUserData,
 	((CGameConsole *)pUserData)->m_LocalConsole.PrintLine(pStr, Highlighted);
 }
 
+void CGameConsole::ConConsolePageUp(IConsole::IResult *pResult, void *pUserData)
+{
+	CInstance *pConsole = ((CGameConsole *)pUserData)->CurrentConsole();
+	pConsole->m_BacklogActPage++;
+}
+
+void CGameConsole::ConConsolePageDown(IConsole::IResult *pResult, void *pUserData)
+{
+	CInstance *pConsole = ((CGameConsole *)pUserData)->CurrentConsole();
+	--pConsole->m_BacklogActPage;
+	if(pConsole->m_BacklogActPage < 0)
+		pConsole->m_BacklogActPage = 0;
+}
+
 void CGameConsole::ConchainConsoleOutputLevelUpdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData)
 {
 	pfnCallback(pResult, pCallbackUserData);
@@ -743,6 +792,15 @@ void CGameConsole::ConchainConsoleOutputLevelUpdate(IConsole::IResult *pResult, 
 	{
 		CGameConsole *pThis = static_cast<CGameConsole *>(pUserData);
 		pThis->Console()->SetPrintOutputLevel(pThis->m_PrintCBIndex, pResult->GetInteger(0));
+	}
+}
+
+void CGameConsole::RequireUsername(bool UsernameReq)
+{
+	if((m_RemoteConsole.m_UsernameReq = UsernameReq))
+	{
+		m_RemoteConsole.m_aUser[0] = '\0';
+		m_RemoteConsole.m_UserGot = false;
 	}
 }
 
@@ -772,9 +830,19 @@ void CGameConsole::OnConsoleInit()
 	Console()->Register("dump_local_console", "", CFGFLAG_CLIENT, ConDumpLocalConsole, this, "Dump local console");
 	Console()->Register("dump_remote_console", "", CFGFLAG_CLIENT, ConDumpRemoteConsole, this, "Dump remote console");
 
+	Console()->Register("console_page_up", "", CFGFLAG_CLIENT, ConConsolePageUp, this, "Previous page in console");
+	Console()->Register("console_page_down", "", CFGFLAG_CLIENT, ConConsolePageDown, this, "Next page in console");
+
 	Console()->Chain("console_output_level", ConchainConsoleOutputLevelUpdate, this);
 }
 
 void CGameConsole::OnStateChange(int NewState, int OldState)
 {
+	if(OldState == IClient::STATE_ONLINE && NewState < IClient::STATE_LOADING)
+	{
+		m_RemoteConsole.m_UserGot = false;
+		m_RemoteConsole.m_aUser[0] = '\0';
+		m_RemoteConsole.m_Input.Clear();
+		m_RemoteConsole.m_UsernameReq = false;
+	}
 }

@@ -12,6 +12,7 @@ class CGameTeams
 	bool m_TeeFinished[MAX_CLIENTS];
 	bool m_TeamLocked[MAX_CLIENTS];
 	bool m_IsSaving[MAX_CLIENTS];
+	uint64_t m_Invited[MAX_CLIENTS];
 
 	class CGameContext * m_pGameContext;
 
@@ -61,7 +62,7 @@ public:
 
 	int Count(int Team) const;
 
-	//need to be very carefull using this method
+	//need to be very careful using this method
 	void SetForceCharacterTeam(int id, int Team);
 	void ForceLeaveTeam(int id);
 
@@ -69,6 +70,8 @@ public:
 
 	void SendTeamsState(int Cid);
 	void SetTeamLock(int Team, bool Lock);
+	void ResetInvited(int Team);
+	void SetClientInvited(int Team, int ClientID, bool Invited);
 
 	int m_LastChat[MAX_CLIENTS];
 
@@ -77,7 +80,6 @@ public:
 	float *GetCpCurrent(CPlayer* Player);
 	void SetDDRaceState(CPlayer* Player, int DDRaceState);
 	void SetStartTime(CPlayer* Player, int StartTime);
-	void SetRefreshTime(CPlayer* Player, int RefreshTime);
 	void SetCpActive(CPlayer* Player, int CpActive);
 	void OnTeamFinish(CPlayer** Players, unsigned int Size);
 	void OnFinish(CPlayer* Player);
@@ -99,6 +101,11 @@ public:
 			return false;
 
 		return m_TeamLocked[Team];
+	}
+
+	bool IsInvited(int Team, int ClientID)
+	{
+		return m_Invited[Team] & 1LL << ClientID;
 	}
 
 	void SetFinished(int ClientID, bool finished)

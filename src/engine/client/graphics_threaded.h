@@ -1,6 +1,12 @@
-#pragma once
+#ifndef ENGINE_CLIENT_GRAPHICS_THREADED_H
+#define ENGINE_CLIENT_GRAPHICS_THREADED_H
 
 #include <engine/graphics.h>
+
+#include <vector>
+
+#define CMD_BUFFER_DATA_BUFFER_SIZE 1024*1024*2
+#define CMD_BUFFER_CMD_BUFFER_SIZE 1024*256
 
 class CCommandBuffer
 {
@@ -51,6 +57,7 @@ public:
 	enum
 	{
 		MAX_TEXTURES=1024*4,
+		MAX_VERTICES=32*1024,
 	};
 
 	enum
@@ -59,6 +66,7 @@ public:
 		CMDGROUP_CORE = 0, // commands that everyone has to implement
 		CMDGROUP_PLATFORM_OPENGL = 10000, // commands specific to a platform
 		CMDGROUP_PLATFORM_SDL = 20000,
+		CMDGROUP_PLATFORM_OPENGL3_3 = 30000,
 
 		//
 		CMD_NOP = CMDGROUP_CORE,
@@ -66,7 +74,7 @@ public:
 		//
 		CMD_RUNBUFFER,
 
-		// syncronization
+		// synchronization
 		CMD_SIGNAL,
 
 		// texture commands
@@ -77,7 +85,30 @@ public:
 		// rendering
 		CMD_CLEAR,
 		CMD_RENDER,
+		
+		//opengl 3.3 commands
+		CMD_CREATE_BUFFER_OBJECT, // create vbo
+		CMD_RECREATE_BUFFER_OBJECT, // recreate vbo
+		CMD_UPDATE_BUFFER_OBJECT, // update vbo
+		CMD_COPY_BUFFER_OBJECT, // copy vbo to another
+		CMD_DELETE_BUFFER_OBJECT, // delete vbo
 
+		CMD_CREATE_BUFFER_CONTAINER, // create vao
+		CMD_DELETE_BUFFER_CONTAINER, // delete vao
+		CMD_UPDATE_BUFFER_CONTAINER, // update vao
+
+		CMD_INDICES_REQUIRED_NUM_NOTIFY, // create indices that are required
+
+		CMD_RENDER_TILE_LAYER, // render a tilelayer
+		CMD_RENDER_BORDER_TILE, // render one tile multiple times
+		CMD_RENDER_BORDER_TILE_LINE, // render an amount of tiles multiple times
+		CMD_RENDER_QUAD_LAYER, // render a quad layer
+		CMD_RENDER_TEXT, // render text
+		CMD_RENDER_TEXT_STREAM, // render text stream
+		CMD_RENDER_QUAD_CONTAINER, // render a quad buffer container
+		CMD_RENDER_QUAD_CONTAINER_SPRITE, // render a quad buffer container as sprite
+		CMD_RENDER_QUAD_CONTAINER_SPRITE_MULTIPLE, // render a quad buffer container as sprite multiple times
+		
 		// swap
 		CMD_SWAP,
 
@@ -123,16 +154,11 @@ public:
 		WRAP_CLAMP,
 	};
 
-	struct SPoint { float x, y, z; };
-	struct STexCoord { float u, v; };
-	struct SColor { float r, g, b, a; };
-
-	struct SVertex
-	{
-		SPoint m_Pos;
-		STexCoord m_Tex;
-		SColor m_Color;
-	};
+	typedef GL_SPoint SPoint;
+	typedef GL_STexCoord STexCoord;
+	typedef GL_SColorf SColorf;
+	typedef GL_SColor SColor;
+	typedef GL_SVertex SVertex;
 
 	struct SCommand
 	{
@@ -161,7 +187,7 @@ public:
 	struct SCommand_Clear : public SCommand
 	{
 		SCommand_Clear() : SCommand(CMD_CLEAR) {}
-		SColor m_Color;
+		SColorf m_Color;
 	};
 
 	struct SCommand_Signal : public SCommand
@@ -183,6 +209,227 @@ public:
 		unsigned m_PrimType;
 		unsigned m_PrimCount;
 		SVertex *m_pVertices; // you should use the command buffer data to allocate vertices for this command
+	};
+
+	struct SCommand_CreateBufferObject : public SCommand
+	{
+		SCommand_CreateBufferObject() : SCommand(CMD_CREATE_BUFFER_OBJECT) {}
+
+		int m_BufferIndex;
+
+		void *m_pUploadData;
+		size_t m_DataSize;
+	};
+
+
+	struct SCommand_RecreateBufferObject : public SCommand
+	{
+		SCommand_RecreateBufferObject() : SCommand(CMD_RECREATE_BUFFER_OBJECT) {}
+
+		int m_BufferIndex;
+
+		void *m_pUploadData;
+		size_t m_DataSize;
+	};
+
+	struct SCommand_UpdateBufferObject : public SCommand
+	{
+		SCommand_UpdateBufferObject() : SCommand(CMD_UPDATE_BUFFER_OBJECT) {}
+
+		int m_BufferIndex;
+
+		void *m_pOffset;
+		void *m_pUploadData;
+		size_t m_DataSize;
+	};
+
+	struct SCommand_CopyBufferObject : public SCommand
+	{
+		SCommand_CopyBufferObject() : SCommand(CMD_COPY_BUFFER_OBJECT) {}
+
+		int m_WriteBufferIndex;
+		int m_ReadBufferIndex;
+
+		size_t m_pReadOffset;
+		size_t m_pWriteOffset;
+		size_t m_CopySize;
+	};
+
+	struct SCommand_DeleteBufferObject : public SCommand
+	{
+		SCommand_DeleteBufferObject() : SCommand(CMD_DELETE_BUFFER_OBJECT) {}
+
+		int m_BufferIndex;
+	};
+
+	struct SCommand_CreateBufferContainer : public SCommand
+	{
+		SCommand_CreateBufferContainer() : SCommand(CMD_CREATE_BUFFER_CONTAINER) {}
+
+		int m_BufferContainerIndex;
+
+		int m_Stride;
+
+		int m_AttrCount;
+		SBufferContainerInfo::SAttribute* m_Attributes;
+	};
+
+	struct SCommand_UpdateBufferContainer : public SCommand
+	{
+		SCommand_UpdateBufferContainer() : SCommand(CMD_UPDATE_BUFFER_CONTAINER) {}
+
+		int m_BufferContainerIndex;
+
+		int m_Stride;
+
+		int m_AttrCount;
+		SBufferContainerInfo::SAttribute* m_Attributes;
+	};
+
+	struct SCommand_DeleteBufferContainer : public SCommand
+	{
+		SCommand_DeleteBufferContainer() : SCommand(CMD_DELETE_BUFFER_CONTAINER) {}
+
+		int m_BufferContainerIndex;
+		bool m_DestroyAllBO;
+	};
+
+	struct SCommand_IndicesRequiredNumNotify : public SCommand
+	{
+		SCommand_IndicesRequiredNumNotify() : SCommand(CMD_INDICES_REQUIRED_NUM_NOTIFY) {}
+
+		unsigned int m_RequiredIndicesNum;
+	};
+		
+	struct SCommand_RenderTileLayer : public SCommand
+	{
+		SCommand_RenderTileLayer() : SCommand(CMD_RENDER_TILE_LAYER) {}
+		SState m_State;
+		SColorf m_Color; //the color of the whole tilelayer -- already envelopped
+			
+		//the char offset of all indices that should be rendered, and the amount of renders
+		char** m_pIndicesOffsets;
+		unsigned int *m_pDrawCount;
+		
+		int m_IndicesDrawNum;
+		int m_BufferContainerIndex;
+		int m_LOD;
+	};
+	
+	struct SCommand_RenderBorderTile : public SCommand
+	{
+		SCommand_RenderBorderTile() : SCommand(CMD_RENDER_BORDER_TILE) {}
+		SState m_State;
+		SColorf m_Color; //the color of the whole tilelayer -- already envelopped
+		char *m_pIndicesOffset; // you should use the command buffer data to allocate vertices for this command
+		unsigned int m_DrawNum;
+		int m_BufferContainerIndex;
+		int m_LOD;
+		
+		float m_Offset[2];
+		float m_Dir[2];
+		int m_JumpIndex;
+	};
+	
+	struct SCommand_RenderBorderTileLine : public SCommand
+	{
+		SCommand_RenderBorderTileLine() : SCommand(CMD_RENDER_BORDER_TILE_LINE) {}
+		SState m_State;
+		SColorf m_Color; //the color of the whole tilelayer -- already envelopped
+		char *m_pIndicesOffset; // you should use the command buffer data to allocate vertices for this command
+		unsigned int m_IndexDrawNum;
+		unsigned int m_DrawNum;
+		int m_BufferContainerIndex;
+		int m_LOD;
+		
+		float m_Offset[2];
+		float m_Dir[2];
+	};
+
+	struct SCommand_RenderQuadLayer : public SCommand
+	{
+		SCommand_RenderQuadLayer() : SCommand(CMD_RENDER_QUAD_LAYER) {}
+		SState m_State;
+
+		int m_BufferContainerIndex;
+		SQuadRenderInfo* m_pQuadInfo;
+		int m_QuadNum;
+	};
+
+	struct SCommand_RenderText : public SCommand
+	{
+		SCommand_RenderText() : SCommand(CMD_RENDER_TEXT) {}
+		SState m_State;
+
+		int m_BufferContainerIndex;
+		int m_TextureSize;
+
+		int m_TextTextureIndex;
+		int m_TextOutlineTextureIndex;
+
+		int m_DrawNum;
+		float m_aTextColor[4];
+		float m_aTextOutlineColor[4];
+	};
+
+	struct SCommand_RenderTextStream : public SCommand
+	{
+		SCommand_RenderTextStream() : SCommand(CMD_RENDER_TEXT_STREAM) {}
+		SState m_State;
+		
+		SVertex *m_pVertices;
+		int m_QuadNum;
+
+		int m_TextureSize;
+
+		int m_TextTextureIndex;
+		int m_TextOutlineTextureIndex;
+
+		float m_aTextOutlineColor[4];
+	};
+
+	struct SCommand_RenderQuadContainer : public SCommand
+	{
+		SCommand_RenderQuadContainer() : SCommand(CMD_RENDER_QUAD_CONTAINER) {}
+		SState m_State;
+
+		int m_BufferContainerIndex;
+
+		unsigned int m_DrawNum;
+		void *m_pOffset;
+	};
+
+	struct SCommand_RenderQuadContainerAsSprite : public SCommand
+	{
+		SCommand_RenderQuadContainerAsSprite() : SCommand(CMD_RENDER_QUAD_CONTAINER_SPRITE) {}
+		SState m_State;
+
+		int m_BufferContainerIndex;
+
+		float m_Rotation;
+		SPoint m_Center;
+
+		SColorf m_VertexColor;
+
+		unsigned int m_DrawNum;
+		void *m_pOffset;
+	};
+
+	struct SCommand_RenderQuadContainerAsSpriteMultiple : public SCommand
+	{
+		SCommand_RenderQuadContainerAsSpriteMultiple() : SCommand(CMD_RENDER_QUAD_CONTAINER_SPRITE_MULTIPLE) {}
+		SState m_State;
+
+		int m_BufferContainerIndex;
+
+		IGraphics::SRenderSpriteInfo *m_pRenderInfo;
+
+		SPoint m_Center;
+		SColorf m_VertexColor;
+
+		unsigned int m_DrawNum;
+		unsigned int m_DrawCount;
+		void *m_pOffset;
 	};
 
 	struct SCommand_Screenshot : public SCommand
@@ -318,12 +565,11 @@ public:
 		INITFLAG_VSYNC = 2,
 		INITFLAG_RESIZABLE = 4,
 		INITFLAG_BORDERLESS = 8,
-		INITFLAG_HIGHDPI = 16,
 	};
 
 	virtual ~IGraphicsBackend() {}
 
-	virtual int Init(const char *pName, int *Screen, int *pWidth, int *pHeight, int FsaaSamples, int Flags, int *pDesktopWidth, int *pDesktopHeight) = 0;
+	virtual int Init(const char *pName, int *Screen, int *pWidth, int *pHeight, int FsaaSamples, int Flags, int *pDesktopWidth, int *pDesktopHeight, int *pCurrentWidth, int *pCurrentHeight, class IStorage *pStorage) = 0;
 	virtual int Shutdown() = 0;
 
 	virtual int MemoryUsage() const = 0;
@@ -344,6 +590,8 @@ public:
 	virtual void RunBuffer(CCommandBuffer *pBuffer) = 0;
 	virtual bool IsIdle() const = 0;
 	virtual void WaitForIdle() = 0;
+	
+	virtual bool IsOpenGL3_3() { return false; }
 };
 
 class CGraphics_Threaded : public IEngineGraphics
@@ -361,6 +609,7 @@ class CGraphics_Threaded : public IEngineGraphics
 
 	CCommandBuffer::SState m_State;
 	IGraphicsBackend *m_pBackend;
+	bool m_UseOpenGL3_3;
 
 	CCommandBuffer *m_apCommandBuffers[NUM_CMDBUFFERS];
 	CCommandBuffer *m_pCommandBuffer;
@@ -389,7 +638,55 @@ class CGraphics_Threaded : public IEngineGraphics
 	int m_FirstFreeTexture;
 	int m_TextureMemoryUsage;
 
-	void FlushVertices();
+	struct SVertexArrayInfo
+	{
+		SVertexArrayInfo() : m_FreeIndex(-1) {}
+		// keep a reference to them, so we can free their IDs
+		std::vector<int> m_AssociatedBufferObjectIndices;
+
+		int m_FreeIndex;
+	};
+	std::vector<SVertexArrayInfo> m_VertexArrayInfo;
+	int m_FirstFreeVertexArrayInfo;
+
+	std::vector<int> m_BufferObjectIndices;
+	int m_FirstFreeBufferObjectIndex;
+
+	struct SQuadContainer
+	{
+		SQuadContainer()
+		{
+			m_Quads.clear();
+			m_QuadBufferObjectIndex = m_QuadBufferContainerIndex = -1;
+			m_FreeIndex = -1;
+		}
+
+		struct SQuad
+		{
+			CCommandBuffer::SVertex m_aVertices[4];
+		};
+
+
+		std::vector<SQuad> m_Quads;
+
+		int m_QuadBufferObjectIndex;
+		int m_QuadBufferContainerIndex;
+
+		int m_FreeIndex;
+	};
+	std::vector<SQuadContainer> m_QuadContainers;
+	int m_FirstFreeQuadContainer;
+
+	struct SWindowResizeListener
+	{
+		SWindowResizeListener(WINDOW_RESIZE_FUNC pFunc, void *pUser) : m_pFunc(pFunc), m_pUser(pUser) {}
+		WINDOW_RESIZE_FUNC m_pFunc;
+		void *m_pUser;
+	};
+	std::vector<SWindowResizeListener> m_ResizeListeners;
+
+	void* AllocCommandBufferData(unsigned AllocSize);
+
 	void AddVertices(int Count);
 	void Rotate(const CCommandBuffer::SPoint &rCenter, CCommandBuffer::SVertex *pPoints, int NumPoints);
 
@@ -435,10 +732,20 @@ public:
 
 	virtual void QuadsBegin();
 	virtual void QuadsEnd();
+	virtual void TextQuadsBegin();
+	virtual void TextQuadsEnd(int TextureSize, int TextTextureIndex, int TextOutlineTextureIndex, float* pOutlineTextColor);
+	virtual void QuadsEndKeepVertices();
+	virtual void QuadsDrawCurrentVertices(bool KeepVertices = true);
 	virtual void QuadsSetRotation(float Angle);
 
 	virtual void SetColorVertex(const CColorVertex *pArray, int Num);
 	virtual void SetColor(float r, float g, float b, float a);
+
+	// go through all vertices and change their color (only works for quads)
+	virtual void ChangeColorOfCurrentQuadVertices(float r, float g, float b, float a);
+	virtual void ChangeColorOfQuadVertices(int QuadOffset, unsigned char r, unsigned char g, unsigned char b, unsigned char a);
+	
+	void SetColor(CCommandBuffer::SVertex *pVertex, int ColorIndex);
 
 	virtual void QuadsSetSubset(float TlU, float TlV, float BrU, float BrV);
 	virtual void QuadsSetSubsetFree(
@@ -450,6 +757,40 @@ public:
 	virtual void QuadsDrawFreeform(const CFreeformItem *pArray, int Num);
 	virtual void QuadsText(float x, float y, float Size, const char *pText);
 
+	virtual int CreateQuadContainer();
+	virtual void QuadContainerUpload(int ContainerIndex);
+	virtual void QuadContainerAddQuads(int ContainerIndex, CQuadItem *pArray, int Num);
+	virtual void QuadContainerAddQuads(int ContainerIndex, CFreeformItem *pArray, int Num);
+	virtual void QuadContainerReset(int ContainerIndex);
+	virtual void DeleteQuadContainer(int ContainerIndex);
+	virtual void RenderQuadContainer(int ContainerIndex, int QuadDrawNum);
+	virtual void RenderQuadContainer(int ContainerIndex, int QuadOffset, int QuadDrawNum);
+	virtual void RenderQuadContainerAsSprite(int ContainerIndex, int QuadOffset, float X, float Y, float ScaleX = 1.f, float ScaleY = 1.f);
+	virtual void RenderQuadContainerAsSpriteMultiple(int ContainerIndex, int QuadOffset, int DrawCount, SRenderSpriteInfo *pRenderInfo);
+
+	virtual void FlushVertices(bool KeepVertices = false);
+	virtual void FlushTextVertices(int TextureSize, int TextTextureIndex, int TextOutlineTextureIndex, float *pOutlineTextColor);
+
+	virtual void RenderTileLayer(int BufferContainerIndex, float *pColor, char **pOffsets, unsigned int *IndicedVertexDrawNum, size_t NumIndicesOffet);
+	virtual void RenderBorderTiles(int BufferContainerIndex, float *pColor, char *pIndexBufferOffset, float *pOffset, float *pDir, int JumpIndex, unsigned int DrawNum);
+	virtual void RenderBorderTileLines(int BufferContainerIndex, float *pColor, char *pIndexBufferOffset, float *pOffset, float *pDir, unsigned int IndexDrawNum, unsigned int RedrawNum);
+	virtual void RenderQuadLayer(int BufferContainerIndex, SQuadRenderInfo* pQuadInfo, int QuadNum);
+	virtual void RenderText(int BufferContainerIndex, int TextQuadNum, int TextureSize, int TextureTextIndex, int TextureTextOutlineIndex, float* pTextColor, float* pTextoutlineColor);
+
+	// opengl 3.3 functions
+	virtual int CreateBufferObject(size_t UploadDataSize, void* pUploadData);
+	virtual void RecreateBufferObject(int BufferIndex, size_t UploadDataSize, void* pUploadData);
+	virtual void UpdateBufferObject(int BufferIndex, size_t UploadDataSize, void* pUploadData, void* pOffset);
+	virtual void CopyBufferObject(int WriteBufferIndex, int ReadBufferIndex, size_t WriteOffset, size_t ReadOffset, size_t CopyDataSize);
+	virtual void DeleteBufferObject(int BufferIndex);
+
+	virtual int CreateBufferContainer(SBufferContainerInfo *pContainerInfo);
+	// destroying all buffer objects means, that all referenced VBOs are destroyed automatically, so the user does not need to save references to them
+	virtual void DeleteBufferContainer(int ContainerIndex, bool DestroyAllBO = true);
+	virtual void UpdateBufferContainer(int ContainerIndex, SBufferContainerInfo *pContainerInfo);
+	virtual void IndicesNumRequiredNotify(unsigned int RequiredIndicesCount);
+
+
 	virtual int GetNumScreens() const;
 	virtual void Minimize();
 	virtual void Maximize();
@@ -457,6 +798,7 @@ public:
 	virtual void SetWindowBordered(bool State);
 	virtual bool SetWindowScreen(int Index);
 	virtual void Resize(int w, int h);
+	virtual void AddWindowResizeListener(WINDOW_RESIZE_FUNC pFunc, void *pUser);
 	virtual int GetWindowScreen();
 
 	virtual int WindowActive();
@@ -478,10 +820,14 @@ public:
 	virtual int GetDesktopScreenWidth() { return m_DesktopScreenWidth; }
 	virtual int GetDesktopScreenHeight() { return m_DesktopScreenHeight; }
 
-	// syncronization
+	// synchronization
 	virtual void InsertSignal(semaphore *pSemaphore);
 	virtual bool IsIdle();
 	virtual void WaitForIdle();
+	
+	virtual bool IsBufferingEnabled() { return m_UseOpenGL3_3; }
 };
 
 extern IGraphicsBackend *CreateGraphicsBackend();
+
+#endif // ENGINE_CLIENT_GRAPHICS_THREADED_H

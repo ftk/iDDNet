@@ -42,7 +42,7 @@ unsigned char g_aDummyMapData[] = {
 };
 
 
-static SECURITY_TOKEN ToSecurityToken(const unsigned char* pData)
+static SECURITY_TOKEN ToSecurityToken(const unsigned char *pData)
 {
 	return (int)pData[0] | (pData[1] << 8) | (pData[2] << 16) | (pData[3] << 24);
 }
@@ -292,7 +292,7 @@ int CNetServer::TryAcceptClient(NETADDR &Addr, SECURITY_TOKEN SecurityToken, boo
 
 
 	if (VanillaAuth)
-		m_pfnNewClientNoAuth(Slot, true, m_UserPtr);
+		m_pfnNewClientNoAuth(Slot, m_UserPtr);
 	else
 		m_pfnNewClient(Slot, m_UserPtr);
 
@@ -390,7 +390,7 @@ void CNetServer::OnPreConnMsg(NETADDR &Addr, CNetPacketConstruct &Packet)
 			// Before we can send NETMSG_SNAPEMPTY, the client needs
 			// to load a map, otherwise it might crash. The map
 			// should be as small as is possible and directly available
-			// to the client. Therefor a dummy map is sent in the same
+			// to the client. Therefore a dummy map is sent in the same
 			// packet. To reduce the traffic we'll fallback to a default
 			// map if there are too many connection attempts at once.
 
@@ -447,7 +447,7 @@ void CNetServer::OnPreConnMsg(NETADDR &Addr, CNetPacketConstruct &Packet)
 		}
 		else
 		{
-			// accept client directy
+			// accept client directly
 			SendControl(Addr, NET_CTRLMSG_CONNECTACCEPT, NULL, 0, NET_SECURITY_TOKEN_UNSUPPORTED);
 
 			TryAcceptClient(Addr, NET_SECURITY_TOKEN_UNSUPPORTED);
@@ -515,7 +515,7 @@ void CNetServer::OnConnCtrlMsg(NETADDR &Addr, int ClientID, int ControlMsg, cons
 			// correct token
 			// try to accept client
 			if (g_Config.m_Debug)
-				dbg_msg("security", "client %d reconnect");
+				dbg_msg("security", "client %d reconnect", ClientID);
 
 			// reset netconn and process rejoin
 			m_aSlots[ClientID].m_Connection.Reset(true);
@@ -626,6 +626,11 @@ int CNetServer::Recv(CNetChunk *pChunk)
 				pChunk->m_Address = Addr;
 				pChunk->m_DataSize = m_RecvUnpacker.m_Data.m_DataSize;
 				pChunk->m_pData = m_RecvUnpacker.m_Data.m_aChunkData;
+				if(m_RecvUnpacker.m_Data.m_Flags&NET_PACKETFLAG_EXTENDED)
+				{
+					pChunk->m_Flags |= NETSENDFLAG_EXTENDED;
+					mem_copy(pChunk->m_aExtraData, m_RecvUnpacker.m_Data.m_aExtraData, sizeof(pChunk->m_aExtraData));
+				}
 				return 1;
 			}
 			else
@@ -681,7 +686,8 @@ int CNetServer::Send(CNetChunk *pChunk)
 	if(pChunk->m_Flags&NETSENDFLAG_CONNLESS)
 	{
 		// send connectionless packet
-		CNetBase::SendPacketConnless(m_Socket, &pChunk->m_Address, pChunk->m_pData, pChunk->m_DataSize);
+		CNetBase::SendPacketConnless(m_Socket, &pChunk->m_Address, pChunk->m_pData, pChunk->m_DataSize,
+				pChunk->m_Flags&NETSENDFLAG_EXTENDED, pChunk->m_aExtraData);
 	}
 	else
 	{

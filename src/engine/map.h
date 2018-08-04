@@ -3,6 +3,7 @@
 #ifndef ENGINE_MAP_H
 #define ENGINE_MAP_H
 
+#include <base/hash.h>
 #include "kernel.h"
 
 class IMap : public IInterface
@@ -10,7 +11,7 @@ class IMap : public IInterface
 	MACRO_INTERFACE("map", 0)
 public:
 	virtual void *GetData(int Index) = 0;
-	virtual int GetUncompressedDataSize(int Index) = 0;
+	virtual int GetDataSize(int Index) = 0;
 	virtual void *GetDataSwapped(int Index) = 0;
 	virtual void UnloadData(int Index) = 0;
 	virtual void *GetItem(int Index, int *Type, int *pID) = 0;
@@ -28,7 +29,10 @@ public:
 	virtual bool Load(const char *pMapName) = 0;
 	virtual bool IsLoaded() = 0;
 	virtual void Unload() = 0;
+	virtual SHA256_DIGEST Sha256() = 0;
 	virtual unsigned Crc() = 0;
+	virtual int MapSize() = 0;
+	virtual IOHANDLE File() = 0;
 };
 
 extern IEngineMap *CreateEngineMap();

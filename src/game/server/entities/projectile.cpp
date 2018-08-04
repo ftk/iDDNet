@@ -29,6 +29,7 @@ CProjectile::CProjectile
 	m_Type = Type;
 	m_Pos = Pos;
 	m_Direction = Dir;
+	m_InitialLifeSpan = Span;
 	m_LifeSpan = Span;
 	m_Owner = Owner;
 	m_Force = Force;
@@ -105,7 +106,6 @@ vec2 CProjectile::GetPos(float Time)
 	return CalcPos(m_Pos, m_Direction, Curvature, Speed, Time);
 }
 
-
 void CProjectile::Tick()
 {
 	float Pt = (Server()->Tick()-m_StartTick-1)/(float)Server()->TickSpeed();
@@ -120,13 +120,16 @@ void CProjectile::Tick()
 	if(m_Owner >= 0)
 		pOwnerChar = GameServer()->GetPlayerChar(m_Owner);
 
-	CCharacter *pTargetChr = GameServer()->m_World.IntersectCharacter(PrevPos, ColPos, m_Freeze ? 1.0f : 6.0f, ColPos, pOwnerChar, m_Owner);
+	CCharacter *pTargetChr = 0;
+
+	if(pOwnerChar ? !(pOwnerChar->m_Hit&CCharacter::DISABLE_HIT_GRENADE) : g_Config.m_SvHit)
+		pTargetChr = GameServer()->m_World.IntersectCharacter(PrevPos, ColPos, m_Freeze ? 1.0f : 6.0f, ColPos, pOwnerChar, m_Owner);
 
 	if(m_LifeSpan > -1)
 		m_LifeSpan--;
 
 	int64_t TeamMask = -1LL;
-	bool isWeaponCollide = false;
+	bool IsWeaponCollide = false;
 	if
 	(
 			pOwnerChar &&
@@ -136,8 +139,7 @@ void CProjectile::Tick()
 			!pTargetChr->CanCollide(m_Owner)
 			)
 	{
-			isWeaponCollide = true;
-			//TeamMask = OwnerChar->Teams()->TeamMask( OwnerChar->Team());
+			IsWeaponCollide = true;
 	}
 	if (pOwnerChar && pOwnerChar->IsAlive())
 	{
@@ -146,19 +148,54 @@ void CProjectile::Tick()
 	else if (m_Owner >= 0)
 	{
 		GameServer()->m_World.DestroyEntity(this);
+		return;
 	}
 
-	if( ((pTargetChr && (pOwnerChar ? !(pOwnerChar->m_Hit&CCharacter::DISABLE_HIT_GRENADE) : g_Config.m_SvHit || m_Owner == -1 || pTargetChr == pOwnerChar)) || Collide || GameLayerClipped(CurPos)) && !isWeaponCollide)
+	if( ((pTargetChr && (pOwnerChar ? !(pOwnerChar->m_Hit&CCharacter::DISABLE_HIT_GRENADE) : g_Config.m_SvHit || m_Owner == -1 || pTargetChr == pOwnerChar)) || Collide || GameLayerClipped(CurPos)) && !IsWeaponCollide)
 	{
 		if(m_Explosive/*??*/ && (!pTargetChr || (pTargetChr && (!m_Freeze || (m_Weapon == WEAPON_SHOTGUN && Collide)))))
 		{
-			GameServer()->CreateExplosion(ColPos, m_Owner, m_Weapon, m_Owner == -1, (!pTargetChr ? -1 : pTargetChr->Team()),
-			(m_Owner != -1)? TeamMask : -1LL);
-			GameServer()->CreateSound(ColPos, m_SoundImpact,
-			(m_Owner != -1)? TeamMask : -1LL);
+			int Number = 1;
+			if(GameServer()->EmulateBug(BUG_GRENADE_DOUBLEEXPLOSION) && m_LifeSpan == -1 && m_InitialLifeSpan == 0)
+			{
+				Number = 2;
+			}
+			for(int i = 0; i < Number; i++)
+			{
+				GameServer()->CreateExplosion(ColPos, m_Owner, m_Weapon, m_Owner == -1, (!pTargetChr ? -1 : pTargetChr->Team()),
+				(m_Owner != -1)? TeamMask : -1LL);
+				GameServer()->CreateSound(ColPos, m_SoundImpact,
+				(m_Owner != -1)? TeamMask : -1LL);
+			}
 		}
 		else if(pTargetChr && m_Freeze && ((m_Layer == LAYER_SWITCH && GameServer()->Collision()->m_pSwitchers[m_Number].m_Status[pTargetChr->Team()]) || m_Layer != LAYER_SWITCH))
 			pTargetChr->Freeze();
+
+		if (pOwnerChar && ColPos && !GameLayerClipped(ColPos) &&
+			((m_Type == WEAPON_GRENADE && pOwnerChar->m_HasTeleGrenade) || (m_Type == WEAPON_GUN && pOwnerChar->m_HasTeleGun)))
+		{
+			int MapIndex = GameServer()->Collision()->GetPureMapIndex(pTargetChr ? pTargetChr->m_Pos : ColPos);
+			int TileIndex = GameServer()->Collision()->GetTileIndex(MapIndex);
+			int TileFIndex = GameServer()->Collision()->GetFTileIndex(MapIndex);
+
+			if (TileIndex != TILE_NO_TELE_GUN && TileFIndex != TILE_NO_TELE_GUN)
+			{
+				bool Found;
+				vec2 PossiblePos;
+
+				if (!Collide)
+					Found = GetNearestAirPosPlayer(pTargetChr->m_Pos, &PossiblePos);
+				else
+					Found = GetNearestAirPos(NewPos, CurPos, &PossiblePos);
+
+				if (Found && PossiblePos)
+				{
+					pOwnerChar->m_TeleGunPos = PossiblePos;
+					pOwnerChar->m_TeleGunTeleport = true;
+				}
+			}
+		}
+
 		if(Collide && m_Bouncing != 0)
 		{
 			m_StartTick = Server()->Tick();
@@ -177,10 +214,16 @@ void CProjectile::Tick()
 		{
 			GameServer()->CreateDamageInd(CurPos, -atan2(m_Direction.x, m_Direction.y), 10, (m_Owner != -1)? TeamMask : -1LL);
 			GameServer()->m_World.DestroyEntity(this);
+			return;
 		}
 		else
+		{
 			if (!m_Freeze)
+			{
 				GameServer()->m_World.DestroyEntity(this);
+				return;
+			}
+		}
 	}
 	if(m_LifeSpan == -1)
 	{
@@ -201,6 +244,7 @@ void CProjectile::Tick()
 			(m_Owner != -1)? TeamMask : -1LL);
 		}
 		GameServer()->m_World.DestroyEntity(this);
+		return;
 	}
 
 	int x = GameServer()->Collision()->GetIndex(PrevPos, CurPos);

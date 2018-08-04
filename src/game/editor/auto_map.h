@@ -31,13 +31,14 @@ class CAutoMapper
 		int m_ID;
 		array<CPosRule> m_aRules;
 		int m_Flag;
-		int m_RandomValue;
+		float m_RandomProbability;
 		bool m_DefaultRule;
 	};
 
 	struct CRun
 	{
 		array<CIndexRule> m_aIndexRules;
+		bool m_AutomapCopy;
 	};
 
 	struct CConfiguration
@@ -52,10 +53,10 @@ public:
 	void Load(const char* pTileName);
 	void Proceed(class CLayerTiles *pLayer, int ConfigID);
 
-	int ConfigNamesNum() { return m_lConfigs.size(); }
+	int ConfigNamesNum() const { return m_lConfigs.size(); }
 	const char* GetConfigName(int Index);
 
-	const bool IsLoaded() { return m_FileLoaded; }
+	bool IsLoaded() const { return m_FileLoaded; }
 private:
 	array<CConfiguration> m_lConfigs;
 	class CEditor *m_pEditor;

@@ -6,6 +6,7 @@
 // this include should perhaps be removed
 #include "entities/character.h"
 #include "gamecontext.h"
+#include <engine/shared/http.h>
 
 // player object
 class CPlayer
@@ -44,6 +45,7 @@ public:
 	CCharacter *GetCharacter();
 
 	void FindDuplicateSkins();
+	void SpectatePlayerName(const char *pName);
 
 	//---------------------------------------------------------
 	// this is used for snapping so we know how we can clip the view for the player
@@ -77,6 +79,7 @@ public:
 	int m_LastCommands[4];
 	int m_LastCommandPos;
 	int m_LastWhisperTo;
+	int m_LastInvited;
 
 	int m_SendVoteIndex;
 
@@ -96,6 +99,7 @@ public:
 	int m_LastActionTick;
 	bool m_StolenSkin;
 	int m_TeamChangeTick;
+	bool m_SentSemicolonTip;
 	struct
 	{
 		int m_TargetX;
@@ -127,30 +131,38 @@ private:
 	int m_ClientID;
 	int m_Team;
 
-
-	// DDRace
+	int m_Paused;
+	int64 m_ForcePauseTime;
+	int64 m_LastPause;
 
 public:
 	enum
 	{
-		PAUSED_NONE=0,
-		PAUSED_SPEC,
-		PAUSED_PAUSED,
-		PAUSED_FORCE
+		PAUSE_NONE=0,
+		PAUSE_PAUSED,
+		PAUSE_SPEC
+	};
+	
+	enum
+	{
+		TIMERTYPE_GAMETIMER=0,
+		TIMERTYPE_BROADCAST,
+		TIMERTYPE_GAMETIMER_AND_BROADCAST,
+		TIMERTYPE_NONE,
 	};
 
-	int m_Paused;
 	bool m_DND;
 	int64 m_FirstVoteTick;
-	int64 m_NextPauseTick;
 	char m_TimeoutCode[64];
 
 	void ProcessPause();
-	int m_ForcePauseTime;
+	int Pause(int State, bool Force);
+	int ForcePause(int Time);
+	int IsPaused();
+
 	bool IsPlaying();
 	int64 m_Last_KickVote;
 	int64 m_Last_Team;
-	int m_Authed;
 	int m_ClientVersion;
 	bool m_ShowOthers;
 	bool m_ShowAll;
@@ -158,13 +170,19 @@ public:
 	bool m_NinjaJetpack;
 	bool m_Afk;
 	int m_KillMe;
+	bool m_HasFinishScore;
 
 	int m_ChatScore;
+
+	bool m_Moderating;
+	int m_ModhelpTick;
 
 	bool AfkTimer(int new_target_x, int new_target_y); //returns true if kicked
 	void AfkVoteTimer(CNetObj_PlayerInput *NewTarget);
 	int64 m_LastPlaytime;
 	int64 m_LastEyeEmote;
+	int64 m_LastBroadcast;
+	bool m_LastBroadcastImportance;
 	int m_LastTarget_x;
 	int m_LastTarget_y;
 	CNetObj_PlayerInput m_LastTarget;
@@ -194,6 +212,7 @@ public:
 	int64 m_Last_Dummy; //for control frequency of using /d
 	int64 m_Last_DummyChange; //for control frequency of using /dc
 
+	std::shared_ptr<CPostJson> m_pPostJson;
 };
 
 #endif

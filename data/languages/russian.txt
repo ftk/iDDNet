@@ -12,9 +12,6 @@
 
 ##### translated strings #####
 
-%d%% loaded
-== %d%% загружено
-
 %ds left
 == осталось %d сек.
 
@@ -50,9 +47,6 @@ Address
 
 All
 == Все
-
-Always show name plates
-== Всегда показывать имена игроков
 
 Are you sure that you want to delete the demo?
 == Вы уверены, что хотите удалить демо?
@@ -255,9 +249,6 @@ Kick player
 Language
 == Язык
 
-Loading
-== Загрузка
-
 MOTD
 == MOTD
 
@@ -357,9 +348,6 @@ Quality Textures
 Quit
 == Выход
 
-REC %3d:%02d
-== REC %3d:%02d
-
 Reason:
 == Причина:
 
@@ -425,9 +413,6 @@ Server info
 
 Server not full
 == Сервер не заполнен
-
-Settings
-== Настройки
 
 Shotgun
 == Дробовик
@@ -513,9 +498,6 @@ Team
 Team chat
 == Командный чат
 
-Teeworlds %s is out! Download it at www.teeworlds.com!
-== Вышла Teeworlds %s! Скачивайте на www.teeworlds.com!
-
 Texture Compression
 == Сжатие текстур
 
@@ -579,9 +561,6 @@ Warmup
 Weapon
 == Оружие
 
-Welcome to Teeworlds
-== Добро пожаловать в Teeworlds!
-
 Yes
 == Да
 
@@ -615,9 +594,6 @@ Threaded sound loading
 Borderless window
 == Без рамки
 
-Converse
-== Ответить
-
 Respawn
 == Рестарт
 
@@ -634,13 +610,13 @@ Show score
 == Показывать лидеров
 
 Show health + ammo
-== Покывать здоровье
+== Показывать здоровье + патроны
 
 Show names in chat in team colors
-== Выделять цветом сообщения игроков в 
+== Выделять цветом сообщения игроков в командном чате
 
 Show votes window after voting
-== Скрывать меню голосования после вашего выбора
+== Не скрывать меню голосования после вашего выбора
 
 Reset
 == Сброс
@@ -648,17 +624,11 @@ Reset
 Dummy settings
 == Настройки dummy
 
-Vanilla Skins only
-== Только Vanilla скины
-
 Search
 == Поиск
 
 Ghost
 == Тень
-
-Deactivate
-== Выключить
 
 Countries
 == Страны
@@ -667,317 +637,6 @@ Types
 == Тип
 
 ##### needs translation #####
-
-%.3f KiB
-== 
-
-%d player left
-== 
-
-%d player not ready
-== 
-
-%d players left
-== 
-
-%d players not ready
-== 
-
-%d servers, %d players
-== 
-
-'%s' called for vote to kick '%s' (%s)
-== 
-
-'%s' called for vote to move '%s' to spectators (%s)
-== 
-
-'%s' called vote to change server option '%s' (%s)
-== 
-
-'%s' entered and joined the %s
-== 
-
-'%s' has left the game
-== 
-
-'%s' has left the game (%s)
-== 
-
-'%s' joined the %s
-== 
-
-Admin forced server option '%s' (%s)
-== 
-
-Admin forced vote no
-== 
-
-Admin forced vote yes
-== 
-
-Admin moved '%s' to spectator (%s)
-== 
-
-Alp:
-== 
-
-Anti Aliasing
-== 
-
-Are you sure you want to rename the demo?
-== 
-
-Are you sure you want to save your skin? If a skin with this name already exists, it will be replaced.
-== 
-
-Back
-== 
-
-Basic
-== 
-
-Bodies
-== 
-
-Color
-== 
-
-Crc
-== 
-
-Created
-== 
-
-Custom
-== 
-
-Customize
-== 
-
-Decoration
-== 
-
-Demo
-== 
-
-Detail
-== 
-
-Editor
-== 
-
-Eyes
-== 
-
-Format
-== 
-
-Game paused
-== 
-
-Game starts in
-== 
-
-Global
-== 
-
-Hands
-== 
-
-Host address:
-== 
-
-Hue:
-== 
-
-Join
-== 
-
-Joined
-== 
-
-Joined blue
-== 
-
-Joined red
-== 
-
-Kick voting requires %d players on the server
-== 
-
-Laser
-== 
-
-Length
-== 
-
-Letterbox
-== 
-
-Lgt:
-== 
-
-Local
-== 
-
-Local server
-== 
-
-Match
-== 
-
-Max
-== 
-
-Misc
-== 
-
-Netversion
-== 
-
-Nickname is empty.
-== 
-
-Normal:
-== 
-
-Only %d active players are allowed
-== 
-
-Personal
-== 
-
-Ready
-== 
-
-Record
-== 
-
-Recorded
-== 
-
-Resolutions
-== 
-
-Round over
-== 
-
-Round over!
-== 
-
-Sat:
-== 
-
-Save
-== 
-
-Save skin
-== 
-
-Screen
-== 
-
-Server does not allow voting to kick players
-== 
-
-Server does not allow voting to move players to spectators
-== 
-
-Servers
-== 
-
-Show only chat messages from friends
-== 
-
-Size
-== 
-
-Skin
-== 
-
-Spectating
-== 
-
-Spectators aren't allowed to start a vote.
-== 
-
-Standard Gametype
-== 
-
-Tattoo
-== 
-
-Tattoos
-== 
-
-Team:
-== 
-
-Teams are locked
-== 
-
-Teams are locked. Time to wait before changing team: %02d:%02d
-== 
-
-Teams were locked
-== 
-
-Teams were unlocked
-== 
-
-Tee
-== 
-
-Texture
-== 
-
-Volume
-== 
-
-Vote aborted
-== 
-
-Vote failed
-== 
-
-Vote passed
-== 
-
-Wait for current vote to end before calling a new one.
-== 
-
-Wait for next round
-== 
-
-Wide
-== 
-
-You must wait %d seconds before making another vote
-== 
-
-blue
-== 
-
-blue team
-== 
-
-game
-== 
-
-red
-== 
-
-red team
-== 
-
-spectators
-== 
-
-wait for more players
-== 
-
-##### old translations #####
 
 New name:
 == Новое имя
@@ -1018,26 +677,14 @@ Max Screenshots
 Length:
 == Длина
 
-Skin name
-== 
-
 Rifle
 == Бластер
-
-Patterns
-== 
 
 Netversion:
 == Версия:
 
 Map:
 == Карта:
-
-%d Bytes
-== %d байт
-
-Coloration
-== 
 
 Info
 == Инфо
@@ -1072,12 +719,6 @@ Round
 Lht.
 == Яркость
 
-no limit
-== Без лимита
-
-Quick search:
-== Быстрый поиск:
-
 UI Color
 == Цвет интерфейса
 
@@ -1089,9 +730,6 @@ Crc:
 
 Alpha
 == Прозрачн.
-
-Are you sure you want to save your skin ? If a skin with this name already exists, it will be replaced.
-== 
 
 Current version: %s
 == Текущая версия: %s
@@ -1105,3 +743,310 @@ Name plates size
 Type:
 == Тип:
 
+
+##### generated by copy_fix.py, please translate this #####
+
+Background (entities)
+== Задний фон
+
+Show ghost
+== Показать тень
+
+No updates available
+== Нет доступных обновлений
+
+second
+== Второй
+
+Look out!
+== Берегись!
+
+Select a name
+== Выбрать имя
+
+Show other players' hook collision lines
+== Показывать hook collision линию других игроков
+
+We will win
+== Мы выиграем!
+
+Hi o/
+== Привет ^^/
+
+DDNet Client needs to be restarted to complete update!
+== Перезапустите DDNet Client для завершения обновления
+
+Spectator
+== Наблюдатель
+
+Please use a different name
+== Пожалуйста, используйте другое имя
+
+Show others
+== Показывать остальных
+
+Game paused
+== Игра приостановлена
+
+Laser
+== Лазер
+
+Old mouse mode
+== Режим старой мышки
+
+Team message
+== Сообщение команды
+
+Automatically create statboard csv
+== Автоматически создавать statboard csv
+
+Are you sure that you want to disconnect?
+== Вы уверены, что хотите отключиться?
+
+Remove chat
+== Удалить чат
+
+System message
+== Системное сообщение
+
+Updating...
+== Обновление...
+
+Messages
+== Сообщения
+
+New random timeout code
+== Новый случайный timeout код
+
+Loading DDNet Client
+== Загрузка DDNet Client
+
+Normal message
+== Обычное сообщение
+
+Connecting dummy
+== Присоединить dummy
+
+Update now
+== Обновить
+
+Save ghost
+== Сохранять тень
+
+Hello and welcome
+== Привет и добро пожаловать
+
+DDNet Client updated!
+== DDNet Client обновлён!
+
+Outline color
+== Цвет контура
+
+Highlighted message
+== Выделенное сообщение
+
+Friend
+== Друг
+
+Demo
+== Демо
+
+AntiPing limit
+== AntiPing лимит
+
+Inner color
+== Внутренний цвет
+
+##### generated by copy_fix.py, please translate this #####
+
+Ratio
+== 
+
+Kitty skins (DDCat)
+== 
+
+AntiPing
+== 
+
+Show quads
+== 
+
+\n\nReconnect in %d sec
+== 
+
+Grabs
+== 
+
+Auto %3d:%02d  
+== 
+
+Friend message
+== 
+
+\xEE\x85\x8B
+== 
+
+Fat skins (DDFat)
+== 
+
+Deaths
+== 
+
+may cause delay
+== 
+
+Unfinished map
+== 
+
+Deactivate
+== 
+
+Wait before try for
+== 
+
+Welcome to DDNet
+== 
+
+Gameplay
+== 
+
+Restart
+== 
+
+Browser
+== 
+
+Follow
+== 
+
+Preinit VBO (iGPUs only)
+== 
+
+Manual %3d:%02d  
+== 
+
+Save the best demo of each race
+== 
+
+Show tiles layers from BG map
+== 
+
+Check now
+== 
+
+Race %3d:%02d  
+== 
+
+Activate
+== 
+
+Background (regular)
+== 
+
+DDNet %s is out! Download it at DDNet.tw!
+== 
+
+Multiple texture units (disable for MacOS)
+== 
+
+Frags
+== 
+
+AntiPing: predict other players
+== 
+
+Use OpenGL 3.3 (experimental)
+== 
+
+Show other players' key presses
+== 
+
+Enable long pain sound (used when shooting in freeze)
+== 
+
+DDNet %s is available:
+== 
+
+Overlay entities
+== 
+
+UI mouse s.
+== 
+
+%.2f MiB
+== 
+
+Refresh Rate
+== 
+
+Suicides
+== 
+
+File already exists, do you want to overwrite it?
+== 
+
+Indicate map finish
+== 
+
+Clan plates size
+== 
+
+Net
+== 
+
+Save
+== 
+
+FPM
+== 
+
+Default zoom
+== 
+
+Spree
+== 
+
+Max CSVs
+== 
+
+seconds
+== 
+
+%.2f KiB
+== 
+
+Try fast HTTP map download first
+== 
+
+Vanilla skins only
+== 
+
+Best
+== 
+
+DDNet
+== 
+
+Screen
+== 
+
+Date
+== 
+
+Show DDNet map finishes in server browser\n(transmits your player name to info.ddnet.tw)
+== 
+
+Exclude
+== 
+
+AntiPing: predict weapons
+== 
+
+HUD
+== 
+
+Reload
+== 
+
+AntiPing: predict grenade paths
+== 

@@ -3,6 +3,9 @@
 #ifndef ENGINE_SERVER_SERVER_H
 #define ENGINE_SERVER_SERVER_H
 
+#include <base/hash.h>
+#include <base/math.h>
+
 #include <engine/engine.h>
 #include <engine/server.h>
 
@@ -13,11 +16,15 @@
 #include <engine/shared/network.h>
 #include <engine/server/register.h>
 #include <engine/shared/console.h>
-#include <base/math.h>
-#include <engine/shared/mapchecker.h>
 #include <engine/shared/econ.h>
 #include <engine/shared/fifo.h>
 #include <engine/shared/netban.h>
+#include <engine/shared/uuid_manager.h>
+
+#include <base/tl/array.h>
+
+#include "authmanager.h"
+#include "name_ban.h"
 
 #if defined (CONF_SQL)
 	#include "sql_connector.h"
@@ -35,7 +42,7 @@ class CSnapIDPool
 	{
 	public:
 		short m_Next;
-		short m_State; // 0 = free, 1 = alloced, 2 = timed
+		short m_State; // 0 = free, 1 = allocated, 2 = timed
 		int m_Timeout;
 	};
 
@@ -68,7 +75,7 @@ class CServerBan : public CNetBan
 public:
 	class CServer *Server() const { return m_pServer; }
 
-	void InitServerBan(class IConsole *pConsole, class IStorage *pStorage, class CServer* pServer);
+	void InitServerBan(class IConsole *pConsole, class IStorage *pStorage, class CServer *pServer);
 
 	virtual int BanAddr(const NETADDR *pAddr, int Seconds, const char *pReason);
 	virtual int BanRange(const CNetRange *pRange, int Seconds, const char *pReason);
@@ -83,9 +90,15 @@ class CServer : public IServer
 	class IConsole *m_pConsole;
 	class IStorage *m_pStorage;
 
-#if defined (CONF_SQL)
-	CSqlServer* m_apSqlReadServers[MAX_SQLSERVERS];
-	CSqlServer* m_apSqlWriteServers[MAX_SQLSERVERS];
+#if defined(CONF_SQL)
+	CSqlServer *m_apSqlReadServers[MAX_SQLSERVERS];
+	CSqlServer *m_apSqlWriteServers[MAX_SQLSERVERS];
+#endif
+
+#if defined(CONF_FAMILY_UNIX)
+	UNIXSOCKETADDR m_ConnLoggingDestAddr;
+	bool m_ConnLoggingSocketCreated;
+	UNIXSOCKET m_ConnLoggingSocket;
 #endif
 
 public:
@@ -95,11 +108,6 @@ public:
 
 	enum
 	{
-		AUTHED_NO=0,
-		AUTHED_HELPER,
-		AUTHED_MOD,
-		AUTHED_ADMIN,
-
 		MAX_RCONCMD_SEND=16,
 	};
 
@@ -135,6 +143,7 @@ public:
 
 		// connection state info
 		int m_State;
+		bool m_SupportsMapSha256;
 		int m_Latency;
 		int m_SnapRate;
 
@@ -154,6 +163,7 @@ public:
 		int m_Country;
 		int m_Score;
 		int m_Authed;
+		int m_AuthKey;
 		int m_AuthTries;
 		int m_NextMapChunk;
 
@@ -167,7 +177,7 @@ public:
 
 		// DNSBL
 		int m_DnsblState;
-		CHostLookup m_DnsblLookup;
+		std::shared_ptr<CHostLookup> m_pDnsblLookup;
 	};
 
 	CClient m_aClients[MAX_CLIENTS];
@@ -198,21 +208,24 @@ public:
 	//static NETADDR4 master_server;
 
 	char m_aCurrentMap[64];
+	SHA256_DIGEST m_CurrentMapSha256;
 	unsigned m_CurrentMapCrc;
 	unsigned char *m_pCurrentMapData;
 	unsigned int m_CurrentMapSize;
 
-	int m_GeneratedRconPassword;
-
 	CDemoRecorder m_aDemoRecorder[MAX_CLIENTS+1];
 	CRegister m_Register;
-	CMapChecker m_MapChecker;
+	CAuthManager m_AuthManager;
 
 	int m_RconRestrict;
 
 	bool m_ServerInfoHighLoad;
 	int64 m_ServerInfoFirstRequest;
 	int m_ServerInfoNumRequests;
+
+	char m_aErrorShutdownReason[128];
+
+	array<CNameBan> m_aNameBans;
 
 	CServer();
 
@@ -234,16 +247,17 @@ public:
 
 	int Init();
 
-	void InitRconPasswordIfEmpty();
-
 	void SetRconCID(int ClientID);
-	bool IsAuthed(int ClientID);
+	int GetAuthedState(int ClientID);
+	const char *GetAuthName(int ClientID);
+	void GetMapInfo(char *pMapName, int MapNameSize, int *pMapSize, SHA256_DIGEST *pMapSha256, int *pMapCrc);
 	int GetClientInfo(int ClientID, CClientInfo *pInfo);
 	void GetClientAddr(int ClientID, char *pAddrStr, int Size);
 	const char *ClientName(int ClientID);
 	const char *ClientClan(int ClientID);
 	int ClientCountry(int ClientID);
 	bool ClientIngame(int ClientID);
+	bool ClientAuthed(int ClientID);
 	int MaxClients() const;
 
 	virtual int SendMsg(CMsgPacker *pMsg, int Flags, int ClientID);
@@ -252,11 +266,12 @@ public:
 	void DoSnapshot();
 
 	static int NewClientCallback(int ClientID, void *pUser);
-	static int NewClientNoAuthCallback(int ClientID, bool Reset, void *pUser);
+	static int NewClientNoAuthCallback(int ClientID, void *pUser);
 	static int DelClientCallback(int ClientID, const char *pReason, void *pUser);
 
 	static int ClientRejoinCallback(int ClientID, void *pUser);
 
+	void SendRconType(int ClientID, bool UsernameReq);
 	void SendMap(int ClientID);
 	void SendMapData(int ClientID, int Chunk);
 	void SendConnectionReady(int ClientID);
@@ -269,8 +284,8 @@ public:
 
 	void ProcessClientPacket(CNetChunk *pPacket);
 
-	void SendServerInfoConnless(const NETADDR *pAddr, int Token, bool Extended);
-	void SendServerInfo(const NETADDR *pAddr, int Token, bool Extended=false, int Offset=0, bool Short=false);
+	void SendServerInfo(const NETADDR *pAddr, int Token, int Type, bool SendClients);
+	void SendServerInfoConnless(const NETADDR *pAddr, int Token, int Type);
 	void UpdateServerInfo();
 
 	void PumpNetwork();
@@ -301,6 +316,19 @@ public:
 	static void ConLogout(IConsole::IResult *pResult, void *pUser);
 	static void ConDnsblStatus(IConsole::IResult *pResult, void *pUser);
 
+	static void ConAuthAdd(IConsole::IResult *pResult, void *pUser);
+	static void ConAuthAddHashed(IConsole::IResult *pResult, void *pUser);
+	static void ConAuthUpdate(IConsole::IResult *pResult, void *pUser);
+	static void ConAuthUpdateHashed(IConsole::IResult *pResult, void *pUser);
+	static void ConAuthRemove(IConsole::IResult *pResult, void *pUser);
+	static void ConAuthList(IConsole::IResult *pResult, void *pUser);
+
+	static void ConNameBan(IConsole::IResult *pResult, void *pUser);
+	static void ConNameUnban(IConsole::IResult *pResult, void *pUser);
+	static void ConNameBans(IConsole::IResult *pResult, void *pUser);
+
+	static void StatusImpl(IConsole::IResult *pResult, void *pUser, bool DnsblBlacklistedOnly);
+
 #if defined (CONF_SQL)
 	// console commands for sqlmasters
 	static void ConAddSqlServer(IConsole::IResult *pResult, void *pUserData);
@@ -314,11 +342,17 @@ public:
 	static void ConchainCommandAccessUpdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 	static void ConchainConsoleOutputLevelUpdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 
-	void LogoutByAuthLevel(int AuthLevel);
+	void LogoutClient(int ClientID, const char *pReason);
+	void LogoutKey(int Key, const char *pReason);
 
+	void ConchainRconPasswordChangeGeneric(int Level, const char *pCurrent, IConsole::IResult *pResult);
 	static void ConchainRconPasswordChange(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 	static void ConchainRconModPasswordChange(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 	static void ConchainRconHelperPasswordChange(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
+
+#if defined(CONF_FAMILY_UNIX)
+	static void ConchainConnLoggingServerChange(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
+#endif
 
 	void RegisterCommands();
 
@@ -332,7 +366,7 @@ public:
 
 	void GetClientAddr(int ClientID, NETADDR *pAddr);
 	int m_aPrevStates[MAX_CLIENTS];
-	char *GetAnnouncementLine(char const *FileName);
+	const char *GetAnnouncementLine(char const *FileName);
 	unsigned m_AnnouncementLastLine;
 	void RestrictRconOutput(int ClientID) { m_RconRestrict = ClientID; }
 
@@ -344,6 +378,27 @@ public:
 		return m_aClients[ClientID].m_DnsblState == CClient::DNSBL_STATE_NONE ||
 		m_aClients[ClientID].m_DnsblState == CClient::DNSBL_STATE_WHITELISTED;
 	}
+
+	void AuthRemoveKey(int KeySlot);
+	bool ClientPrevIngame(int ClientID) { return m_aPrevStates[ClientID] == CClient::STATE_INGAME; };
+	const char *GetNetErrorString(int ClientID) { return m_NetServer.ErrorString(ClientID); };
+	void ResetNetErrorString(int ClientID) { m_NetServer.ResetErrorString(ClientID); };
+	bool SetTimedOut(int ClientID, int OrigID);
+	void SetTimeoutProtected(int ClientID) { m_NetServer.SetTimeoutProtected(ClientID); };
+
+	bool ErrorShutdown() const { return m_aErrorShutdownReason[0] != 0; }
+	void SetErrorShutdown(const char *pReason);
+
+#ifdef CONF_FAMILY_UNIX
+	enum CONN_LOGGING_CMD
+	{
+		OPEN_SESSION=1,
+		CLOSE_SESSION=2,
+	};
+
+	void SendConnLoggingCommand(CONN_LOGGING_CMD cmd, const NETADDR *pAddr);
+#endif
+
 };
 
 #endif

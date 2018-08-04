@@ -18,7 +18,7 @@ CURRENT:
 		unsigned char ack; // 8 bit ack
 		unsigned char num_chunks; // 8 bit chunks
 
-		(unsigned char padding[3])	// 24 bit extra incase it's a connection less packet
+		(unsigned char padding[3])	// 24 bit extra in case it's a connection less packet
 									// this is to make sure that it's compatible with the
 									// old protocol
 
@@ -34,6 +34,7 @@ enum
 	NETSENDFLAG_VITAL=1,
 	NETSENDFLAG_CONNLESS=2,
 	NETSENDFLAG_FLUSH=4,
+	NETSENDFLAG_EXTENDED=8,
 
 	NETSTATE_OFFLINE=0,
 	NETSTATE_CONNECTING,
@@ -68,6 +69,8 @@ enum
 	NET_PACKETFLAG_CONNLESS=2,
 	NET_PACKETFLAG_RESEND=4,
 	NET_PACKETFLAG_COMPRESSION=8,
+	// NOT SENT VIA THE NETWORK DIRECTLY:
+	NET_PACKETFLAG_EXTENDED=16,
 
 	NET_CHUNKFLAG_VITAL=1,
 	NET_CHUNKFLAG_RESEND=2,
@@ -87,7 +90,7 @@ enum
 
 typedef int SECURITY_TOKEN;
 
-SECURITY_TOKEN ToSecurityToken(unsigned char* pData);
+SECURITY_TOKEN ToSecurityToken(unsigned char *pData);
 
 static const unsigned char SECURITY_TOKEN_MAGIC[] = {'T', 'K', 'E', 'N'};
 
@@ -97,9 +100,9 @@ enum
 	NET_SECURITY_TOKEN_UNSUPPORTED = 0,
 };
 
-typedef int (*NETFUNC_DELCLIENT)(int ClientID, const char* pReason, void *pUser);
+typedef int (*NETFUNC_DELCLIENT)(int ClientID, const char *pReason, void *pUser);
 typedef int (*NETFUNC_NEWCLIENT)(int ClientID, void *pUser);
-typedef int (*NETFUNC_NEWCLIENT_NOAUTH)(int ClientID, bool Reset, void *pUser);
+typedef int (*NETFUNC_NEWCLIENT_NOAUTH)(int ClientID, void *pUser);
 typedef int (*NETFUNC_CLIENTREJOIN)(int ClientID, void *pUser);
 
 struct CNetChunk
@@ -111,6 +114,8 @@ struct CNetChunk
 	int m_Flags;
 	int m_DataSize;
 	const void *m_pData;
+	// only used if the flags contain NETSENDFLAG_EXTENDED and NETSENDFLAG_CONNLESS
+	unsigned char m_aExtraData[4];
 };
 
 class CNetChunkHeader
@@ -144,6 +149,7 @@ public:
 	int m_NumChunks;
 	int m_DataSize;
 	unsigned char m_aChunkData[NET_MAX_PAYLOAD];
+	unsigned char m_aExtraData[4];
 };
 
 
@@ -470,7 +476,7 @@ public:
 	static int Decompress(const void *pData, int DataSize, void *pOutput, int OutputSize);
 
 	static void SendControlMsg(NETSOCKET Socket, NETADDR *pAddr, int Ack, int ControlMsg, const void *pExtra, int ExtraSize, SECURITY_TOKEN SecurityToken);
-	static void SendPacketConnless(NETSOCKET Socket, NETADDR *pAddr, const void *pData, int DataSize);
+	static void SendPacketConnless(NETSOCKET Socket, NETADDR *pAddr, const void *pData, int DataSize, bool Extended, unsigned char aExtra[4]);
 	static void SendPacket(NETSOCKET Socket, NETADDR *pAddr, CNetPacketConstruct *pPacket, SECURITY_TOKEN SecurityToken);
 
 	static int UnpackPacket(unsigned char *pBuffer, int Size, CNetPacketConstruct *pPacket);
