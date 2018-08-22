@@ -8,6 +8,7 @@
 #include <engine/map.h>
 #include <engine/console.h>
 #include <engine/engine.h>
+#include <engine/server/server.h>
 #include <engine/shared/datafile.h>
 #include <engine/shared/linereader.h>
 #include <engine/storage.h>
@@ -739,12 +740,16 @@ void CGameContext::OnTick()
 									aVoteChecked[i])	// don't count in votes by spectators if the admin doesn't want it
 						continue;
 
-					if((m_VoteKick || m_VoteSpec) && ((!m_apPlayers[i] || m_apPlayers[i]->GetTeam() == TEAM_SPECTATORS) ||
+					if((m_VoteKick || m_VoteSpec) && (m_apPlayers[i]->GetTeam() == TEAM_SPECTATORS ||
 						 (GetPlayerChar(m_VoteCreator) && GetPlayerChar(i) &&
 						  GetPlayerChar(m_VoteCreator)->Team() != GetPlayerChar(i)->Team())))
 						continue;
 
 					if(m_apPlayers[i]->m_Afk && i != m_VoteCreator || m_apPlayers[i]->m_IsDummy)
+						continue;
+
+					// connecting clients with spoofed ips can clog slots without being ingame
+					if(((CServer*)Server())->m_aClients[i].m_State != CServer::CClient::STATE_INGAME)
 						continue;
 
 					// don't count votes by blacklisted clients
@@ -2693,7 +2698,7 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 	SHA256_DIGEST MapSha256;
 	int MapCrc;
 	Server()->GetMapInfo(aMapName, sizeof(aMapName), &MapSize, &MapSha256, &MapCrc);
-	m_MapBugs = GetMapBugs(aMapName, MapSize, MapCrc);
+	m_MapBugs = GetMapBugs(aMapName, MapSize, MapSha256, MapCrc);
 
 	// reset everything here
 	//world = new GAMEWORLD;
