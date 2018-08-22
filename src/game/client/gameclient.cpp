@@ -2014,7 +2014,7 @@ IGameClient *CreateGameClient()
 	return &g_GameClient;
 }
 
-int CGameClient::IntersectCharacter(vec2 HookPos, vec2 NewPos, vec2& NewPos2, int ownID)
+int CGameClient::IntersectCharacter(vec2 HookPos, vec2 NewPos, vec2& NewPos2, int ownID, float Extrapolation)
 {
 	float PhysSize = 28.0f;
 	float Distance = 0.0f;
@@ -2029,7 +2029,7 @@ int CGameClient::IntersectCharacter(vec2 HookPos, vec2 NewPos, vec2& NewPos2, in
 		CNetObj_Character Prev = m_Snap.m_aCharacters[i].m_Prev;
 		CNetObj_Character Player = m_Snap.m_aCharacters[i].m_Cur;
 
-		vec2 Position = mix(vec2(Prev.m_X, Prev.m_Y), vec2(Player.m_X, Player.m_Y), Client()->IntraGameTick());
+		vec2 Position = mix(vec2(Prev.m_X, Prev.m_Y), vec2(Player.m_X, Player.m_Y), Client()->IntraGameTick() + Extrapolation);
 
 		if(!cData.m_Active || i == ownID || !m_Teams.SameTeam(i, ownID))
 			continue;
@@ -2048,7 +2048,6 @@ int CGameClient::IntersectCharacter(vec2 HookPos, vec2 NewPos, vec2& NewPos2, in
 
 	return ClosestID;
 }
-
 
 int CGameClient::IntersectCharacter(vec2 OldPos, vec2 NewPos, float Radius, vec2 *NewPos2, int ownID, CWorldCore *World)
 {

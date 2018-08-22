@@ -23,6 +23,9 @@ enum { LEFT_JOYSTICK_X = 0, LEFT_JOYSTICK_Y = 1,
 	SECOND_RIGHT_JOYSTICK_X = 20, SECOND_RIGHT_JOYSTICK_Y = 21,
 	NUM_JOYSTICK_AXES = 22 };
 
+static void ConAutoHook(IConsole::IResult *pResult, void *pUserData);
+
+
 CControls::CControls()
 {
 	mem_zero(&m_LastData, sizeof(m_LastData));
@@ -192,6 +195,8 @@ void CControls::OnConsoleInit()
 
 	{ static CInputSet s_Set = {this, &m_InputData[0].m_NextWeapon, &m_InputData[1].m_NextWeapon, 0}; Console()->Register("+nextweapon", "", CFGFLAG_CLIENT, ConKeyInputNextPrevWeapon, (void *)&s_Set, "Switch to next weapon"); }
 	{ static CInputSet s_Set = {this, &m_InputData[0].m_PrevWeapon, &m_InputData[1].m_PrevWeapon, 0}; Console()->Register("+prevweapon", "", CFGFLAG_CLIENT, ConKeyInputNextPrevWeapon, (void *)&s_Set, "Switch to previous weapon"); }
+
+	Console()->Register("+autohook", "?i", CFGFLAG_CLIENT, ConAutoHook, this, "Autohook");
 }
 
 void CControls::OnMessage(int Msg, void *pRawMsg)
@@ -208,6 +213,8 @@ void CControls::OnMessage(int Msg, void *pRawMsg)
 
 int CControls::SnapInput(int *pData)
 {
+	AutoHook();
+
 	static int64 LastSendTime = 0;
 	bool Send = false;
 
@@ -530,5 +537,111 @@ void CControls::ClampMousePos()
 
 		if(length(m_MousePos[g_Config.m_ClDummy]) > MouseMax)
 			m_MousePos[g_Config.m_ClDummy] = normalize(m_MousePos[g_Config.m_ClDummy])*MouseMax;
+	}
+}
+
+static void ConAutoHook(IConsole::IResult *pResult, void *pUserData)
+{
+	CControls * pSelf = (CControls *)pUserData;
+	if(pResult->GetInteger(0))
+		if(int mode = pResult->GetInteger(1))
+			pSelf->autohook = mode;
+		else
+			pSelf->autohook = 0xff;
+	else
+		pSelf->autohook = 0;
+	//pSelf->AutoHook();
+}
+
+void CControls::AutoHook()
+{
+	if(!autohook)
+	{
+		m_InputData[g_Config.m_ClDummy].m_Hook = 0;
+		return;
+	}
+	if(m_InputData[g_Config.m_ClDummy].m_Hook)
+		return;
+
+        int Result = 0; // no hit = 0, tile = 1, player = 2
+
+	int tx = (int)m_MousePos[g_Config.m_ClDummy].x, ty = (int)m_MousePos[g_Config.m_ClDummy].y;
+
+	// https://stackoverflow.com/a/398302
+	// spiral iteration
+	for(int j = 0, x = 0, y = 0, dx = 0, dy = -1;
+	    j <= g_Config.m_ClAutoHookAssist;
+	    j++, x += dx, y += dy)
+	{
+		if(x == y || (x < 0 && x == -y) || (x > 0 && x == 1 - y))
+		{
+			int t = dx;
+			dx = -dy;
+			dy = t;
+		}
+		vec2 Position = GameClient()->m_LocalCharacterPos;
+		int ClientID = GameClient()->m_Snap.m_LocalClientID;
+
+		vec2 ExDirection;
+
+		ExDirection = normalize(vec2(tx + x, ty + y));
+
+		vec2 InitPos = Position;
+		vec2 FinishPos = InitPos + ExDirection * (m_pClient->m_Tuning[g_Config.m_ClDummy].m_HookLength-42.0f);
+
+
+		float PhysSize = 28.0f;
+
+		vec2 OldPos = InitPos + ExDirection * PhysSize * 1.5f;
+		vec2 NewPos = OldPos;
+
+		bool DoBreak = false;
+		int Hit = 0;
+		int i = 0;
+
+		do {
+			OldPos = NewPos;
+			NewPos = OldPos + ExDirection * m_pClient->m_Tuning[g_Config.m_ClDummy].m_HookFireSpeed;
+
+			if(distance(InitPos, NewPos) > m_pClient->m_Tuning[g_Config.m_ClDummy].m_HookLength)
+			{
+				NewPos = InitPos + normalize(NewPos-InitPos) * m_pClient->m_Tuning[g_Config.m_ClDummy].m_HookLength;
+				DoBreak = true;
+			}
+
+			int TeleNr = 0;
+			Hit = Collision()->IntersectLineTeleHook(OldPos, NewPos, &FinishPos, 0x0, &TeleNr);
+
+			if(!DoBreak && Hit) {
+				if(Hit != TILE_NOHOOK)
+					Result = 1;
+			}
+
+			if(m_pClient->m_Tuning[g_Config.m_ClDummy].m_PlayerHooking && m_pClient->IntersectCharacter(OldPos, FinishPos, FinishPos, ClientID, i * g_Config.m_ClAutoHookPredict / 1000.f) != -1)
+			{
+				Result = 2;
+				break;
+			}
+
+			if(Hit)
+				break;
+
+			NewPos.x = round_to_int(NewPos.x);
+			NewPos.y = round_to_int(NewPos.y);
+
+			if(OldPos == NewPos)
+				break;
+
+			ExDirection.x = round_to_int(ExDirection.x*256.0f) / 256.0f;
+			ExDirection.y = round_to_int(ExDirection.y*256.0f) / 256.0f;
+			i++;
+		} while (!DoBreak);
+		if(Result & autohook)
+		{
+			m_MousePos[g_Config.m_ClDummy].x = tx + x;
+			m_MousePos[g_Config.m_ClDummy].y = ty + y;
+                        m_InputData[g_Config.m_ClDummy].m_Hook = 1;
+			break;
+		}
 	}
 }

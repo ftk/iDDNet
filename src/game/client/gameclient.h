@@ -370,7 +370,7 @@ public:
 	class CGhost *m_pGhost;
 	class CTeamsCore m_Teams;
 
-	int IntersectCharacter(vec2 Pos0, vec2 Pos1, vec2& NewPos, int ownID);
+	int IntersectCharacter(vec2 Pos0, vec2 Pos1, vec2& NewPos, int ownID, float Extrapolation = 0.f);
 	int IntersectCharacter(vec2 OldPos, vec2 NewPos, float Radius, vec2* NewPos2, int ownID, CWorldCore *World);
 
 	CWeaponData m_aWeaponData[150];

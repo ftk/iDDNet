@@ -126,6 +126,9 @@ MACRO_CONFIG_INT(ClHTTPConnectTimeoutMs, cl_http_connect_timeout_ms, 2000, 0, 10
 MACRO_CONFIG_INT(ClHTTPLowSpeedLimit, cl_http_low_speed_limit, 500, 0, 100000, CFGFLAG_CLIENT, "HTTP downloads: Set low speed limit in bytes per second (0 to disable)")
 MACRO_CONFIG_INT(ClHTTPLowSpeedTime, cl_http_low_speed_time, 5, 0, 100000, CFGFLAG_CLIENT, "HTTP downloads: Set low speed limit time period (0 to disable)")
 
+MACRO_CONFIG_INT(ClAutoHookPredict, cl_autohook_predict, 600, 0, 10000, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Predict autohook tee movements")
+MACRO_CONFIG_INT(ClAutoHookAssist, cl_autohook_assist, 0, 0, 10000, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Autohook aim assist (amount of pixels to scan around the cursor)")
+
 // server
 MACRO_CONFIG_INT(SvWarmup, sv_warmup, 0, 0, 0, CFGFLAG_SERVER, "Number of seconds to do warmup before round starts")
 MACRO_CONFIG_STR(SvMotd, sv_motd, 900, "", CFGFLAG_SERVER, "Message of the day to display for the clients")
