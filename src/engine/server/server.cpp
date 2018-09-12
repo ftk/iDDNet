@@ -844,6 +844,7 @@ void CServer::InitDnsbl(int ClientID)
 
 	IEngine *pEngine = Kernel()->RequestInterface<IEngine>();
 	pEngine->AddJob(m_aClients[ClientID].m_pDnsblLookup = std::make_shared<CHostLookup>(aBuf, NETTYPE_IPV4));
+	m_aClients[ClientID].m_DnsblState = CClient::DNSBL_STATE_PENDING;
 }
 
 #ifdef CONF_FAMILY_UNIX
@@ -1926,7 +1927,6 @@ int CServer::Run()
 					if (m_aClients[ClientID].m_DnsblState == CClient::DNSBL_STATE_NONE)
 					{
 						// initiate dnsbl lookup
-						m_aClients[ClientID].m_DnsblState = CClient::DNSBL_STATE_PENDING;
 						InitDnsbl(ClientID);
 					}
 					else if (m_aClients[ClientID].m_DnsblState == CClient::DNSBL_STATE_PENDING &&
@@ -2581,7 +2581,7 @@ void CServer::ConAddSqlServer(IConsole::IResult *pResult, void *pUserData)
 	{
 		if (!apSqlServers[i])
 		{
-			apSqlServers[i] = new CSqlServer(pResult->GetString(1), pResult->GetString(2), pResult->GetString(3), pResult->GetString(4), pResult->GetString(5), pResult->GetInteger(6), ReadOnly, SetUpDb);
+			apSqlServers[i] = new CSqlServer(pResult->GetString(1), pResult->GetString(2), pResult->GetString(3), pResult->GetString(4), pResult->GetString(5), pResult->GetInteger(6), &pSelf->m_GlobalSqlLock, ReadOnly, SetUpDb);
 
 			if(SetUpDb)
 			{

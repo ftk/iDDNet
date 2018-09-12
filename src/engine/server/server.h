@@ -91,6 +91,8 @@ class CServer : public IServer
 	class IStorage *m_pStorage;
 
 #if defined(CONF_SQL)
+	lock m_GlobalSqlLock;
+
 	CSqlServer *m_apSqlReadServers[MAX_SQLSERVERS];
 	CSqlServer *m_apSqlWriteServers[MAX_SQLSERVERS];
 #endif
