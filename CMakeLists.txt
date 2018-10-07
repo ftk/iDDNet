@@ -68,12 +68,17 @@ else()
 endif()
 
 set(AUTO_DEPENDENCIES_DEFAULT OFF)
+set(AUTOUPDATE_DEFAULT OFF)
 if(TARGET_OS STREQUAL "windows")
   set(AUTO_DEPENDENCIES_DEFAULT ON)
+  set(AUTOUPDATE_DEFAULT ON)
+elseif(TARGET_OS STREQUAL "linux")
+  set(AUTOUPDATE_DEFAULT ON)
 endif()
 
 option(WEBSOCKETS "Enable websockets support" OFF)
 option(MYSQL "Enable mysql support" OFF)
+option(AUTOUPDATE "Enable the autoupdater" ${AUTOUPDATE_DEFAULT})
 option(CLIENT "Compile client" ON)
 option(DOWNLOAD_GTEST "Download and compile GTest" ${AUTO_DEPENDENCIES_DEFAULT})
 option(PREFER_BUNDLED_LIBS "Prefer bundled libraries over system libraries" ${AUTO_DEPENDENCIES_DEFAULT})
@@ -81,7 +86,7 @@ option(DEV "Don't generate stuff necessary for packaging" OFF)
 
 # Set the default build type to Release
 if(NOT(CMAKE_BUILD_TYPE))
-  if(DEV)
+  if(NOT(DEV))
     set(CMAKE_BUILD_TYPE Release)
   else()
     set(CMAKE_BUILD_TYPE Debug)
@@ -703,7 +708,10 @@ set(GAME_GENERATED_SHARED
 set(DEPS ${DEP_JSON} ${DEP_MD5} ${ZLIB_DEP})
 
 # Libraries
-set(LIBS ${CMAKE_THREAD_LIBS_INIT} ${CURL_LIBRARIES} ${CRYPTO_LIBRARIES} ${WEBSOCKETS_LIBRARIES} ${ZLIB_LIBRARIES} ${PLATFORM_LIBS})
+set(LIBS ${CURL_LIBRARIES} ${CRYPTO_LIBRARIES} ${WEBSOCKETS_LIBRARIES} ${ZLIB_LIBRARIES} ${PLATFORM_LIBS})
+# Add pthreads (on non-Windows) at the end, so that other libraries can depend
+# on it.
+list(APPEND LIBS ${CMAKE_THREAD_LIBS_INIT})
 
 # Targets
 add_library(engine-shared EXCLUDE_FROM_ALL OBJECT ${ENGINE_INTERFACE} ${ENGINE_SHARED} ${ENGINE_GENERATED_SHARED} ${BASE})
@@ -1498,6 +1506,10 @@ foreach(target ${TARGETS_LINK})
   if(TARGET_OS STREQUAL "mac")
     target_link_libraries(${target} -stdlib=libc++)
     target_link_libraries(${target} -mmacosx-version-min=10.7)
+    # Fixes: Undefined symbols for architecture x86_64:
+    #   "___isOSVersionAtLeast", referenced from:
+    #       _singleipconnect in libcurl.a(libcurl_la-connect.o)
+    target_link_libraries(${target} -Wl,-undefined -Wl,dynamic_lookup)
   endif()
   if((MINGW OR TARGET_OS STREQUAL "linux") AND PREFER_BUNDLED_LIBS)
     # Statically link the standard libraries with on MinGW/Linux so we don't
@@ -1537,6 +1549,9 @@ foreach(target ${TARGETS_OWN})
   if(MYSQL)
     target_compile_definitions(${target} PRIVATE CONF_SQL)
     target_include_directories(${target} PRIVATE ${MYSQL_INCLUDE_DIRS})
+  endif()
+  if(AUTOUPDATE)
+    target_compile_definitions(${target} PRIVATE CONF_AUTOUPDATE)
   endif()
 endforeach()
 

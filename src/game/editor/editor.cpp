@@ -132,6 +132,28 @@ CLayerGroup::CLayerGroup()
 	m_ClipH = 0;
 }
 
+CLayerGroup::CLayerGroup(const CLayerGroup& rhs)
+{
+	str_copy(m_aName, rhs.m_aName, sizeof m_aName);
+	m_Visible = rhs.m_Visible;
+	m_SaveToMap = rhs.m_SaveToMap;
+	m_Collapse = rhs.m_Collapse;
+	m_GameGroup = rhs.m_GameGroup;
+	m_OffsetX = rhs.m_OffsetX;
+	m_OffsetY = rhs.m_OffsetY;
+	m_ParallaxX = rhs.m_ParallaxX;
+	m_ParallaxY = rhs.m_ParallaxY;
+
+	m_UseClipping = rhs.m_UseClipping;
+	m_ClipX = rhs.m_ClipX;
+	m_ClipY = rhs.m_ClipY;
+	m_ClipW = rhs.m_ClipW;
+	m_ClipH = rhs.m_ClipH;
+
+	m_lLayers = rhs.m_lLayers;
+	m_pMap = rhs.m_pMap;
+}
+
 CLayerGroup::~CLayerGroup()
 {
 	Clear();
@@ -196,7 +218,7 @@ void CLayerGroup::Render()
 				m_lLayers[i]->Render();
 		}
 	}
-	
+
 	for(int i = 0; i < m_lLayers.size(); i++)
 	{
 		if(m_lLayers[i]->m_Visible && m_lLayers[i]->m_Type == LAYERTYPE_TILES && m_lLayers[i] != m_pMap->m_pGameLayer
@@ -641,7 +663,7 @@ int CEditor::DoButton_MenuItem(const void *pID, const char *pText, int Checked, 
 
 	CUIRect t = *pRect;
 	t.VMargin(5.0f, &t);
-	UI()->DoLabel(&t, pText, 10, 0, -1);
+	UI()->DoLabel(&t, pText, 10, -1, -1);
 	return DoButton_Editor_Common(pID, pText, Checked, pRect, Flags, pToolTip);
 }
 
@@ -859,10 +881,10 @@ CLayer *CEditor::GetSelectedLayer(int Index)
 	CLayerGroup *pGroup = GetSelectedGroup();
 	if(!pGroup)
 		return 0x0;
-	
+
 	if(Index < 0 || Index >= m_lSelectedLayers.size())
 		return 0x0;
-	
+
 	int LayerIndex = m_lSelectedLayers[Index];
 
 	if(LayerIndex >= 0 && LayerIndex < m_Map.m_lGroups[m_SelectedGroup]->m_lLayers.size())
@@ -1418,8 +1440,6 @@ void CEditor::DoSoundSource(CSoundSource *pSource, int Index)
 
 	void *pID = &pSource->m_Position;
 
-	static float s_LastWx;
-	static float s_LastWy;
 	static int s_Operation = OP_NONE;
 
 	float wx = UI()->MouseWorldX();
@@ -1441,7 +1461,7 @@ void CEditor::DoSoundSource(CSoundSource *pSource, int Index)
 
 	if(UI()->ActiveItem() == pID)
 	{
-		if(m_MouseDeltaWx*m_MouseDeltaWx+m_MouseDeltaWy*m_MouseDeltaWy > 0.5f)
+		if(m_MouseDeltaWx*m_MouseDeltaWx+m_MouseDeltaWy*m_MouseDeltaWy > 0.05f)
 		{
 			if(s_Operation == OP_MOVE)
 			{
@@ -1465,14 +1485,11 @@ void CEditor::DoSoundSource(CSoundSource *pSource, int Index)
 				}
 				else
 				{
-					pSource->m_Position.x += f2fx(wx-s_LastWx);
-					pSource->m_Position.y += f2fx(wy-s_LastWy);
+					pSource->m_Position.x = f2fx(wx);
+					pSource->m_Position.y = f2fx(wy);
 				}
 			}
 		}
-
-		s_LastWx = wx;
-		s_LastWy = wy;
 
 		if(s_Operation == OP_CONTEXT_MENU)
 		{
@@ -1520,8 +1537,6 @@ void CEditor::DoSoundSource(CSoundSource *pSource, int Index)
 
 			UI()->SetActiveItem(pID);
 			m_SelectedSource = Index;
-			s_LastWx = wx;
-			s_LastWy = wy;
 		}
 
 		if(UI()->MouseButton(1))
@@ -1555,8 +1570,6 @@ void CEditor::DoQuad(CQuad *q, int Index)
 	// some basic values
 	void *pID = &q->m_aPoints[4]; // use pivot addr as id
 	static array<array<CPoint>> s_lRotatePoints;
-	static float s_LastWx;
-	static float s_LastWy;
 	static int s_Operation = OP_NONE;
 	static float s_RotateAngle = 0;
 	float wx = UI()->MouseWorldX();
@@ -1587,7 +1600,7 @@ void CEditor::DoQuad(CQuad *q, int Index)
 
 	if(UI()->ActiveItem() == pID)
 	{
-		if(m_MouseDeltaWx*m_MouseDeltaWx+m_MouseDeltaWy*m_MouseDeltaWy > 0.5f)
+		if(m_MouseDeltaWx*m_MouseDeltaWx+m_MouseDeltaWy*m_MouseDeltaWy > 0.05f)
 		{
 			// check if we only should move pivot
 			if(s_Operation == OP_MOVE_PIVOT)
@@ -1612,8 +1625,8 @@ void CEditor::DoQuad(CQuad *q, int Index)
 				}
 				else
 				{
-					q->m_aPoints[4].x += f2fx(wx-s_LastWx);
-					q->m_aPoints[4].y += f2fx(wy-s_LastWy);
+					q->m_aPoints[4].x = f2fx(wx);
+					q->m_aPoints[4].y = f2fx(wy);
 				}
 			}
 			else if(s_Operation == OP_MOVE_ALL)
@@ -1650,13 +1663,16 @@ void CEditor::DoQuad(CQuad *q, int Index)
 				}
 				else
 				{
+					int OffsetX = f2fx(wx) - q->m_aPoints[4].x;
+					int OffsetY = f2fx(wy) - q->m_aPoints[4].y;
+
 					for(int i = 0; i < m_lSelectedQuads.size(); ++i)
 					{
 						CQuad *pCurrentQuad = &pLayer->m_lQuads[m_lSelectedQuads[i]];
 						for(int v = 0; v < 5; v++)
 						{
-							pCurrentQuad->m_aPoints[v].x += f2fx(wx-s_LastWx);
-							pCurrentQuad->m_aPoints[v].y += f2fx(wy-s_LastWy);
+							pCurrentQuad->m_aPoints[v].x += OffsetX;
+							pCurrentQuad->m_aPoints[v].y += OffsetY;
 						}
 					}
 				}
@@ -1677,8 +1693,6 @@ void CEditor::DoQuad(CQuad *q, int Index)
 		}
 
 		s_RotateAngle += (m_MouseDeltaX) * 0.002f;
-		s_LastWx = wx;
-		s_LastWy = wy;
 
 		if(s_Operation == OP_CONTEXT_MENU)
 		{
@@ -1750,10 +1764,10 @@ void CEditor::DoQuad(CQuad *q, int Index)
 				m_LockMouse = true;
 				s_Operation = OP_ROTATE;
 				s_RotateAngle = 0;
-				
+
 				if(!IsQuadSelected(Index))
 					SelectQuad(Index);
-				
+
 				CLayerQuads *pLayer = (CLayerQuads *)GetSelectedLayerType(0, LAYERTYPE_QUADS);
 				s_lRotatePoints.clear();
 				s_lRotatePoints.set_size(m_lSelectedQuads.size());
@@ -1771,14 +1785,12 @@ void CEditor::DoQuad(CQuad *q, int Index)
 			else
 			{
 				s_Operation = OP_MOVE_ALL;
-				
+
 				if(!IsQuadSelected(Index))
 					SelectQuad(Index);
 			}
 
 			UI()->SetActiveItem(pID);
-			s_LastWx = wx;
-			s_LastWy = wy;
 		}
 
 		if(UI()->MouseButton(1))
@@ -1852,11 +1864,9 @@ void CEditor::DoQuadPoint(CQuad *pQuad, int QuadIndex, int V)
 
 	if(UI()->ActiveItem() == pID)
 	{
-		float dx = m_MouseDeltaWx;
-		float dy = m_MouseDeltaWy;
 		if(!s_Moved)
 		{
-			if(dx*dx+dy*dy > 0.5f)
+			if(m_MouseDeltaWx*m_MouseDeltaWx+m_MouseDeltaWy*m_MouseDeltaWy > 0.05f)
 				s_Moved = true;
 		}
 
@@ -1896,14 +1906,17 @@ void CEditor::DoQuadPoint(CQuad *pQuad, int QuadIndex, int V)
 				}
 				else
 				{
+					int OffsetX = f2fx(wx) - pQuad->m_aPoints[V].x;
+					int OffsetY = f2fx(wy) - pQuad->m_aPoints[V].y;
+
 					for(int i = 0; i < m_lSelectedQuads.size(); ++i)
 					{
 						CQuad *pCurrentQuad = &pLayer->m_lQuads[m_lSelectedQuads[i]];
 						for(int m = 0; m < 4; m++)
 							if(m_SelectedPoints&(1<<m))
 							{
-								pCurrentQuad->m_aPoints[m].x += f2fx(dx);
-								pCurrentQuad->m_aPoints[m].y += f2fx(dy);
+								pCurrentQuad->m_aPoints[m].x += OffsetX;
+								pCurrentQuad->m_aPoints[m].y += OffsetY;
 							}
 					}
 				}
@@ -1920,11 +1933,11 @@ void CEditor::DoQuadPoint(CQuad *pQuad, int QuadIndex, int V)
 							// 0,2;1,3 - line x
 							// 0,1;2,3 - line y
 
-							pCurrentQuad->m_aTexcoords[m].x += f2fx(dx*0.001f);
-							pCurrentQuad->m_aTexcoords[(m+2)%4].x += f2fx(dx*0.001f);
+							pCurrentQuad->m_aTexcoords[m].x += f2fx(m_MouseDeltaWx*0.001f);
+							pCurrentQuad->m_aTexcoords[(m+2)%4].x += f2fx(m_MouseDeltaWx*0.001f);
 
-							pCurrentQuad->m_aTexcoords[m].y += f2fx(dy*0.001f);
-							pCurrentQuad->m_aTexcoords[m^1].y += f2fx(dy*0.001f);
+							pCurrentQuad->m_aTexcoords[m].y += f2fx(m_MouseDeltaWy*0.001f);
+							pCurrentQuad->m_aTexcoords[m^1].y += f2fx(m_MouseDeltaWy*0.001f);
 						}
 				}
 			}
@@ -1996,7 +2009,7 @@ void CEditor::DoQuadPoint(CQuad *pQuad, int QuadIndex, int V)
 					m_SelectedPoints = 1<<V;
 				s_Moved = true;
 			}
-			
+
 			if(!IsQuadSelected(QuadIndex))
 				SelectQuad(QuadIndex);
 		}
@@ -2154,8 +2167,6 @@ void CEditor::DoQuadEnvPoint(const CQuad *pQuad, int QIndex, int PIndex)
 	};
 
 	// some basic values
-	static float s_LastWx;
-	static float s_LastWy;
 	static int s_Operation = OP_NONE;
 	float wx = UI()->MouseWorldX();
 	float wy = UI()->MouseWorldY();
@@ -2205,15 +2216,12 @@ void CEditor::DoQuadEnvPoint(const CQuad *pQuad, int QIndex, int PIndex)
 			}
 			else
 			{
-				pEnvelope->m_lPoints[PIndex].m_aValues[0] += f2fx(wx-s_LastWx);
-				pEnvelope->m_lPoints[PIndex].m_aValues[1] += f2fx(wy-s_LastWy);
+				pEnvelope->m_lPoints[PIndex].m_aValues[0] = f2fx(wx);
+				pEnvelope->m_lPoints[PIndex].m_aValues[1] = f2fx(wy);
 			}
 		}
 		else if(s_Operation == OP_ROTATE)
 			pEnvelope->m_lPoints[PIndex].m_aValues[2] += 10*m_MouseDeltaX;
-
-		s_LastWx = wx;
-		s_LastWy = wy;
 
 		if(!UI()->MouseButton(0))
 		{
@@ -2251,8 +2259,6 @@ void CEditor::DoQuadEnvPoint(const CQuad *pQuad, int QIndex, int PIndex)
 			m_SelectedQuadEnvelope = pQuad->m_PosEnv;
 
 			UI()->SetActiveItem(pID);
-			s_LastWx = wx;
-			s_LastWy = wy;
 		}
 		else
 		{
@@ -2569,6 +2575,9 @@ void CEditor::DoMapEditor(CUIRect View)
 							if(Grabs == 0)
 								m_Brush.Clear();
 
+							for(int i = 0; i < m_Brush.m_lLayers.size(); i++)
+								m_Brush.m_lLayers[i]->m_BrushRefCount = 1;
+
 							m_lSelectedQuads.clear();
 							m_SelectedPoints = 0;
 						}
@@ -2604,7 +2613,14 @@ void CEditor::DoMapEditor(CUIRect View)
 			else
 			{
 				if(UI()->MouseButton(1))
+				{
+					for(int i = 0; i < m_Brush.m_lLayers.size(); i++)
+					{
+						if(m_Brush.m_lLayers[i]->m_BrushRefCount == 1)
+							delete m_Brush.m_lLayers[i];
+					}
 					m_Brush.Clear();
+				}
 
 				if(UI()->MouseButton(0) && s_Operation == OP_NONE)
 				{
@@ -3279,7 +3295,7 @@ void CEditor::RenderLayers(CUIRect ToolBox, CUIRect View)
 						}
 					}
 				}
-				
+
 				if(m_Map.m_lGroups[g]->m_lLayers[i] == m_Map.m_pGameLayer ||
 					m_Map.m_lGroups[g]->m_lLayers[i] == m_Map.m_pFrontLayer ||
 					m_Map.m_lGroups[g]->m_lLayers[i] == m_Map.m_pSwitchLayer ||
@@ -3379,7 +3395,7 @@ void CEditor::AddImage(const char *pFileName, int StorageType, void *pUser)
 	*pImg = ImgInfo;
 	pImg->m_TexID = pEditor->Graphics()->LoadTextureRaw(ImgInfo.m_Width, ImgInfo.m_Height, ImgInfo.m_Format, ImgInfo.m_pData, CImageInfo::FORMAT_AUTO, 0);
 	ImgInfo.m_pData = 0;
-	pImg->m_External = !IsVanillaImage(aBuf);
+	pImg->m_External = IsVanillaImage(aBuf);
 	str_copy(pImg->m_aName, aBuf, sizeof(pImg->m_aName));
 	pImg->m_AutoMapper.Load(pImg->m_aName);
 	pEditor->m_Map.m_lImages.add(pImg);
@@ -3543,7 +3559,7 @@ int CEditor::PopupImage(CEditor *pEditor, CUIRect View)
 		}
 	}
 
-	View.HSplitTop(10.0f, &Slot, &View);
+	View.HSplitTop(5.0f, &Slot, &View);
 	View.HSplitTop(12.0f, &Slot, &View);
 	if(pEditor->DoButton_MenuItem(&s_ReplaceButton, "Replace", 0, &Slot, 0, "Replaces the image with a new one"))
 	{
@@ -3551,7 +3567,7 @@ int CEditor::PopupImage(CEditor *pEditor, CUIRect View)
 		return 1;
 	}
 
-	View.HSplitTop(10.0f, &Slot, &View);
+	View.HSplitTop(5.0f, &Slot, &View);
 	View.HSplitTop(12.0f, &Slot, &View);
 	if(pEditor->DoButton_MenuItem(&s_RemoveButton, "Remove", 0, &Slot, 0, "Removes the image from the map"))
 	{
@@ -3594,7 +3610,7 @@ int CEditor::PopupSound(CEditor *pEditor, CUIRect View)
 	}
 
 
-	View.HSplitTop(10.0f, &Slot, &View);
+	View.HSplitTop(5.0f, &Slot, &View);
 	View.HSplitTop(12.0f, &Slot, &View);
 	if(pEditor->DoButton_MenuItem(&s_ReplaceButton, "Replace", 0, &Slot, 0, "Replaces the sound with a new one"))
 	{
@@ -3602,7 +3618,7 @@ int CEditor::PopupSound(CEditor *pEditor, CUIRect View)
 		return 1;
 	}
 
-	View.HSplitTop(10.0f, &Slot, &View);
+	View.HSplitTop(5.0f, &Slot, &View);
 	View.HSplitTop(12.0f, &Slot, &View);
 	if(pEditor->DoButton_MenuItem(&s_RemoveButton, "Remove", 0, &Slot, 0, "Removes the sound from the map"))
 	{
@@ -3775,7 +3791,7 @@ void CEditor::RenderImages(CUIRect ToolBox, CUIRect View)
 
 				static int s_PopupImageID = 0;
 				if(Result == 2)
-					UiInvokePopupMenu(&s_PopupImageID, 0, UI()->MouseX(), UI()->MouseY(), 120, 80, PopupImage);
+					UiInvokePopupMenu(&s_PopupImageID, 0, UI()->MouseX(), UI()->MouseY(), 120, 60, PopupImage);
 			}
 
 			ToolBox.HSplitTop(2.0f, 0, &ToolBox);
@@ -3929,7 +3945,7 @@ void CEditor::RenderSounds(CUIRect ToolBox, CUIRect View)
 
 				static int s_PopupSoundID = 0;
 				if(Result == 2)
-					UiInvokePopupMenu(&s_PopupSoundID, 0, UI()->MouseX(), UI()->MouseY(), 120, 80, PopupSound);
+					UiInvokePopupMenu(&s_PopupSoundID, 0, UI()->MouseX(), UI()->MouseY(), 120, 60, PopupSound);
 			}
 
 			ToolBox.HSplitTop(2.0f, 0, &ToolBox);
@@ -5394,6 +5410,48 @@ void CEditor::Render()
 		m_EditorOffsetY = 0;
 		m_ZoomLevel = 100;
 	}
+
+	for(int i = KEY_1; i <= KEY_0; i++)
+	{
+		if(m_Dialog != DIALOG_NONE || m_EditBoxActive != 0)
+			break;
+
+		if(Input()->KeyPress(i))
+		{
+			int Slot = i - KEY_1;
+			if((Input()->KeyIsPressed(KEY_LCTRL) || Input()->KeyIsPressed(KEY_RCTRL)) && !m_Brush.IsEmpty())
+			{
+				dbg_msg("editor", "saving current brush to %d", Slot);
+				if(m_apSavedBrushes[Slot])
+				{
+					CLayerGroup *pPrev = m_apSavedBrushes[Slot];
+					for(int i = 0; i < pPrev->m_lLayers.size(); i++)
+					{
+						if(pPrev->m_lLayers[i]->m_BrushRefCount == 1)
+							delete pPrev->m_lLayers[i];
+						else
+							pPrev->m_lLayers[i]->m_BrushRefCount--;
+					}
+				}
+				delete m_apSavedBrushes[Slot];
+				m_apSavedBrushes[Slot] = new CLayerGroup(m_Brush);
+
+				for(int i = 0; i < m_apSavedBrushes[Slot]->m_lLayers.size(); i++)
+					m_apSavedBrushes[Slot]->m_lLayers[i]->m_BrushRefCount++;
+			}
+			else if(m_apSavedBrushes[Slot])
+			{
+				dbg_msg("editor", "loading brush from slot %d", Slot);
+
+				CLayerGroup *pNew = m_apSavedBrushes[Slot];
+				for(int i = 0; i < pNew->m_lLayers.size(); i++)
+					pNew->m_lLayers[i]->m_BrushRefCount++;
+
+				m_Brush = *pNew;
+			}
+		}
+	}
+
 	if(m_Dialog == DIALOG_NONE && UI()->MouseInside(&View))
 	{
 		// Determines in which direction to zoom.
@@ -5553,6 +5611,8 @@ void CEditor::Reset(bool CreateDefault)
 	m_pStorage->GetCompletePath(IStorage::TYPE_SAVE, "editor/", aBuffer, sizeof(aBuffer));
 	fs_listdir(aBuffer, UndoStepsListdirCallback, 0, m_pStorage);
 	m_lUndoSteps.clear();
+
+	mem_zero(m_apSavedBrushes, sizeof m_apSavedBrushes);
 
 	// create default layers
 	if(CreateDefault)

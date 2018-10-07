@@ -673,7 +673,7 @@ struct THREAD_RUN
 #if defined(CONF_FAMILY_UNIX)
 static void *thread_run(void *user)
 #elif defined(CONF_FAMILY_WINDOWS)
-static unsigned int __stdcall thread_run(void *user)
+static unsigned long __stdcall thread_run(void *user)
 #else
 #error not implemented
 #endif
@@ -2179,7 +2179,7 @@ void str_append(char *dst, const char *src, int dst_size)
 
 void str_copy(char *dst, const char *src, int dst_size)
 {
-	strncpy(dst, src, dst_size);
+	strncpy(dst, src, dst_size-1);
 	dst[dst_size-1] = 0; /* assure null termination */
 }
 
