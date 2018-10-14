@@ -556,6 +556,51 @@ int CServer::MaxClients() const
 	return m_NetServer.MaxClients();
 }
 
+int CServer::ClientCount()
+{
+	int ClientCount = 0;
+	for(int i = 0; i < MAX_CLIENTS; i++)
+	{
+		if(m_aClients[i].m_State != CClient::STATE_EMPTY)
+		{
+			ClientCount++;
+		}
+	}
+
+	return ClientCount;
+}
+
+int CServer::DistinctClientCount()
+{
+	NETADDR aAddresses[MAX_CLIENTS];
+	for(int i = 0; i < MAX_CLIENTS; i++)
+	{
+		if(m_aClients[i].m_State != CClient::STATE_EMPTY)
+		{
+			GetClientAddr(i, &aAddresses[i]);
+		}
+	}
+
+	int ClientCount = 0;
+	for(int i = 0; i < MAX_CLIENTS; i++)
+	{
+		if(m_aClients[i].m_State != CClient::STATE_EMPTY)
+		{
+			ClientCount++;
+			for(int j = 0; j < i; j++)
+			{
+				if(!net_addr_comp_noport(&aAddresses[i], &aAddresses[j]))
+				{
+					ClientCount--;
+					break;
+				}
+			}
+		}
+	}
+
+	return ClientCount;
+}
+
 int CServer::SendMsg(CMsgPacker *pMsg, int Flags, int ClientID)
 {
 	return SendMsgEx(pMsg, Flags, ClientID, false);
@@ -1950,7 +1995,7 @@ int CServer::Run()
 							char aBuf[256];
 
 							str_format(aBuf, sizeof(aBuf), "ClientID=%d addr=%s secure=%s blacklisted", ClientID, aAddrStr, m_NetServer.HasSecurityToken(ClientID)?"yes":"no");
-							
+
 							Console()->Print(IConsole::OUTPUT_LEVEL_ADDINFO, "dnsbl", aBuf);
 						}
 					}
@@ -2393,7 +2438,7 @@ void CServer::ConNameBan(IConsole::IResult *pResult, void *pUser)
 	{
 		Distance = str_length(pName) / 3;
 	}
-	
+
 	for(int i = 0; i < pThis->m_aNameBans.size(); i++)
 	{
 		CNameBan *pBan = &pThis->m_aNameBans[i];
@@ -2911,7 +2956,7 @@ int main(int argc, const char **argv) // ignore_convention
 	IKernel *pKernel = IKernel::Create();
 
 	// create the components
-	IEngine *pEngine = CreateEngine("DDNet", Silent);
+	IEngine *pEngine = CreateEngine("DDNet", Silent, 2);
 	IEngineMap *pEngineMap = CreateEngineMap();
 	IGameServer *pGameServer = CreateGameServer();
 	IConsole *pConsole = CreateConsole(CFGFLAG_SERVER|CFGFLAG_ECON);
