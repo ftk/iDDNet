@@ -1159,7 +1159,7 @@ void CEditor::DoToolbar(CUIRect ToolBar)
 	TB_Top.VSplitLeft(40.0f, &Button, &TB_Top);
 	static int s_AllowPlaceUnusedTilesButton = 0;
 	if(DoButton_Editor(&s_AllowPlaceUnusedTilesButton, "Unused", m_AllowPlaceUnusedTiles, &Button, 0, "[ctrl+u] Allow placing unused tiles") ||
-		(Input()->KeyPress('u') && (Input()->KeyIsPressed(KEY_LCTRL) || Input()->KeyIsPressed(KEY_RCTRL))))
+		(Input()->KeyPress(KEY_U) && (Input()->KeyIsPressed(KEY_LCTRL) || Input()->KeyIsPressed(KEY_RCTRL))))
 	{
 		m_AllowPlaceUnusedTiles = !m_AllowPlaceUnusedTiles;
 	}
@@ -4126,6 +4126,7 @@ void CEditor::RenderFileDialog()
 
 		static float s_SearchBoxID = 0;
 		UI()->DoLabel(&FileBoxLabel, "Search:", 10.0f, -1, -1);
+		str_copy(m_aFileDialogPrevSearchText, m_aFileDialogSearchText, sizeof(m_aFileDialogPrevSearchText));
 		DoEditBox(&s_SearchBoxID, &FileBox, m_aFileDialogSearchText, sizeof(m_aFileDialogSearchText), 10.0f, &s_SearchBoxID,false,CUI::CORNER_L);
 
 		// clearSearchbox button
@@ -4139,6 +4140,9 @@ void CEditor::RenderFileDialog()
 				UI()->SetActiveItem(&s_SearchBoxID);
 			}
 		}
+
+		if(str_comp(m_aFileDialogPrevSearchText, m_aFileDialogSearchText))
+			m_FileDialogScrollValue = 0.0f;
 	}
 
 	int Num = (int)(View.h/17.0f)+1;
@@ -4146,7 +4150,19 @@ void CEditor::RenderFileDialog()
 	Scroll.HMargin(5.0f, &Scroll);
 	m_FileDialogScrollValue = UiDoScrollbarV(&ScrollBar, &Scroll, m_FileDialogScrollValue);
 
-	int ScrollNum = m_FileList.size()-Num+1;
+	int ScrollNum = 0;
+	for(int i = 0; i < m_FileList.size(); i++)
+	{
+		m_FileList[i].m_IsVisible = false;
+		if(!m_aFileDialogSearchText[0] || str_find_nocase(m_FileList[i].m_aName, m_aFileDialogSearchText))
+		{
+			AddFileDialogEntry(i, &View);
+			m_FileList[i].m_IsVisible = true;
+			ScrollNum++;
+		}
+	}
+	ScrollNum -= Num - 1;
+
 	if(ScrollNum > 0)
 	{
 		if(Input()->KeyPress(KEY_MOUSE_WHEEL_UP))
@@ -4157,6 +4173,11 @@ void CEditor::RenderFileDialog()
 	else
 		ScrollNum = 0;
 
+	if(!m_FileList[m_FilesSelectedIndex].m_IsVisible)
+	{
+		m_FilesSelectedIndex = 0;
+	}
+
 	if(m_FilesSelectedIndex > -1)
 	{
 		for(int i = 0; i < Input()->NumEvents(); i++)
@@ -4164,8 +4185,24 @@ void CEditor::RenderFileDialog()
 			int NewIndex = -1;
 			if(Input()->GetEvent(i).m_Flags&IInput::FLAG_PRESS)
 			{
-				if(Input()->GetEvent(i).m_Key == KEY_DOWN) NewIndex = m_FilesSelectedIndex + 1;
-				if(Input()->GetEvent(i).m_Key == KEY_UP) NewIndex = m_FilesSelectedIndex - 1;
+				if(Input()->GetEvent(i).m_Key == KEY_DOWN)
+				{
+					for(NewIndex = m_FilesSelectedIndex + 1; NewIndex < m_FileList.size(); NewIndex++)
+					{
+						if(m_FileList[NewIndex].m_IsVisible)
+							break;
+					}
+					dbg_msg("DEBUG", "NewIndex='%d'", NewIndex);
+				}
+				if(Input()->GetEvent(i).m_Key == KEY_UP)
+				{
+					for(NewIndex = m_FilesSelectedIndex - 1; NewIndex >= 0; NewIndex--)
+					{
+						if(m_FileList[NewIndex].m_IsVisible)
+							break;
+					}
+					dbg_msg("DEBUG", "NewIndex='%d'", NewIndex);
+				}
 			}
 			if(NewIndex > -1 && NewIndex < m_FileList.size())
 			{
@@ -4249,10 +4286,6 @@ void CEditor::RenderFileDialog()
 
 	// set clipping
 	UI()->ClipEnable(&View);
-
-	for(int i = 0; i < m_FileList.size(); i++)
-		if(!m_aFileDialogSearchText[0] || str_find_nocase (m_FileList[i].m_aName, m_aFileDialogSearchText))
-		AddFileDialogEntry(i, &View);
 
 	// disable clipping again
 	UI()->ClipDisable();
@@ -4558,6 +4591,47 @@ void CEditor::RenderUndoList(CUIRect View)
 	}
 }
 
+bool CEditor::IsEnvelopeUsed(int EnvelopeIndex)
+{
+	for(int i = 0; i < m_Map.m_lGroups.size(); i++)
+	{
+		for(int j = 0; j < m_Map.m_lGroups[i]->m_lLayers.size(); j++)
+		{
+			if(m_Map.m_lGroups[i]->m_lLayers[j]->m_Type == LAYERTYPE_QUADS)
+			{
+				CLayerQuads *pQuadLayer = (CLayerQuads *)m_Map.m_lGroups[i]->m_lLayers[j];
+				for(int k = 0; k < pQuadLayer->m_lQuads.size(); k++)
+				{
+					if(pQuadLayer->m_lQuads[k].m_PosEnv == EnvelopeIndex
+						|| pQuadLayer->m_lQuads[k].m_ColorEnv == EnvelopeIndex)
+					{
+						return true;
+					}
+				}
+			}
+			else if(m_Map.m_lGroups[i]->m_lLayers[j]->m_Type == LAYERTYPE_SOUNDS)
+			{
+				CLayerSounds *pSoundLayer = (CLayerSounds *)m_Map.m_lGroups[i]->m_lLayers[j];
+				for(int k = 0; k < pSoundLayer->m_lSources.size(); k++)
+				{
+					if(pSoundLayer->m_lSources[k].m_PosEnv == EnvelopeIndex
+						|| pSoundLayer->m_lSources[k].m_SoundEnv == EnvelopeIndex)
+					{
+						return true;
+					}
+				}
+			}
+			else if(m_Map.m_lGroups[i]->m_lLayers[j]->m_Type == LAYERTYPE_TILES)
+			{
+				CLayerTiles *pTileLayer = (CLayerTiles *)m_Map.m_lGroups[i]->m_lLayers[j];
+				if(pTileLayer->m_ColorEnv == EnvelopeIndex)
+					return true;
+			}
+		}
+	}
+	return false;
+}
+
 void CEditor::RenderEnvelopeEditor(CUIRect View)
 {
 	if(m_SelectedEnvelope < 0) m_SelectedEnvelope = 0;
@@ -4647,7 +4721,16 @@ void CEditor::RenderEnvelopeEditor(CUIRect View)
 		Shifter.VSplitLeft(15.0f, &Dec, &Shifter);
 		char aBuf[512];
 		str_format(aBuf, sizeof(aBuf),"%d/%d", m_SelectedEnvelope+1, m_Map.m_lEnvelopes.size());
-		RenderTools()->DrawUIRect(&Shifter, vec4(1,1,1,0.5f), 0, 0.0f);
+
+		vec4 EnvColor = vec4(1, 1, 1, 0.5f);
+		if(m_Map.m_lEnvelopes.size())
+		{
+			EnvColor = IsEnvelopeUsed(m_SelectedEnvelope) ?
+				vec4(0.7f, 1, 0.7f, 0.5f) :
+				vec4(1, 0.7f, 0.7f, 0.5f);
+		}
+
+		RenderTools()->DrawUIRect(&Shifter, EnvColor, 0, 0.0f);
 		UI()->DoLabel(&Shifter, aBuf, 10.0f, 0, -1);
 
 		static int s_PrevButton = 0;
