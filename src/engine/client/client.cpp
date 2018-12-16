@@ -2787,7 +2787,7 @@ void CClient::Run()
 	bool LastQ = false;
 	bool LastE = false;
 	bool LastG = false;
-	
+
 	int64 LastTime = time_get_microseconds();
 	int64 LastRenderTime = time_get();
 
@@ -3515,9 +3515,9 @@ void CClient::RegisterCommands()
 	m_pConsole->Register("demo_speed", "i[speed]", CFGFLAG_CLIENT, Con_DemoSpeed, this, "Set demo speed");
 
 	m_pConsole->Chain("cl_timeout_seed", ConchainTimeoutSeed, this);
-	
+
 	m_pConsole->Chain("password", ConchainPassword, this);
-	
+
 	// used for server browser update
 	m_pConsole->Chain("br_filter_string", ConchainServerBrowserUpdate, this);
 	m_pConsole->Chain("br_filter_gametype", ConchainServerBrowserUpdate, this);
@@ -3540,6 +3540,11 @@ static CClient *CreateClient()
 	CClient *pClient = static_cast<CClient *>(malloc(sizeof(*pClient)));
 	mem_zero(pClient, sizeof(CClient));
 	return new(pClient) CClient;
+}
+
+void CClient::HandleConnectLink(const char *pArg)
+{
+	str_copy(m_aCmdConnect, pArg + sizeof(CONNECTLINK) - 1, sizeof(m_aCmdConnect));
 }
 
 /*
@@ -3576,10 +3581,6 @@ int main(int argc, const char **argv) // ignore_convention
 			break;
 		}
 	}
-
-#if defined(CONF_FAMILY_WINDOWS)
-	SetConsoleOutputCP(65001);
-#endif
 
 	if(secure_random_init() != 0)
 	{
@@ -3692,7 +3693,9 @@ int main(int argc, const char **argv) // ignore_convention
 	g_Config.m_ClConfigVersion = 1;
 
 	// parse the command line arguments
-	if(argc > 1) // ignore_convention
+	if(argc == 2 && str_startswith(argv[1], CONNECTLINK))
+		pClient->HandleConnectLink(argv[1]);
+	else if(argc > 1) // ignore_convention
 		pConsole->ParseArguments(argc-1, &argv[1]); // ignore_convention
 
 	pClient->Engine()->InitLogfile();

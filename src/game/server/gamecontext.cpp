@@ -731,6 +731,7 @@ void CGameContext::OnTick()
 					if(m_apPlayers[i])
 						Server()->GetClientAddr(i, aaBuf[i], NETADDR_MAXSTRSIZE);
 				bool aVoteChecked[MAX_CLIENTS] = {0};
+				int64 Now = Server()->Tick();
 				for(int i = 0; i < MAX_CLIENTS; i++)
 				{
 					//if(!m_apPlayers[i] || m_apPlayers[i]->GetTeam() == TEAM_SPECTATORS || aVoteChecked[i])	// don't count in votes by spectators
@@ -746,6 +747,10 @@ void CGameContext::OnTick()
 						continue;
 
 					if(m_apPlayers[i]->m_Afk && i != m_VoteCreator || m_apPlayers[i]->m_IsDummy)
+						continue;
+
+					// can't vote in kick and spec votes in the beginning after joining
+					if((m_VoteKick || m_VoteSpec) && Now < m_apPlayers[i]->m_FirstVoteTick)
 						continue;
 
 					// connecting clients with spoofed ips can clog slots without being ingame
@@ -1851,7 +1856,9 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 		{
 			CNetMsg_Cl_SetSpectatorMode *pMsg = (CNetMsg_Cl_SetSpectatorMode *)pRawMsg;
 
-			if(pMsg->m_SpectatorID != SPEC_FREEVIEW)
+			pMsg->m_SpectatorID = clamp(pMsg->m_SpectatorID, (int)SPEC_FOLLOW, MAX_CLIENTS-1);
+
+			if(pMsg->m_SpectatorID >= 0)
 				if (!Server()->ReverseTranslate(pMsg->m_SpectatorID, ClientID))
 					return;
 
@@ -1859,7 +1866,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 				return;
 
 			pPlayer->m_LastSetSpectatorMode = Server()->Tick();
-			if(pMsg->m_SpectatorID != SPEC_FREEVIEW && (!m_apPlayers[pMsg->m_SpectatorID] || m_apPlayers[pMsg->m_SpectatorID]->GetTeam() == TEAM_SPECTATORS))
+			if(pMsg->m_SpectatorID >= 0 && (!m_apPlayers[pMsg->m_SpectatorID] || m_apPlayers[pMsg->m_SpectatorID]->GetTeam() == TEAM_SPECTATORS))
 				SendChatTarget(ClientID, "Invalid spectator id used");
 			else
 				pPlayer->m_SpectatorID = pMsg->m_SpectatorID;

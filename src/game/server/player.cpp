@@ -134,7 +134,7 @@ void CPlayer::Reset()
 	// non-empty, allow them to vote immediately. This allows players to
 	// vote after map changes or when they join an empty server.
 	//
-	// Otherwise, block voting for 60 seconds after joining.
+	// Otherwise, block voting in the begnning after joining.
 	if(Now > GameServer()->m_NonEmptySince + 10 * TickSpeed)
 		m_FirstVoteTick = Now + g_Config.m_SvJoinVoteDelay * TickSpeed;
 	else
@@ -537,7 +537,6 @@ CCharacter* CPlayer::ForceSpawn(vec2 Pos)
 
 void CPlayer::SetTeam(int Team, bool DoChatMsg)
 {
-	// clamp the team
 	Team = GameServer()->m_pController->ClampTeam(Team);
 	if(m_Team == Team)
 		return;
