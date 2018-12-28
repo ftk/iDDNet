@@ -9,12 +9,22 @@
 #define BASE_SYSTEM_H
 
 #include "detect.h"
+
+#ifndef __USE_GNU
+#define __USE_GNU
+#endif
+
 #include <stddef.h>
 #include <stdlib.h>
 #include <time.h>
 
 #ifdef CONF_FAMILY_UNIX
 #include <sys/un.h>
+#endif
+
+#ifdef CONF_PLATFORM_LINUX
+#include <sys/socket.h>
+#include <netinet/in.h>
 #endif
 
 #ifdef __cplusplus
@@ -466,9 +476,9 @@ void aio_free(ASYNCIO *aio);
 		Suspends the current thread for a given period.
 
 	Parameters:
-		milliseconds - Number of milliseconds to sleep.
+		microseconds - Number of microseconds to sleep.
 */
-void thread_sleep(int milliseconds);
+void thread_sleep(int microseconds);
 
 /*
 	Function: thread_init
@@ -747,6 +757,24 @@ NETSOCKET net_udp_create(NETADDR bindaddr);
 */
 int net_udp_send(NETSOCKET sock, const NETADDR *addr, const void *data, int size);
 
+#define VLEN 128
+#define PACKETSIZE 1400
+typedef struct
+{
+#ifdef CONF_PLATFORM_LINUX
+	int pos;
+	int size;
+	struct mmsghdr msgs[VLEN];
+	struct iovec iovecs[VLEN];
+	char bufs[VLEN][PACKETSIZE];
+	char sockaddrs[VLEN][128];
+#else
+	int dummy;
+#endif
+} MMSGS;
+
+void net_init_mmsgs(MMSGS* m);
+
 /*
 	Function: net_udp_recv
 		Receives a packet over an UDP socket.
@@ -754,14 +782,15 @@ int net_udp_send(NETSOCKET sock, const NETADDR *addr, const void *data, int size
 	Parameters:
 		sock - Socket to use.
 		addr - Pointer to an NETADDR that will receive the address.
-		data - Pointer to a buffer that will receive the data.
+		buffer - Pointer to a buffer that can be used to receive the data.
 		maxsize - Maximum size to receive.
+		data - Will get set to the actual data, might be the passed buffer or an internal one
 
 	Returns:
 		On success it returns the number of bytes received. Returns -1
 		on error.
 */
-int net_udp_recv(NETSOCKET sock, NETADDR *addr, void *data, int maxsize);
+int net_udp_recv(NETSOCKET sock, NETADDR *addr, void *buffer, int maxsize, MMSGS* m, unsigned char **data);
 
 /*
 	Function: net_udp_close

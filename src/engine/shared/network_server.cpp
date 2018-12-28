@@ -80,6 +80,8 @@ bool CNetServer::Open(NETADDR BindAddr, CNetBan *pNetBan, int MaxClients, int Ma
 	for(int i = 0; i < NET_MAX_CLIENTS; i++)
 		m_aSlots[i].m_Connection.Init(m_Socket, true);
 
+	net_init_mmsgs(&m_MMSGS);
+
 	return true;
 }
 
@@ -559,8 +561,6 @@ void CNetServer::OnTokenCtrlMsg(NETADDR &Addr, int ControlMsg, const CNetPacketC
 
 int CNetServer::GetClientSlot(const NETADDR &Addr)
 {
-	int Slot = -1;
-
 	for(int i = 0; i < MaxClients(); i++)
 	{
 		if(m_aSlots[i].m_Connection.State() != NET_CONNSTATE_OFFLINE &&
@@ -568,11 +568,11 @@ int CNetServer::GetClientSlot(const NETADDR &Addr)
 			net_addr_comp(m_aSlots[i].m_Connection.PeerAddress(), &Addr) == 0)
 
 		{
-			Slot = i;
+			return i;
 		}
 	}
 
-	return Slot;
+	return -1;
 }
 
 static bool IsDDNetControlMsg(const CNetPacketConstruct *pPacket)
@@ -612,7 +612,8 @@ int CNetServer::Recv(CNetChunk *pChunk)
 			return 1;
 
 		// TODO: empty the recvinfo
-		int Bytes = net_udp_recv(m_Socket, &Addr, m_RecvUnpacker.m_aBuffer, NET_MAX_PACKETSIZE);
+		unsigned char *pData;
+		int Bytes = net_udp_recv(m_Socket, &Addr, m_RecvUnpacker.m_aBuffer, NET_MAX_PACKETSIZE, &m_MMSGS, &pData);
 
 		// no more packets for now
 		if(Bytes <= 0)
@@ -627,7 +628,11 @@ int CNetServer::Recv(CNetChunk *pChunk)
 			continue;
 		}
 
-		if(CNetBase::UnpackPacket(m_RecvUnpacker.m_aBuffer, Bytes, &m_RecvUnpacker.m_Data) == 0)
+		// normal packet, find matching slot
+		int Slot = GetClientSlot(Addr);
+		bool Decompress = Slot != -1;
+
+		if(CNetBase::UnpackPacket(pData, Bytes, &m_RecvUnpacker.m_Data, Decompress) == 0)
 		{
 			if(m_RecvUnpacker.m_Data.m_Flags&NET_PACKETFLAG_CONNLESS)
 			{
@@ -649,9 +654,6 @@ int CNetServer::Recv(CNetChunk *pChunk)
 				if (m_RecvUnpacker.m_Data.m_Flags&NET_PACKETFLAG_CONTROL &&
 						m_RecvUnpacker.m_Data.m_DataSize == 0)
 					continue;
-
-				// normal packet, find matching slot
-				int Slot = GetClientSlot(Addr);
 
 				if (Slot != -1)
 				{

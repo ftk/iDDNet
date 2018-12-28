@@ -361,8 +361,8 @@ if(WEBSOCKETS)
   show_dependency_status("Websockets" WEBSOCKETS)
 endif()
 
-if(NOT(CURL_FOUND))
-  message(SEND_ERROR "You must install Curl to compile the DDNet")
+if(CLIENT AND NOT(CURL_FOUND))
+  message(SEND_ERROR "You must install Curl to compile DDNet")
 endif()
 if(NOT(PYTHONINTERP_FOUND))
   message(SEND_ERROR "You must install Python to compile DDNet")
@@ -632,12 +632,12 @@ set_glob(ENGINE_SHARED GLOB src/engine/shared
   ghost.cpp
   ghost.h
   global_uuid_manager.cpp
-  http.cpp
-  http.h
   huffman.cpp
   huffman.h
   jobs.cpp
   jobs.h
+  json.cpp
+  json.h
   kernel.cpp
   linereader.cpp
   linereader.h
@@ -725,10 +725,15 @@ set(GAME_GENERATED_SHARED
 set(DEPS ${DEP_JSON} ${DEP_MD5} ${ZLIB_DEP})
 
 # Libraries
-set(LIBS ${CURL_LIBRARIES} ${CRYPTO_LIBRARIES} ${WEBSOCKETS_LIBRARIES} ${ZLIB_LIBRARIES} ${PLATFORM_LIBS})
-# Add pthreads (on non-Windows) at the end, so that other libraries can depend
-# on it.
-list(APPEND LIBS ${CMAKE_THREAD_LIBS_INIT})
+set(LIBS
+  ${CRYPTO_LIBRARIES}
+  ${WEBSOCKETS_LIBRARIES}
+  ${ZLIB_LIBRARIES}
+  ${PLATFORM_LIBS}
+  # Add pthreads (on non-Windows) at the end, so that other libraries can depend
+  # on it.
+  ${CMAKE_THREAD_LIBS_INIT}
+)
 
 # Targets
 add_library(engine-shared EXCLUDE_FROM_ALL OBJECT ${ENGINE_INTERFACE} ${ENGINE_SHARED} ${ENGINE_UUID_SHARED} ${BASE})
@@ -751,6 +756,8 @@ if(CLIENT)
     friends.h
     graphics_threaded.cpp
     graphics_threaded.h
+    http.cpp
+    http.h
     input.cpp
     input.h
     keynames.h
@@ -873,6 +880,7 @@ if(CLIENT)
   # Libraries
   set(LIBS_CLIENT
     ${LIBS}
+    ${CURL_LIBRARIES}
     ${FREETYPE_LIBRARIES}
     ${GLEW_LIBRARIES}
     ${PNGLITE_LIBRARIES}
@@ -885,6 +893,10 @@ if(CLIENT)
     ${OGG_LIBRARIES}
 
     ${PLATFORM_CLIENT_LIBS}
+
+    # Add pthreads (on non-Windows) at the end, so that other libraries can depend
+    # on it.
+    ${CMAKE_THREAD_LIBS_INIT}
   )
 
   if(TARGET_OS STREQUAL "windows")
@@ -912,6 +924,7 @@ if(CLIENT)
   target_link_libraries(${TARGET_CLIENT} ${LIBS_CLIENT})
 
   target_include_directories(${TARGET_CLIENT} PRIVATE
+    ${CURL_INCLUDE_DIRS}
     ${FREETYPE_INCLUDE_DIRS}
     ${GLEW_INCLUDE_DIRS}
     ${OGG_INCLUDE_DIRS}
@@ -1027,7 +1040,13 @@ else()
 endif()
 
 # Libraries
-set(LIBS_SERVER ${LIBS} ${MYSQL_LIBRARIES})
+set(LIBS_SERVER
+  ${LIBS}
+  ${MYSQL_LIBRARIES}
+  # Add pthreads (on non-Windows) at the end, so that other libraries can depend
+  # on it.
+  ${CMAKE_THREAD_LIBS_INIT}
+)
 
 # Target
 set(TARGET_SERVER ${SERVER_EXECUTABLE})
@@ -1265,12 +1284,28 @@ if(TARGET_OS AND TARGET_BITS)
     set(CPACK_SYSTEM_NAME "win${TARGET_BITS}")
     set(CPACK_GENERATOR ZIP)
   elseif(TARGET_OS STREQUAL "linux")
-    # Assuming Intel here.
-    if(TARGET_BITS EQUAL 32)
-      set(CPACK_SYSTEM_NAME "linux_x86")
-    elseif(TARGET_BITS EQUAL 64)
-      set(CPACK_SYSTEM_NAME "linux_x86_64")
+    # Let compiler tell its arch
+    # Both gcc and clang support -dumpmachine
+    execute_process(
+      COMMAND ${CMAKE_C_COMPILER} -dumpmachine
+      OUTPUT_VARIABLE ARCHITECTURE_TUPLE
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    if(NOT ARCHITECTURE_TUPLE)
+      # If you're really using a weird compiler, then assume Intel here.
+      message(WARNING "Your compiler doesn't support -dumpmachine, this is weird")
+      if(TARGET_BITS EQUAL 32)
+        set(ARCHITECTURE "x86")
+      elseif(TARGET_BITS EQUAL 64)
+        set(ARCHITECTURE "x86_64")
+      endif()
+    else()
+      string(REGEX MATCH "^[^-]*" ARCHITECTURE "${ARCHITECTURE_TUPLE}")
+      if(ARCHITECTURE MATCHES "i.86")
+        set(ARCHITECTURE "x86")
+      endif()
     endif()
+    set(CPACK_SYSTEM_NAME "linux_${ARCHITECTURE}")
   elseif(TARGET_OS STREQUAL "mac")
     set(CPACK_SYSTEM_NAME "osx")
     set(CPACK_GENERATOR DMG)
@@ -1554,7 +1589,6 @@ foreach(target ${TARGETS_OWN})
   target_include_directories(${target} PRIVATE ${PROJECT_BINARY_DIR}/src)
   target_include_directories(${target} PRIVATE src)
   target_compile_definitions(${target} PRIVATE $<$<CONFIG:Debug>:CONF_DEBUG>)
-  target_include_directories(${target} PRIVATE ${CURL_INCLUDE_DIRS})
   target_include_directories(${target} PRIVATE ${ZLIB_INCLUDE_DIRS})
   target_compile_definitions(${target} PRIVATE GLEW_STATIC)
   if(CRYPTO_FOUND)

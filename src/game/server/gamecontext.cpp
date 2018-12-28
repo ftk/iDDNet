@@ -907,22 +907,6 @@ void CGameContext::OnTick()
 			m_aMutes[i] = m_aMutes[m_NumMutes];
 		}
 	}
-	for(int i = 0; i < MAX_CLIENTS; i++)
-	{
-		if(m_apPlayers[i] && m_apPlayers[i]->m_pPostJson)
-		{
-			switch(m_apPlayers[i]->m_pPostJson->State())
-			{
-			case HTTP_DONE:
-				m_apPlayers[i]->m_pPostJson = NULL;
-				break;
-			case HTTP_ERROR:
-				dbg_msg("modhelp", "http request failed for cid=%d", i);
-				m_apPlayers[i]->m_pPostJson = NULL;
-				break;
-			}
-		}
-	}
 
 	if(Server()->Tick() % (g_Config.m_SvAnnouncementInterval * Server()->TickSpeed() * 60) == 0)
 	{
@@ -1097,7 +1081,25 @@ void CGameContext::OnClientEnter(int ClientID)
 	Score()->LoadScore(ClientID);
 	Score()->CheckBirthday(ClientID);
 
-	if(!Server()->ClientPrevIngame(ClientID) && !m_apPlayers[ClientID]->m_IsDummy) //iDDNet
+	{
+		int Empty = -1;
+		for(int i = 0; i < MAX_CLIENTS; i++)
+		{
+			if(!Server()->ClientIngame(i))
+			{
+				Empty = i;
+				break;
+			}
+		}
+		CNetMsg_Sv_Chat Msg;
+		Msg.m_Team = 0;
+		Msg.m_ClientID = Empty;
+		Msg.m_pMessage = "Do you know someone who uses a bot? Please report them to the moderators.";
+		m_apPlayers[ClientID]->m_EligibleForFinishCheck = time_get();
+		Server()->SendPackMsg(&Msg, MSGFLAG_VITAL|MSGFLAG_NORECORD, ClientID);
+	}
+
+        if(!Server()->ClientPrevIngame(ClientID) && !m_apPlayers[ClientID]->m_IsDummy) //iDDNet
 	{
 		char aBuf[512];
 		str_format(aBuf, sizeof(aBuf), "'%s' entered and joined the %s", Server()->ClientName(ClientID), m_pController->GetTeamName(m_apPlayers[ClientID]->GetTeam()));
@@ -1268,6 +1270,18 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			CNetMsg_Cl_Say *pMsg = (CNetMsg_Cl_Say *)pRawMsg;
 			if(!str_utf8_check(pMsg->m_pMessage))
 			{
+				return;
+			}
+			bool Check = !pPlayer->m_NotEligibleForFinish && pPlayer->m_EligibleForFinishCheck + 10 * time_freq() >= time_get();
+			if(Check && str_comp(pMsg->m_pMessage, "xd sure chillerbot.png is lyfe") == 0 && pMsg->m_Team == 0)
+			{
+				if(m_TeeHistorianActive)
+				{
+					m_TeeHistorian.RecordPlayerMessage(ClientID, pUnpacker->CompleteData(), pUnpacker->CompleteSize());
+				}
+
+				pPlayer->m_NotEligibleForFinish = true;
+				dbg_msg("hack", "bot detected, cid=%d", ClientID);
 				return;
 			}
 			int Team = pMsg->m_Team;
@@ -2058,6 +2072,30 @@ void CGameContext::ConTuneParam(IConsole::IResult *pResult, void *pUserData)
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "tuning", "No such tuning parameter");
 }
 
+void CGameContext::ConToggleTuneParam(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	const char *pParamName = pResult->GetString(0);
+	float OldValue;
+
+	if(!pSelf->Tuning()->Get(pParamName, &OldValue))
+	{
+		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "tuning", "No such tuning parameter");
+		return;
+	}
+
+	float NewValue = fabs(OldValue - pResult->GetFloat(1)) < 0.0001
+		? pResult->GetFloat(2)
+		: pResult->GetFloat(1);
+
+	pSelf->Tuning()->Set(pParamName, NewValue);
+
+	char aBuf[256];
+	str_format(aBuf, sizeof(aBuf), "%s changed to %.2f", pParamName, NewValue);
+	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "tuning", aBuf);
+	pSelf->SendTuningParams(-1);
+}
+
 void CGameContext::ConTuneReset(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
@@ -2652,6 +2690,7 @@ void CGameContext::OnConsoleInit()
 	m_ChatPrintCBIndex = Console()->RegisterPrintCallback(0, SendChatResponse, this);
 
 	Console()->Register("tune", "s[tuning] i[value]", CFGFLAG_SERVER|CFGFLAG_GAME, ConTuneParam, this, "Tune variable to value");
+	Console()->Register("toggle_tune", "s[tuning] i[value 1] i[value 2]", CFGFLAG_SERVER|CFGFLAG_GAME, ConToggleTuneParam, this, "Toggle tune variable");
 	Console()->Register("tune_reset", "", CFGFLAG_SERVER, ConTuneReset, this, "Reset tuning");
 	Console()->Register("tune_dump", "", CFGFLAG_SERVER, ConTuneDump, this, "Dump tuning");
 	Console()->Register("tune_zone", "i[zone] s[tuning] i[value]", CFGFLAG_SERVER|CFGFLAG_GAME, ConTuneZone, this, "Tune in zone a variable to value");

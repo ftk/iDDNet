@@ -306,6 +306,7 @@ class CNetServer
 	};
 
 	NETSOCKET m_Socket;
+	MMSGS m_MMSGS;
 	class CNetBan *m_pNetBan;
 	CSlot m_aSlots[NET_MAX_CLIENTS];
 	int m_MaxClients;
@@ -433,6 +434,7 @@ class CNetClient
 	CNetRecvUnpacker m_RecvUnpacker;
 public:
 	NETSOCKET m_Socket;
+	MMSGS m_MMSGS;
 	// openness
 	bool Open(NETADDR BindAddr, int Flags);
 	int Close();
@@ -479,7 +481,7 @@ public:
 	static void SendPacketConnless(NETSOCKET Socket, NETADDR *pAddr, const void *pData, int DataSize, bool Extended, unsigned char aExtra[4]);
 	static void SendPacket(NETSOCKET Socket, NETADDR *pAddr, CNetPacketConstruct *pPacket, SECURITY_TOKEN SecurityToken);
 
-	static int UnpackPacket(unsigned char *pBuffer, int Size, CNetPacketConstruct *pPacket);
+	static int UnpackPacket(unsigned char *pBuffer, int Size, CNetPacketConstruct *pPacket, bool Decompress);
 
 	// The backroom is ack-NET_MAX_SEQUENCE/2. Used for knowing if we acked a packet or not
 	static int IsSeqInBackroom(int Seq, int Ack);

@@ -36,13 +36,13 @@
 
 #include <engine/external/md5/md5.h>
 
+#include <engine/client/http.h>
 #include <engine/shared/config.h>
 #include <engine/shared/compression.h>
 #include <engine/shared/datafile.h>
 #include <engine/shared/demo.h>
 #include <engine/shared/filecollection.h>
 #include <engine/shared/ghost.h>
-#include <engine/shared/http.h>
 #include <engine/shared/network.h>
 #include <engine/shared/packer.h>
 #include <engine/shared/protocol.h>
@@ -2960,7 +2960,7 @@ void CClient::Run()
 		{
 			SleepTimeInMicroSeconds = ((int64)1000000 / (int64)g_Config.m_ClRefreshRateInactive) - (Now - LastTime);
 			if(SleepTimeInMicroSeconds / (int64)1000 > (int64)0)
-				thread_sleep(SleepTimeInMicroSeconds / (int64)1000);
+				thread_sleep(SleepTimeInMicroSeconds);
 			Slept = true;
 		}
 		else if(g_Config.m_ClRefreshRate)
@@ -2990,7 +2990,7 @@ void CClient::Run()
 
 		if(g_Config.m_DbgHitch)
 		{
-			thread_sleep(g_Config.m_DbgHitch);
+			thread_sleep(g_Config.m_DbgHitch*1000);
 			g_Config.m_DbgHitch = 0;
 		}
 

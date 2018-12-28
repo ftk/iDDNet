@@ -20,7 +20,6 @@
 #include <engine/shared/demo.h>
 #include <engine/shared/econ.h>
 #include <engine/shared/filecollection.h>
-#include <engine/shared/http.h>
 #include <engine/shared/netban.h>
 #include <engine/shared/network.h>
 #include <engine/shared/packer.h>
@@ -1749,9 +1748,6 @@ void CServer::PumpNetwork()
 
 	m_ServerBan.Update();
 	m_Econ.Update();
-#if defined(CONF_FAMILY_UNIX)
-	m_Fifo.Update();
-#endif
 }
 
 char *CServer::GetMapName()
@@ -1846,16 +1842,18 @@ int CServer::Run()
 
 	// start server
 	NETADDR BindAddr;
-	if(g_Config.m_Bindaddr[0] && net_host_lookup(g_Config.m_Bindaddr, &BindAddr, NETTYPE_ALL) == 0)
+	int NetType = g_Config.m_SvIpv4Only ? NETTYPE_IPV4 : NETTYPE_ALL;
+
+	if(g_Config.m_Bindaddr[0] && net_host_lookup(g_Config.m_Bindaddr, &BindAddr, NetType) == 0)
 	{
 		// sweet!
-		BindAddr.type = NETTYPE_ALL;
+		BindAddr.type = NetType;
 		BindAddr.port = g_Config.m_SvPort;
 	}
 	else
 	{
 		mem_zero(&BindAddr, sizeof(BindAddr));
-		BindAddr.type = NETTYPE_ALL;
+		BindAddr.type = NetType;
 		BindAddr.port = g_Config.m_SvPort;
 	}
 
@@ -2040,6 +2038,10 @@ int CServer::Run()
 					DoSnapshot();
 
 				UpdateClientRconCommands();
+
+#if defined(CONF_FAMILY_UNIX)
+				m_Fifo.Update();
+#endif
 			}
 
 			// master server stuff
@@ -2991,8 +2993,6 @@ int main(int argc, const char **argv) // ignore_convention
 	pConfig->Init();
 	pEngineMasterServer->Init();
 	pEngineMasterServer->Load();
-
-	HttpInit(pStorage);
 
 	// register all console commands
 	pServer->RegisterCommands();

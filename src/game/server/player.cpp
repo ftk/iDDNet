@@ -76,7 +76,6 @@ void CPlayer::Reset()
 	m_LastWhisperTo = -1;
 	m_LastSetSpectatorMode = 0;
 	m_TimeoutCode[0] = '\0';
-	m_ModhelpTick = -1;
 
 	m_TuneZone = 0;
 	m_TuneZoneOld = m_TuneZone;
@@ -85,7 +84,7 @@ void CPlayer::Reset()
 
 	m_SendVoteIndex = -1;
 
-	if (g_Config.m_SvEvents)
+	if(g_Config.m_Events)
 	{
 		time_t rawtime;
 		struct tm* timeinfo;
@@ -139,6 +138,9 @@ void CPlayer::Reset()
 		m_FirstVoteTick = Now + g_Config.m_SvJoinVoteDelay * TickSpeed;
 	else
 		m_FirstVoteTick = Now;
+
+	m_NotEligibleForFinish = false;
+	m_EligibleForFinishCheck = 0;
 }
 
 void CPlayer::Tick()
@@ -542,7 +544,8 @@ void CPlayer::SetTeam(int Team, bool DoChatMsg)
 		return;
 
 	char aBuf[512];
-	if(DoChatMsg && !m_IsDummy)
+	DoChatMsg = false;
+        if(DoChatMsg && !m_IsDummy)
 	{
 		str_format(aBuf, sizeof(aBuf), "'%s' joined the %s", Server()->ClientName(m_ClientID), GameServer()->m_pController->GetTeamName(Team));
 		GameServer()->SendChat(-1, CGameContext::CHAT_ALL, aBuf);
