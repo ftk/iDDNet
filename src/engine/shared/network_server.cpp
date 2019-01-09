@@ -561,6 +561,8 @@ void CNetServer::OnTokenCtrlMsg(NETADDR &Addr, int ControlMsg, const CNetPacketC
 
 int CNetServer::GetClientSlot(const NETADDR &Addr)
 {
+	int Slot = -1;
+
 	for(int i = 0; i < MaxClients(); i++)
 	{
 		if(m_aSlots[i].m_Connection.State() != NET_CONNSTATE_OFFLINE &&
@@ -568,11 +570,11 @@ int CNetServer::GetClientSlot(const NETADDR &Addr)
 			net_addr_comp(m_aSlots[i].m_Connection.PeerAddress(), &Addr) == 0)
 
 		{
-			return i;
+			Slot = i;
 		}
 	}
 
-	return -1;
+	return Slot;
 }
 
 static bool IsDDNetControlMsg(const CNetPacketConstruct *pPacket)
@@ -628,11 +630,7 @@ int CNetServer::Recv(CNetChunk *pChunk)
 			continue;
 		}
 
-		// normal packet, find matching slot
-		int Slot = GetClientSlot(Addr);
-		bool Decompress = Slot != -1;
-
-		if(CNetBase::UnpackPacket(pData, Bytes, &m_RecvUnpacker.m_Data, Decompress) == 0)
+		if(CNetBase::UnpackPacket(pData, Bytes, &m_RecvUnpacker.m_Data) == 0)
 		{
 			if(m_RecvUnpacker.m_Data.m_Flags&NET_PACKETFLAG_CONNLESS)
 			{
@@ -654,6 +652,9 @@ int CNetServer::Recv(CNetChunk *pChunk)
 				if (m_RecvUnpacker.m_Data.m_Flags&NET_PACKETFLAG_CONTROL &&
 						m_RecvUnpacker.m_Data.m_DataSize == 0)
 					continue;
+
+				// normal packet, find matching slot
+				int Slot = GetClientSlot(Addr);
 
 				if (Slot != -1)
 				{

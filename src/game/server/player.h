@@ -211,8 +211,6 @@ public:
 	//delay
 	int64 m_Last_Dummy; //for control frequency of using /d
 	int64 m_Last_DummyChange; //for control frequency of using /dc
-
-	std::shared_ptr<CPostJson> m_pPostJson;
 };
 
 #endif
