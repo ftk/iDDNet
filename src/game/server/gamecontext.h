@@ -240,6 +240,7 @@ public:
 	virtual void OnClientDrop(int ClientID, const char *pReason);
 	virtual void OnClientDirectInput(int ClientID, void *pInput);
 	virtual void OnClientPredictedInput(int ClientID, void *pInput);
+	virtual void OnClientPredictedEarlyInput(int ClientID, void *pInput);
 
 	virtual void OnClientEngineJoin(int ClientID);
 	virtual void OnClientEngineDrop(int ClientID, const char *pReason);
@@ -417,6 +418,7 @@ private:
 	void Whisper(int ClientID, char *pStr);
 	void WhisperID(int ClientID, int VictimID, char *pMessage);
 	void Converse(int ClientID, char *pStr);
+	bool IsVersionBanned(int Version);
 
 public:
 	CLayers *Layers() { return &m_Layers; }

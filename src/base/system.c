@@ -2743,16 +2743,19 @@ int str_utf8_comp_nocase_num(const char *a, const char *b, int num)
 	int code_b;
 	const char *old_a = a;
 
+	if(num <= 0)
+		return 0;
+
 	while(*a && *b)
 	{
-		if(a - old_a >= num)
-			return 0;
-
 		code_a = str_utf8_tolower(str_utf8_decode(&a));
 		code_b = str_utf8_tolower(str_utf8_decode(&b));
 
 		if(code_a != code_b)
 			return code_a - code_b;
+
+		if(a - old_a >= num)
+			return 0;
 	}
 
 	return (unsigned char)*a - (unsigned char)*b;
@@ -3036,6 +3039,30 @@ unsigned str_quickhash(const char *str)
 	for(; *str; str++)
 		hash = ((hash << 5) + hash) + (*str); /* hash * 33 + c */
 	return hash;
+}
+
+static const char *str_token_next(const char *str, const char *delim, int *length)
+{
+	str += strspn(str, delim);
+	if(!*str)
+		return NULL;
+
+	*length = strcspn(str, delim);
+	return str;
+}
+
+int str_in_list(const char *list, const char *delim, const char *needle)
+{
+	const char *tok = list;
+	int len = 0, notfound = 1, needlelen = str_length(needle);
+
+	while(notfound && (tok = str_token_next(tok, delim, &len)))
+	{
+		notfound = needlelen != len || str_comp_num(tok, needle, len);
+		tok = tok + len;
+	}
+
+	return !notfound;
 }
 
 int pid()

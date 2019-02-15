@@ -2404,6 +2404,7 @@ void CEditor::DoMapEditor(CUIRect View)
 				m_TilesetPicker.m_Color = {255, 255, 255, 255};
 			}
 
+			m_TilesetPicker.m_Game = t->m_Game;
 			m_TilesetPicker.m_Tele = t->m_Tele;
 			m_TilesetPicker.m_Speedup = t->m_Speedup;
 			m_TilesetPicker.m_Front = t->m_Front;
@@ -2559,10 +2560,22 @@ void CEditor::DoMapEditor(CUIRect View)
 						// draw with brush
 						for(int k = 0; k < NumEditLayers; k++)
 						{
-							int BrushIndex = k;
-							if(m_Brush.m_lLayers.size() != NumEditLayers) BrushIndex = 0;
+							int BrushIndex = k % m_Brush.m_lLayers.size();
 							if(pEditLayers[k]->m_Type == m_Brush.m_lLayers[BrushIndex]->m_Type)
-								pEditLayers[k]->BrushDraw(m_Brush.m_lLayers[BrushIndex], wx, wy);
+							{
+								if (pEditLayers[k]->m_Type == LAYERTYPE_TILES)
+								{
+									CLayerTiles *l = (CLayerTiles *)pEditLayers[k];
+									CLayerTiles *b = (CLayerTiles *)m_Brush.m_lLayers[BrushIndex];
+
+									if(l->m_Tele <= b->m_Tele && l->m_Speedup <= b->m_Speedup && l->m_Front <= b->m_Front && l->m_Game <= b->m_Game && l->m_Switch <= b->m_Switch && l->m_Tune <= b->m_Tune)
+										l->BrushDraw(b, wx, wy);
+								}
+								else
+								{
+									pEditLayers[k]->BrushDraw(m_Brush.m_lLayers[BrushIndex], wx, wy);
+								}
+							}
 						}
 					}
 				}
@@ -5518,8 +5531,10 @@ void CEditor::Render()
 	else
 	{
 		// hack to get keyboard inputs from toolbar even when GUI is not active
-		ToolBar.HSplitTop(53.0f, &ToolBar, 0);
-		ToolBar.Margin(-1000, &ToolBar);
+		ToolBar.x = -100;
+		ToolBar.y = -100;
+		ToolBar.w = 50;
+		ToolBar.h = 50;
 	}
 
 	//	a little hack for now
@@ -6051,17 +6066,19 @@ void CEditor::UpdateAndRender()
 		m_OldMouseY = ty;
 #else
 		UI()->ConvertMouseMove(&rx, &ry);
+
+		// TODO: Why do we have to halve this?
+		rx /= 2;
+		ry /= 2;
+
 		m_MouseDeltaX = rx;
 		m_MouseDeltaY = ry;
 
 		if(!m_LockMouse)
 		{
-			s_MouseX += rx;
-			s_MouseY += ry;
+			s_MouseX = clamp(s_MouseX + rx, 0.0f, UI()->Screen()->w);
+			s_MouseY = clamp(s_MouseY + ry, 0.0f, UI()->Screen()->h);
 		}
-
-		s_MouseX = clamp(s_MouseX, 0.0f, UI()->Screen()->w);
-		s_MouseY = clamp(s_MouseY, 0.0f, UI()->Screen()->h);
 #endif
 
 		// update the ui

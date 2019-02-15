@@ -1667,7 +1667,7 @@ int str_utf8_comp_nocase(const char *a, const char *b);
 	Parameters:
 		a - String to compare.
 		b - String to compare.
-		num - Maximum characters to compare
+		num - Maximum bytes to compare
 
 	Returns:
 		<0 - String a is less than string b
@@ -1830,6 +1830,21 @@ int str_utf16le_encode(char *ptr, int chr);
 		- The string is treated as zero-terminated utf8 string.
 */
 int str_utf8_check(const char *str);
+
+/*
+	Function: str_in_list
+		Checks if needle is in list delimited by delim
+
+	Parameters:
+		list - List
+		delim - List delimiter.
+		needle - Item that is being looked for.
+
+	Returns:
+		1 - Item is in list.
+		0 - Item isn't in list.
+*/
+int str_in_list(const char *list, const char *delim, const char *needle);
 
 int pid();
 

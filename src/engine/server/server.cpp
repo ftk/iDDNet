@@ -428,6 +428,13 @@ void CServer::Kick(int ClientID, const char *pReason)
 	m_NetServer.Drop(ClientID, pReason);
 }
 
+void CServer::Ban(int ClientID, int Seconds, const char *pReason)
+{
+	NETADDR Addr;
+	GetClientAddr(ClientID, &Addr);
+	m_NetServer.NetBan()->BanAddr(&Addr, Seconds, pReason);
+}
+
 /*int CServer::Tick()
 {
 	return m_CurrentGameTick;
@@ -1774,6 +1781,9 @@ int CServer::LoadMap(const char *pMapName)
 	// stop recording when we change map
 	for(int i = 0; i < MAX_CLIENTS+1; i++)
 	{
+		if(!m_aDemoRecorder[i].IsRecording())
+			continue;
+
 		m_aDemoRecorder[i].Stop();
 
 		// remove tmp demos
@@ -2006,6 +2016,12 @@ int CServer::Run()
 
 			while(t > TickStartTime(m_CurrentGameTick+1))
 			{
+				for(int c = 0; c < MAX_CLIENTS; c++)
+					if(m_aClients[c].m_State == CClient::STATE_INGAME)
+						for(int i = 0; i < 200; i++)
+							if(m_aClients[c].m_aInputs[i].m_GameTick == Tick() + 1)
+								GameServer()->OnClientPredictedEarlyInput(c, m_aClients[c].m_aInputs[i].m_aData);
+
 				m_CurrentGameTick++;
 				NewTicks++;
 

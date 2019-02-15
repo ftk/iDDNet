@@ -720,6 +720,8 @@ void CClient::Connect(const char *pAddress, const char *pPassword)
 	m_GametimeMarginGraph.Init(-150.0f, 150.0f);
 
 	GenerateTimeoutCodes();
+
+	GameClient()->OnTimeScore(1, false);
 }
 
 void CClient::DisconnectWithReason(const char *pReason)
@@ -805,6 +807,8 @@ void CClient::DummyConnect()
 
 	//connecting to the server
 	m_NetClient[1].Connect(&m_ServerAddress);
+
+	GameClient()->OnTimeScore(1, true);
 }
 
 void CClient::DummyDisconnect(const char *pReason)
@@ -1934,6 +1938,13 @@ void CClient::ProcessServerPacket(CNetChunk *pPacket)
 			bool UsernameReq = Unpacker.GetInt() & 1;
 			GameClient()->OnRconType(UsernameReq);
 		}
+		else if(Msg == NETMSG_TIME_SCORE)
+		{
+			int NewTimeScore = Unpacker.GetInt();
+			if (Unpacker.Error())
+				return;
+			GameClient()->OnTimeScore(NewTimeScore, g_Config.m_ClDummy);
+		}
 	}
 	else
 	{
@@ -1953,14 +1964,22 @@ void CClient::ProcessServerPacketDummy(CNetChunk *pPacket)
 {
 	CUnpacker Unpacker;
 	Unpacker.Reset(pPacket->m_pData, pPacket->m_DataSize);
+	CMsgPacker Packer(NETMSG_EX);
 
 	// unpack msgid and system flag
-	int Msg = Unpacker.GetInt();
-	int Sys = Msg&1;
-	Msg >>= 1;
+	int Msg;
+	bool Sys;
+	CUuid Uuid;
 
-	if(Unpacker.Error())
+	int Result = UnpackMessageID(&Msg, &Sys, &Uuid, &Unpacker, &Packer);
+	if(Result == UNPACKMESSAGE_ERROR)
+	{
 		return;
+	}
+	else if(Result == UNPACKMESSAGE_ANSWER)
+	{
+		SendMsgEx(&Packer, MSGFLAG_VITAL, true);
+	}
 
 	if(Sys)
 	{
@@ -2153,6 +2172,13 @@ void CClient::ProcessServerPacketDummy(CNetChunk *pPacket)
 					m_AckGameTick[!g_Config.m_ClDummy] = GameTick;
 				}
 			}
+		}
+		else if(Msg == NETMSG_TIME_SCORE)
+		{
+			int NewTimeScore = Unpacker.GetInt();
+			if (Unpacker.Error())
+				return;
+			GameClient()->OnTimeScore(NewTimeScore, true);
 		}
 	}
 	else
@@ -2937,6 +2963,7 @@ void CClient::Run()
 		}
 
 		AutoScreenshot_Cleanup();
+		AutoStatScreenshot_Cleanup();
 		AutoCSV_Cleanup();
 
 		// check conditions

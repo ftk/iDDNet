@@ -72,8 +72,8 @@ TEST(Str, Utf8ToLower)
 	EXPECT_TRUE(str_utf8_comp_nocase(a, b) > 0);
 	EXPECT_TRUE(str_utf8_comp_nocase(b, a) < 0);
 
-	EXPECT_TRUE(str_utf8_comp_nocase_num("ÖlÜ", "ölüa", 3) == 0);
-	EXPECT_TRUE(str_utf8_comp_nocase_num("ÖlÜ", "ölüa", 4) != 0);
+	EXPECT_TRUE(str_utf8_comp_nocase_num("ÖlÜ", "ölüa", 5) == 0);
+	EXPECT_TRUE(str_utf8_comp_nocase_num("ÖlÜ", "ölüa", 6) != 0);
 	EXPECT_TRUE(str_utf8_comp_nocase_num("a", "z", 0) == 0);
 	EXPECT_TRUE(str_utf8_comp_nocase_num("a", "z", 1) != 0);
 
@@ -134,4 +134,21 @@ TEST(Str, HexDecode)
 	EXPECT_EQ(str_hex_decode(aOut, 1, "x1"), 1); EXPECT_STREQ(aOut + 1, "bcd");
 	EXPECT_EQ(str_hex_decode(aOut, 1, "411"), 2); EXPECT_STREQ(aOut + 1, "bcd");
 	EXPECT_EQ(str_hex_decode(aOut, 4, "41424344"), 0); EXPECT_STREQ(aOut, "ABCD");
+}
+
+TEST(Str, InList)
+{
+	char aTest[] = "GER,RUS,ZAF,BRA,CAN";
+	EXPECT_TRUE(str_in_list(aTest, ",", "GER"));
+	EXPECT_TRUE(str_in_list(aTest, ",", "RUS"));
+	EXPECT_TRUE(str_in_list(aTest, ",", "ZAF"));
+	EXPECT_TRUE(str_in_list(aTest, ",", "BRA"));
+	EXPECT_TRUE(str_in_list(aTest, ",", "CAN"));
+
+	EXPECT_FALSE(str_in_list(aTest, ",", "CHN"));
+	EXPECT_FALSE(str_in_list(aTest, ",", "R,R"));
+
+	EXPECT_FALSE(str_in_list("abc,xyz", ",", "abcdef"));
+	EXPECT_FALSE(str_in_list("", ",", ""));
+	EXPECT_FALSE(str_in_list("", ",", "xyz"));
 }

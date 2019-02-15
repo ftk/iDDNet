@@ -982,6 +982,12 @@ void CGameContext::OnClientPredictedInput(int ClientID, void *pInput)
 	}
 }
 
+void CGameContext::OnClientPredictedEarlyInput(int ClientID, void *pInput)
+{
+	if(!m_World.m_Paused)
+		m_apPlayers[ClientID]->OnPredictedEarlyInput((CNetObj_PlayerInput *)pInput);
+}
+
 struct CVoteOptionServer *CGameContext::GetVoteOption(int Index)
 {
 	CVoteOptionServer *pCurrent;
@@ -1556,7 +1562,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 					return;
 				}
 
-				if(g_Config.m_SvVoteKickMin)
+				if(g_Config.m_SvVoteKickMin && !GetDDRaceTeam(ClientID))
 				{
 					char aaAddresses[MAX_CLIENTS][NETADDR_MAXSTRSIZE] = {{0}};
 					for(int i = 0; i < MAX_CLIENTS; i++)
@@ -1569,13 +1575,13 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 					int NumPlayers = 0;
 					for(int i = 0; i < MAX_CLIENTS; ++i)
 					{
-						if(m_apPlayers[i] && m_apPlayers[i]->GetTeam() != TEAM_SPECTATORS)
+						if(m_apPlayers[i] && m_apPlayers[i]->GetTeam() != TEAM_SPECTATORS && !GetDDRaceTeam(i))
 						{
 							NumPlayers++;
 							for(int j = 0; j < i; j++)
 							{
 
-								if(m_apPlayers[j] && m_apPlayers[j]->GetTeam() != TEAM_SPECTATORS)
+								if(m_apPlayers[j] && m_apPlayers[j]->GetTeam() != TEAM_SPECTATORS && !GetDDRaceTeam(j))
 								{
 									if(str_comp(aaAddresses[i], aaAddresses[j]) == 0)
 									{
@@ -1589,7 +1595,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 
 					if(NumPlayers < g_Config.m_SvVoteKickMin)
 					{
-						str_format(aChatmsg, sizeof(aChatmsg), "Kick voting requires %d players on the server", g_Config.m_SvVoteKickMin);
+						str_format(aChatmsg, sizeof(aChatmsg), "Kick voting requires %d players", g_Config.m_SvVoteKickMin);
 						SendChatTarget(ClientID, aChatmsg);
 						return;
 					}
@@ -1619,7 +1625,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 					return;
 				}
 				int KickedAuthed = Server()->GetAuthedState(KickID);
-				if(KickedAuthed > 0 && KickedAuthed >= Authed)
+				if(KickedAuthed > Authed)
 				{
 					SendChatTarget(ClientID, "You can't kick authorized players");
 					m_apPlayers[ClientID]->m_Last_KickVote = time_get();
@@ -1857,6 +1863,11 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			//tell known bot clients that they're botting and we know it
 			if (((Version >= 15 && Version < 100) || Version == 502) && g_Config.m_SvClientSuggestionBot[0] != '\0')
 				SendBroadcast(g_Config.m_SvClientSuggestionBot, ClientID);
+			//autoban known bot versions
+			if(g_Config.m_SvBannedVersions[0] != '\0' && IsVersionBanned(Version))
+			{
+				Server()->Kick(ClientID, "unsupported client");
+			}
 		}
 		else if (MsgID == NETMSGTYPE_CL_SHOWOTHERS)
 		{
@@ -2699,7 +2710,7 @@ void CGameContext::OnConsoleInit()
 	Console()->Register("tune_zone_enter", "i[zone] s[message]", CFGFLAG_SERVER|CFGFLAG_GAME, ConTuneSetZoneMsgEnter, this, "which message to display on zone enter; use 0 for normal area");
 	Console()->Register("tune_zone_leave", "i[zone] s[message]", CFGFLAG_SERVER|CFGFLAG_GAME, ConTuneSetZoneMsgLeave, this, "which message to display on zone leave; use 0 for normal area");
 	Console()->Register("mapbug", "s[mapbug]", CFGFLAG_SERVER|CFGFLAG_GAME, ConMapbug, this, "Enable map compatibility mode using the specified bug (example: grenade-doublexplosion@ddnet.tw)");
-	Console()->Register("switch_open", "i['0'|'1']", CFGFLAG_SERVER|CFGFLAG_GAME, ConSwitchOpen, this, "Whether a switch is open by default (otherwise closed)");
+	Console()->Register("switch_open", "i[switch]", CFGFLAG_SERVER|CFGFLAG_GAME, ConSwitchOpen, this, "Whether a switch is deactivated by default (otherwise activated)");
 	Console()->Register("pause_game", "", CFGFLAG_SERVER, ConPause, this, "Pause/unpause game");
 	Console()->Register("change_map", "?r[map]", CFGFLAG_SERVER|CFGFLAG_STORE, ConChangeMap, this, "Change map");
 	Console()->Register("random_map", "?i[stars]", CFGFLAG_SERVER, ConRandomMap, this, "Random map");
@@ -3353,7 +3364,7 @@ void CGameContext::OnSetAuthed(int ClientID, int Level)
 		char aBuf[512], aIP[NETADDR_MAXSTRSIZE];
 		Server()->GetClientAddr(ClientID, aIP, sizeof(aIP));
 		str_format(aBuf, sizeof(aBuf), "ban %s %d Banned by vote", aIP, g_Config.m_SvVoteKickBantime);
-		if(!str_comp_nocase(m_aVoteCommand, aBuf) && Level > 0)
+		if(!str_comp_nocase(m_aVoteCommand, aBuf) && Level > Server()->GetAuthedState(m_VoteCreator))
 		{
 			m_VoteEnforce = CGameContext::VOTE_ENFORCE_NO_ADMIN;
 			Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "CGameContext", "Aborted vote by admin login.");
@@ -3605,6 +3616,14 @@ void CGameContext::Converse(int ClientID, char *pStr)
 	{
 		WhisperID(ClientID, pPlayer->m_LastWhisperTo, pStr);
 	}
+}
+
+bool CGameContext::IsVersionBanned(int Version)
+{
+	char aVersion[16];
+	str_format(aVersion, sizeof(aVersion), "%d", Version);
+
+	return str_in_list(g_Config.m_SvBannedVersions, ",", aVersion);
 }
 
 void CGameContext::List(int ClientID, const char *pFilter)
