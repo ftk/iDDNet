@@ -120,7 +120,6 @@ CLayerGroup::CLayerGroup()
 {
 	m_aName[0] = 0;
 	m_Visible = true;
-	m_SaveToMap = true;
 	m_Collapse = false;
 	m_GameGroup = false;
 	m_OffsetX = 0;
@@ -139,7 +138,6 @@ CLayerGroup::CLayerGroup(const CLayerGroup& rhs)
 {
 	str_copy(m_aName, rhs.m_aName, sizeof m_aName);
 	m_Visible = rhs.m_Visible;
-	m_SaveToMap = rhs.m_SaveToMap;
 	m_Collapse = rhs.m_Collapse;
 	m_GameGroup = rhs.m_GameGroup;
 	m_OffsetX = rhs.m_OffsetX;
@@ -795,7 +793,7 @@ int CEditor::UiDoValueSelector(void *pID, CUIRect *pRect, const char *pLabel, in
 		m_pTooltip = "Type your number";
 
 		static float s_NumberBoxID = 0;
-		DoEditBox(&s_NumberBoxID, pRect, s_NumStr, sizeof(s_NumStr), 10.0f, &s_NumberBoxID);
+		DoEditBox(&s_NumberBoxID, pRect, s_NumStr, sizeof(s_NumStr), 10.0f, &s_NumberBoxID, false, Corners);
 
 		UI()->SetActiveItem(&s_NumberBoxID);
 
@@ -3108,12 +3106,23 @@ int CEditor::DoProperties(CUIRect *pToolBox, CProperty *pProps, int *pIDs, int *
 		else if(pProps[i].m_Type == PROPTYPE_IMAGE)
 		{
 			char aBuf[64];
+			float FontSize = 10.0f;
+
 			if(pProps[i].m_Value < 0)
 				str_copy(aBuf, "None", sizeof(aBuf));
 			else
-				str_format(aBuf, sizeof(aBuf),"%s", m_Map.m_lImages[pProps[i].m_Value]->m_aName);
+			{
+				str_format(aBuf, sizeof(aBuf), "%s", m_Map.m_lImages[pProps[i].m_Value]->m_aName);
+				while(TextRender()->TextWidth(0, FontSize, aBuf, -1) > Shifter.w)
+				{
+					if(FontSize > 6.0f)
+						FontSize--;
+					else
+						str_format(aBuf, sizeof(aBuf), "%.*s...", str_length(aBuf) - 4, aBuf);
+				}
+			}
 
-			if(DoButton_Editor(&pIDs[i], aBuf, 0, &Shifter, 0, 0))
+			if(DoButton_Ex(&pIDs[i], aBuf, 0, &Shifter, 0, 0, CUI::CORNER_ALL, FontSize))
 				PopupSelectImageInvoke(pProps[i].m_Value, UI()->MouseX(), UI()->MouseY());
 
 			int r = PopupSelectImageResult();
@@ -3161,12 +3170,23 @@ int CEditor::DoProperties(CUIRect *pToolBox, CProperty *pProps, int *pIDs, int *
 		else if(pProps[i].m_Type == PROPTYPE_SOUND)
 		{
 			char aBuf[64];
+			float FontSize = 10.0f;
+
 			if(pProps[i].m_Value < 0)
 				str_copy(aBuf, "None", sizeof(aBuf));
 			else
-				str_format(aBuf, sizeof(aBuf),"%s", m_Map.m_lSounds[pProps[i].m_Value]->m_aName);
+			{
+				str_format(aBuf, sizeof(aBuf), "%s", m_Map.m_lSounds[pProps[i].m_Value]->m_aName);
+				while(TextRender()->TextWidth(0, FontSize, aBuf, -1) > Shifter.w)
+				{
+					if(FontSize > 6.0f)
+						FontSize--;
+					else
+						str_format(aBuf, sizeof(aBuf), "%.*s...", str_length(aBuf) - 4, aBuf);
+				}
+			}
 
-			if(DoButton_Editor(&pIDs[i], aBuf, 0, &Shifter, 0, 0))
+			if(DoButton_Ex(&pIDs[i], aBuf, 0, &Shifter, 0, 0, CUI::CORNER_ALL, FontSize))
 				PopupSelectSoundInvoke(pProps[i].m_Value, UI()->MouseX(), UI()->MouseY());
 
 			int r = PopupSelectSoundResult();
@@ -3264,7 +3284,7 @@ void CEditor::RenderLayers(CUIRect ToolBox, CUIRect View)
 				continue;
 			}
 
-			CUIRect VisibleToggle, SaveCheck;
+			CUIRect VisibleToggle;
 			if(LayerCur >= LayerStartAt)
 			{
 				LayersBox.HSplitTop(12.0f, &Slot, &LayersBox);
@@ -3272,17 +3292,12 @@ void CEditor::RenderLayers(CUIRect ToolBox, CUIRect View)
 				if(DoButton_Ex(&m_Map.m_lGroups[g]->m_Visible, m_Map.m_lGroups[g]->m_Visible?"V":"H", m_Map.m_lGroups[g]->m_Collapse ? 1 : 0, &VisibleToggle, 0, "Toggle group visibility", CUI::CORNER_L))
 					m_Map.m_lGroups[g]->m_Visible = !m_Map.m_lGroups[g]->m_Visible;
 
-				Slot.VSplitRight(12.0f, &Slot, &SaveCheck);
-				if(DoButton_Ex(&m_Map.m_lGroups[g]->m_SaveToMap, "S", m_Map.m_lGroups[g]->m_SaveToMap, &SaveCheck, 0, "Enable/disable group for saving", CUI::CORNER_R))
-					if(!m_Map.m_lGroups[g]->m_GameGroup)
-						m_Map.m_lGroups[g]->m_SaveToMap = !m_Map.m_lGroups[g]->m_SaveToMap;
-
 				str_format(aBuf, sizeof(aBuf),"#%d %s", g, m_Map.m_lGroups[g]->m_aName);
 				float FontSize = 10.0f;
 				while(TextRender()->TextWidth(0, FontSize, aBuf, -1) > Slot.w)
 					FontSize--;
 				if(int Result = DoButton_Ex(&m_Map.m_lGroups[g], aBuf, g==m_SelectedGroup, &Slot,
-					BUTTON_CONTEXT, m_Map.m_lGroups[g]->m_Collapse ? "Select group. Shift click to select all layers. Double click to expand." : "Select group. Shift click to select all layers. Double click to collapse.", 0, FontSize))
+					BUTTON_CONTEXT, m_Map.m_lGroups[g]->m_Collapse ? "Select group. Shift click to select all layers. Double click to expand." : "Select group. Shift click to select all layers. Double click to collapse.", CUI::CORNER_R, FontSize))
 				{
 					m_SelectedGroup = g;
 					SelectLayer(0);
@@ -3326,11 +3341,6 @@ void CEditor::RenderLayers(CUIRect ToolBox, CUIRect View)
 				if(DoButton_Ex(&m_Map.m_lGroups[g]->m_lLayers[i]->m_Visible, m_Map.m_lGroups[g]->m_lLayers[i]->m_Visible?"V":"H", 0, &VisibleToggle, 0, "Toggle layer visibility", CUI::CORNER_L))
 					m_Map.m_lGroups[g]->m_lLayers[i]->m_Visible = !m_Map.m_lGroups[g]->m_lLayers[i]->m_Visible;
 
-				Button.VSplitRight(12.0f, &Button, &SaveCheck);
-				if(DoButton_Ex(&m_Map.m_lGroups[g]->m_lLayers[i]->m_SaveToMap, "S", m_Map.m_lGroups[g]->m_lLayers[i]->m_SaveToMap, &SaveCheck, 0, "Enable/disable layer for saving", CUI::CORNER_R))
-					if(m_Map.m_lGroups[g]->m_lLayers[i] != m_Map.m_pGameLayer)
-						m_Map.m_lGroups[g]->m_lLayers[i]->m_SaveToMap = !m_Map.m_lGroups[g]->m_lLayers[i]->m_SaveToMap;
-
 				if(m_Map.m_lGroups[g]->m_lLayers[i]->m_aName[0])
 					str_format(aBuf, sizeof(aBuf), "%s", m_Map.m_lGroups[g]->m_lLayers[i]->m_aName);
 				else if(m_Map.m_lGroups[g]->m_lLayers[i]->m_Type == LAYERTYPE_TILES)
@@ -3363,7 +3373,7 @@ void CEditor::RenderLayers(CUIRect ToolBox, CUIRect View)
 					Checked += 6;
 				}
 				if(int Result = DoButton_Ex(m_Map.m_lGroups[g]->m_lLayers[i], aBuf, Checked, &Button,
-					BUTTON_CONTEXT, "Select layer. Shift click to select multiple.", 0, FontSize))
+					BUTTON_CONTEXT, "Select layer. Shift click to select multiple.", CUI::CORNER_R, FontSize))
 				{
 					if ((Input()->KeyIsPressed(KEY_LSHIFT) || Input()->KeyIsPressed(KEY_RSHIFT)) && m_SelectedGroup == g)
 					{
@@ -3394,7 +3404,7 @@ void CEditor::RenderLayers(CUIRect ToolBox, CUIRect View)
 		LayersBox.HSplitTop(12.0f, &Slot, &LayersBox);
 
 		static int s_NewGroupButton = 0;
-		if(DoButton_Editor(&s_NewGroupButton, "Add group", 0, &Slot, 0, "Adds a new group"))
+		if(DoButton_Editor(&s_NewGroupButton, "Add group", 0, &Slot, CUI::CORNER_R, "Adds a new group"))
 		{
 			m_Map.NewGroup();
 			m_SelectedGroup = m_Map.m_lGroups.size()-1;
@@ -5638,15 +5648,18 @@ void CEditor::Render()
 
 	if(m_GuiActive)
 	{
-		if(m_ShowEnvelopeEditor || m_ShowServerSettingsEditor)
+		if(!m_ShowPicker)
 		{
-			RenderBackground(ExtraEditor, ms_BackgroundTexture, 128.0f, Brightness);
-			ExtraEditor.Margin(2.0f, &ExtraEditor);
-		}
-		if(m_ShowUndo)
-		{
-			RenderBackground(UndoList, ms_BackgroundTexture, 128.0f, Brightness);
-			UndoList.Margin(2.0f, &UndoList);
+			if(m_ShowEnvelopeEditor || m_ShowServerSettingsEditor)
+			{
+				RenderBackground(ExtraEditor, ms_BackgroundTexture, 128.0f, Brightness);
+				ExtraEditor.Margin(2.0f, &ExtraEditor);
+			}
+			if(m_ShowUndo)
+			{
+				RenderBackground(UndoList, ms_BackgroundTexture, 128.0f, Brightness);
+				UndoList.Margin(2.0f, &UndoList);
+			}
 		}
 
 		if(m_Mode == MODE_LAYERS)
