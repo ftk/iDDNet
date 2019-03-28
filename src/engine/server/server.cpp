@@ -2454,6 +2454,7 @@ void CServer::ConNameBan(IConsole::IResult *pResult, void *pUser)
 			pThis->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "name_ban", aBuf);
 			pBan->m_Distance = Distance;
 			pBan->m_IsSubstring = IsSubstring;
+			str_copy(pBan->m_aReason, pReason, sizeof(pBan->m_aReason));
 			return;
 		}
 	}
@@ -2636,10 +2637,7 @@ void CServer::ConAddSqlServer(IConsole::IResult *pResult, void *pUserData)
 			apSqlServers[i] = new CSqlServer(pResult->GetString(1), pResult->GetString(2), pResult->GetString(3), pResult->GetString(4), pResult->GetString(5), pResult->GetInteger(6), &pSelf->m_GlobalSqlLock, ReadOnly, SetUpDb);
 
 			if(SetUpDb)
-			{
-				void *TablesThread = thread_init(CreateTablesThread, apSqlServers[i]);
-				thread_detach(TablesThread);
-			}
+				thread_init(CreateTablesThread, apSqlServers[i], "CreateTables");
 
 			char aBuf[512];
 			str_format(aBuf, sizeof(aBuf), "Added new Sql%sServer: %d: DB: '%s' Prefix: '%s' User: '%s' IP: '%s' Port: %d", ReadOnly ? "Read" : "Write", i, apSqlServers[i]->GetDatabase(), apSqlServers[i]->GetPrefix(), apSqlServers[i]->GetUser(), apSqlServers[i]->GetIP(), apSqlServers[i]->GetPort());

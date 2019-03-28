@@ -15,6 +15,7 @@
 #include <game/client/components/countryflags.h>
 #include <game/client/components/motd.h>
 #include <game/client/components/statboard.h>
+#include <game/client/components/skins.h>
 
 #include "scoreboard.h"
 
@@ -116,9 +117,13 @@ void CScoreboard::RenderSpectators(float x, float y, float w)
 
 	// spectator names
 	y += 30.0f;
-	char aBuffer[1024*4];
-	aBuffer[0] = 0;
 	bool Multiple = false;
+
+	CTextCursor Cursor;
+	TextRender()->SetCursor(&Cursor, x+10.0f, y, 22.0f, TEXTFLAG_RENDER);
+	Cursor.m_LineWidth = w-20.0f;
+	Cursor.m_MaxLines = 4;
+
 	for(int i = 0; i < MAX_CLIENTS; ++i)
 	{
 		const CNetObj_PlayerInfo *pInfo = m_pClient->m_Snap.m_paInfoByName[i];
@@ -126,21 +131,25 @@ void CScoreboard::RenderSpectators(float x, float y, float w)
 			continue;
 
 		if(Multiple)
-			str_append(aBuffer, ", ", sizeof(aBuffer));
+			TextRender()->TextEx(&Cursor, ", ", 2);
+
+		if(m_pClient->m_aClients[pInfo->m_ClientID].m_AuthLevel)
+		{
+			vec4 Color = m_pClient->m_pSkins->GetColorV4(g_Config.m_ClAuthedPlayerColor);
+			TextRender()->TextColor(Color.r, Color.g, Color.b, Color.a);
+		}
+
 		if(g_Config.m_ClShowIDs)
 		{
-			char aId[5];
-			str_format(aId,sizeof(aId),"%d: ",pInfo->m_ClientID);
-			str_append(aBuffer, aId, sizeof(aBuffer));
+			char aBuffer[5];
+			int size = str_format(aBuffer, sizeof(aBuffer), "%d: ", pInfo->m_ClientID);
+			TextRender()->TextEx(&Cursor, aBuffer, size);
 		}
-		str_append(aBuffer, m_pClient->m_aClients[pInfo->m_ClientID].m_aName, sizeof(aBuffer));
+		TextRender()->TextEx(&Cursor, m_pClient->m_aClients[pInfo->m_ClientID].m_aName, -1);
+		TextRender()->TextColor(1.0f, 1.0f, 1.0f, 1.0f);
+
 		Multiple = true;
 	}
-	CTextCursor Cursor;
-	TextRender()->SetCursor(&Cursor, x+10.0f, y, 22.0f, TEXTFLAG_RENDER);
-	Cursor.m_LineWidth = w-20.0f;
-	Cursor.m_MaxLines = 4;
-	TextRender()->TextEx(&Cursor, aBuffer, -1);
 }
 
 void CScoreboard::RenderScoreboard(float x, float y, float w, int Team, const char *pTitle)
@@ -446,7 +455,10 @@ void CScoreboard::RenderScoreboard(float x, float y, float w, int Team, const ch
 		// name
 		TextRender()->SetCursor(&Cursor, NameOffset, y + (LineHeight - FontSize) / 2.f, FontSize, TEXTFLAG_RENDER|TEXTFLAG_STOP_AT_END);
 		if(m_pClient->m_aClients[pInfo->m_ClientID].m_AuthLevel)
-			TextRender()->TextColor(0.78f, 1.0f, 0.8f, 1.0f);
+		{
+			vec4 Color = m_pClient->m_pSkins->GetColorV4(g_Config.m_ClAuthedPlayerColor);
+			TextRender()->TextColor(Color.r, Color.g, Color.b, Color.a);
+		}
 
 		if(g_Config.m_ClShowIDs)
 		{
