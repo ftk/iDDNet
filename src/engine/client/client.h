@@ -90,7 +90,7 @@ class CClient : public IClient, public CDemoPlayer::IListener
 
 	char m_aServerAddressStr[256];
 
-	unsigned m_SnapshotParts;
+	unsigned m_SnapshotParts[2];
 	int64 m_LocalStartTime;
 
 	int m_DebugFont;
@@ -132,6 +132,7 @@ class CClient : public IClient, public CDemoPlayer::IListener
 
 	//
 	char m_aCmdConnect[256];
+	char m_aCmdPlayDemo[MAX_PATH_LENGTH];
 
 	// map download
 	std::shared_ptr<CGetFile> m_pMapdownloadTask;
@@ -385,17 +386,21 @@ public:
 	void ServerBrowserUpdate();
 
 	void HandleConnectLink(const char *pLink);
+	void HandleDemoPath(const char *pPath);
 
 	// gfx
 	void SwitchWindowScreen(int Index);
 	void ToggleFullscreen();
 	void ToggleWindowBordered();
 	void ToggleWindowVSync();
+	void LoadFont();
 
 	// DDRace
 
 	void GenerateTimeoutSeed();
 	void GenerateTimeoutCodes();
+
+	virtual int GetCurrentRaceTime();
 
 	const char *GetCurrentMap();
 	const char *GetCurrentMapPath();

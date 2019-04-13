@@ -91,7 +91,7 @@ void CHud::OnInit()
 		RenderTools()->SelectSprite(g_pData->m_Weapons.m_aId[i].m_pSpriteCursor);
 		RenderTools()->QuadContainerAddSprite(m_HudQuadContainerIndex, 64.f);
 	}
-	
+
 	// the flags
 	RenderTools()->SelectSprite(SPRITE_FLAG_RED);
 	RenderTools()->QuadContainerAddSprite(m_HudQuadContainerIndex, 0.f, 0.f, 8.f, 16.f);
@@ -196,8 +196,8 @@ void CHud::RenderScoreHud()
 
 			bool RecreateTeamScore[2] = { str_comp(aScoreTeam[0], m_aScoreInfo[0].m_aScoreText) != 0, str_comp(aScoreTeam[1], m_aScoreInfo[1].m_aScoreText) != 0 };
 
-			int FlagCarrier[2] = { 
-				m_pClient->m_Snap.m_pGameDataObj->m_FlagCarrierRed, 
+			int FlagCarrier[2] = {
+				m_pClient->m_Snap.m_pGameDataObj->m_FlagCarrierRed,
 				m_pClient->m_Snap.m_pGameDataObj->m_FlagCarrierBlue
 			};
 
@@ -220,7 +220,7 @@ void CHud::RenderScoreHud()
 			{
 				// draw box
 				if(RecreateRect)
-				{	
+				{
 					if(m_aScoreInfo[t].m_RoundRectQuadContainerIndex != -1)
 						Graphics()->DeleteQuadContainer(m_aScoreInfo[t].m_RoundRectQuadContainerIndex);
 
@@ -277,8 +277,8 @@ void CHud::RenderScoreHud()
 							if(m_aScoreInfo[t].m_OptionalNameTextContainerIndex != -1)
 								TextRender()->DeleteTextContainer(m_aScoreInfo[t].m_OptionalNameTextContainerIndex);
 
-							float w = TextRender()->TextWidth(0, 8.0f, pName, -1);	
-							
+							float w = TextRender()->TextWidth(0, 8.0f, pName, -1);
+
 							CTextCursor Cursor;
 							TextRender()->SetCursor(&Cursor, min(Whole - w - 1.0f, Whole - ScoreWidthMax - ImageSize - 2 * Split), StartY + (t + 1)*20.0f - 2.0f, 8.0f, TEXTFLAG_RENDER);
 							Cursor.m_LineWidth = -1;
@@ -435,7 +435,7 @@ void CHud::RenderScoreHud()
 					int ID = apPlayerInfo[t]->m_ClientID;
 					if(ID >= 0 && ID < MAX_CLIENTS)
 					{
-						const char *pName = m_pClient->m_aClients[ID].m_aName; 
+						const char *pName = m_pClient->m_aClients[ID].m_aName;
 						if(RecreateRect)
 						{
 							mem_copy(m_aScoreInfo[t].m_aPlayerNameText, pName, sizeof(m_aScoreInfo[t].m_aPlayerNameText));
@@ -479,7 +479,7 @@ void CHud::RenderScoreHud()
 
 					if(m_aScoreInfo[t].m_TextRankContainerIndex != -1)
 						TextRender()->DeleteTextContainer(m_aScoreInfo[t].m_TextRankContainerIndex);
-					
+
 					CTextCursor Cursor;
 					TextRender()->SetCursor(&Cursor, Whole - ScoreWidthMax - ImageSize - Split - PosSize, StartY + t * 20 + (18.f - 10.f) / 2.f, 10.0f, TEXTFLAG_RENDER);
 					Cursor.m_LineWidth = -1;
@@ -521,7 +521,7 @@ void CHud::RenderWarmupTimer()
 void CHud::MapscreenToGroup(float CenterX, float CenterY, CMapItemGroup *pGroup)
 {
 	float Points[4];
-	RenderTools()->MapscreenToWorld(CenterX, CenterY, pGroup->m_ParallaxX/100.0f, pGroup->m_ParallaxY/100.0f,
+	RenderTools()->MapscreenToWorld(CenterX, CenterY, pGroup->m_ParallaxX, pGroup->m_ParallaxY,
 		pGroup->m_OffsetX, pGroup->m_OffsetY, Graphics()->ScreenAspect(), 1.0f, Points);
 	Graphics()->MapScreen(Points[0], Points[1], Points[2], Points[3]);
 }
@@ -614,17 +614,7 @@ void CHud::RenderVoting()
 	Graphics()->QuadsBegin();
 	Graphics()->SetColor(0,0,0,0.40f);
 
-#if defined(__ANDROID__)
-	static const float TextX = 265;
-	static const float TextY = 1;
-	static const float TextW = 200;
-	static const float TextH = 42;
-	RenderTools()->DrawRoundRect(TextX-5, TextY, TextW+15, TextH, 5.0f);
-	RenderTools()->DrawRoundRect(TextX-5, TextY+TextH+2, TextW/2-10, 20, 5.0f);
-	RenderTools()->DrawRoundRect(TextX+TextW/2+20, TextY+TextH+2, TextW/2-10, 20, 5.0f);
-#else
 	RenderTools()->DrawRoundRect(-10, 60-2, 100+10+4+5, 46, 5.0f);
-#endif
 	Graphics()->QuadsEnd();
 
 	TextRender()->TextColor(1,1,1,1);
@@ -632,60 +622,24 @@ void CHud::RenderVoting()
 	CTextCursor Cursor;
 	char aBuf[512];
 	str_format(aBuf, sizeof(aBuf), Localize("%ds left"), m_pClient->m_pVoting->SecondsLeft());
-#if defined(__ANDROID__)
-	float tw = TextRender()->TextWidth(0x0, 10, aBuf, -1);
-	TextRender()->SetCursor(&Cursor, TextX+TextW-tw, 0.0f, 10.0f, TEXTFLAG_RENDER);
-#else
 	float tw = TextRender()->TextWidth(0x0, 6, aBuf, -1);
 	TextRender()->SetCursor(&Cursor, 5.0f+100.0f-tw, 60.0f, 6.0f, TEXTFLAG_RENDER);
-#endif
 	TextRender()->TextEx(&Cursor, aBuf, -1);
 
-#if defined(__ANDROID__)
-	TextRender()->SetCursor(&Cursor, TextX, 0.0f, 10.0f, TEXTFLAG_RENDER);
-	Cursor.m_LineWidth = TextW-tw;
-#else
 	TextRender()->SetCursor(&Cursor, 5.0f, 60.0f, 6.0f, TEXTFLAG_RENDER);
 	Cursor.m_LineWidth = 100.0f-tw;
-#endif
 	Cursor.m_MaxLines = 3;
 	TextRender()->TextEx(&Cursor, m_pClient->m_pVoting->VoteDescription(), -1);
 
 	// reason
 	str_format(aBuf, sizeof(aBuf), "%s %s", Localize("Reason:"), m_pClient->m_pVoting->VoteReason());
-#if defined(__ANDROID__)
-	TextRender()->SetCursor(&Cursor, TextX, 23.0f, 10.0f, TEXTFLAG_RENDER|TEXTFLAG_STOP_AT_END);
-#else
 	TextRender()->SetCursor(&Cursor, 5.0f, 79.0f, 6.0f, TEXTFLAG_RENDER|TEXTFLAG_STOP_AT_END);
-#endif
 	Cursor.m_LineWidth = 100.0f;
 	TextRender()->TextEx(&Cursor, aBuf, -1);
 
-#if defined(__ANDROID__)
-	CUIRect Base = {TextX, TextH - 8, TextW, 4};
-#else
 	CUIRect Base = {5, 88, 100, 4};
-#endif
 	m_pClient->m_pVoting->RenderBars(Base, false);
 
-#if defined(__ANDROID__)
-	Base.y += Base.h+6;
-	UI()->DoLabel(&Base, Localize("Vote yes"), 16.0f, -1);
-	UI()->DoLabel(&Base, Localize("Vote no"), 16.0f, 1);
-	if( Input()->KeyPress(KEY_MOUSE_1) )
-	{
-		float mx, my;
-		Input()->MouseRelative(&mx, &my);
-		mx *= m_Width / Graphics()->ScreenWidth();
-		my *= m_Height / Graphics()->ScreenHeight();
-		if( my > TextY+TextH-40 && my < TextY+TextH+20 ) {
-			if( mx > TextX-5 && mx < TextX-5+TextW/2-10 )
-				m_pClient->m_pVoting->Vote(1);
-			if( mx > TextX+TextW/2+20 && mx < TextX+TextW/2+20+TextW/2-10 )
-				m_pClient->m_pVoting->Vote(-1);
-		}
-	}
-#else
 	const char *pYesKey = m_pClient->m_pBinds->GetKey("vote yes");
 	const char *pNoKey = m_pClient->m_pBinds->GetKey("vote no");
 	str_format(aBuf, sizeof(aBuf), "%s - %s", pYesKey, Localize("Vote yes"));
@@ -695,7 +649,6 @@ void CHud::RenderVoting()
 
 	str_format(aBuf, sizeof(aBuf), "%s - %s", Localize("Vote no"), pNoKey);
 	UI()->DoLabel(&Base, aBuf, 6.0f, 1);
-#endif
 }
 
 void CHud::RenderCursor()
@@ -705,7 +658,7 @@ void CHud::RenderCursor()
 
 	MapscreenToGroup(m_pClient->m_pCamera->m_Center.x, m_pClient->m_pCamera->m_Center.y, Layers()->GameGroup());
 	Graphics()->TextureSet(g_pData->m_aImages[IMAGE_GAME].m_Id);
-	
+
 	// render cursor
 	int QuadOffset = NUM_WEAPONS * 10 + 40 + (m_pClient->m_Snap.m_pLocalCharacter->m_Weapon%NUM_WEAPONS);
 	Graphics()->SetColor(1.f, 1.f, 1.f, 1.f);
@@ -759,13 +712,13 @@ void CHud::RenderHealthAndAmmo(const CNetObj_Character *pCharacter)
 	// render gui stuff
 
 	Graphics()->TextureSet(g_pData->m_aImages[IMAGE_GAME].m_Id);
-	
+
 	int QuadOffset = pCharacter->m_Weapon%NUM_WEAPONS * 10;
 	Graphics()->RenderQuadContainer(m_HudQuadContainerIndex, QuadOffset, min(pCharacter->m_AmmoCount, 10));
 
 	QuadOffset = NUM_WEAPONS * 10;
 	Graphics()->RenderQuadContainer(m_HudQuadContainerIndex, QuadOffset, min(pCharacter->m_Health, 10));
-	
+
 	QuadOffset += 10 + min(pCharacter->m_Health, 10);
 	if(min(pCharacter->m_Health, 10) < 10)
 		Graphics()->RenderQuadContainer(m_HudQuadContainerIndex, QuadOffset, 10 - min(pCharacter->m_Health, 10));

@@ -118,6 +118,8 @@ class CGameClient : public IGameClient
 
 	static void ConTeam(IConsole::IResult *pResult, void *pUserData);
 	static void ConKill(IConsole::IResult *pResult, void *pUserData);
+	static void ConColorFromRgb(IConsole::IResult *pResult, void *pUserData);
+	static void ConColorToRgb(IConsole::IResult *pResult, void *pUserData);
 
 	static void ConchainSpecialInfoupdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 	static void ConchainSpecialDummyInfoupdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
@@ -381,6 +383,8 @@ public:
 	CWeaponData m_aWeaponData[150];
 	CWeaponData *GetWeaponData(int Tick) { return &m_aWeaponData[((Tick%150)+150)%150]; }
 	CWeaponData *FindWeaponData(int TargetTick);
+
+	virtual int GetLastRaceTick();
 
 	void FindWeaker(bool IsWeaker[2][MAX_CLIENTS]);
 

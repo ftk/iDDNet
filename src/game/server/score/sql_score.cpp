@@ -184,7 +184,7 @@ bool CSqlScore::CheckBirthdayThread(CSqlServer* pSqlServer, const CSqlData *pGam
 
 		if(pSqlServer->GetResults()->next())
 		{
-			int yearsAgo = (int)pSqlServer->GetResults()->getInt("YearsAgo");
+			int yearsAgo = pSqlServer->GetResults()->getInt("YearsAgo");
 			str_format(aBuf, sizeof(aBuf), "Happy DDNet birthday to %s for finishing their first map %d year%s ago!", pData->m_Name.Str(), yearsAgo, yearsAgo > 1 ? "s" : "");
 			pData->GameServer()->SendChat(-1, CGameContext::CHAT_ALL, aBuf, pData->m_ClientID);
 
@@ -400,19 +400,19 @@ bool CSqlScore::MapInfoThread(CSqlServer* pSqlServer, const CSqlData *pGameData,
 		else
 		{
 			pSqlServer->GetResults()->next();
-			int points = (int)pSqlServer->GetResults()->getInt("Points");
-			int stars = (int)pSqlServer->GetResults()->getInt("Stars");
-			int finishes = (int)pSqlServer->GetResults()->getInt("Finishes");
-			int finishers = (int)pSqlServer->GetResults()->getInt("Finishers");
-			int average = (int)pSqlServer->GetResults()->getInt("Average");
+			int points = pSqlServer->GetResults()->getInt("Points");
+			int stars = pSqlServer->GetResults()->getInt("Stars");
+			int finishes = pSqlServer->GetResults()->getInt("Finishes");
+			int finishers = pSqlServer->GetResults()->getInt("Finishers");
+			int average = pSqlServer->GetResults()->getInt("Average");
 			char aMap[128];
 			strcpy(aMap, pSqlServer->GetResults()->getString("Map").c_str());
 			char aServer[32];
 			strcpy(aServer, pSqlServer->GetResults()->getString("Server").c_str());
 			char aMapper[128];
 			strcpy(aMapper, pSqlServer->GetResults()->getString("Mapper").c_str());
-			int stamp = (int)pSqlServer->GetResults()->getInt("Stamp");
-			int ago = (int)pSqlServer->GetResults()->getInt("Ago");
+			int stamp = pSqlServer->GetResults()->getInt("Stamp");
+			int ago = pSqlServer->GetResults()->getInt("Ago");
 			float ownTime = (float)pSqlServer->GetResults()->getDouble("OwnTime");
 
 			char pAgoString[40] = "\0";
@@ -466,7 +466,7 @@ bool CSqlScore::MapInfoThread(CSqlServer* pSqlServer, const CSqlData *pGameData,
 	return false;
 }
 
-void CSqlScore::SaveScore(int ClientID, float Time, float CpTime[NUM_CHECKPOINTS], bool NotEligible)
+void CSqlScore::SaveScore(int ClientID, float Time, const char *pTimestamp, float CpTime[NUM_CHECKPOINTS], bool NotEligible)
 {
 	CConsole* pCon = (CConsole*)GameServer()->Console();
 	if(pCon->m_Cheated)
@@ -475,6 +475,7 @@ void CSqlScore::SaveScore(int ClientID, float Time, float CpTime[NUM_CHECKPOINTS
 	Tmp->m_ClientID = ClientID;
 	Tmp->m_Name = Server()->ClientName(ClientID);
 	Tmp->m_Time = Time;
+	str_copy(Tmp->m_aTimestamp, pTimestamp, sizeof(Tmp->m_aTimestamp));
 	Tmp->m_NotEligible = NotEligible;
 	for(int i = 0; i < NUM_CHECKPOINTS; i++)
 		Tmp->m_aCpCurrent[i] = CpTime[i];
@@ -497,11 +498,8 @@ bool CSqlScore::SaveScoreThread(CSqlServer* pSqlServer, const CSqlData *pGameDat
 		{
 			dbg_msg("sql", "ERROR: Could not save Score, writing insert to a file now...");
 
-			char aTimestamp [20];
-			sqlstr::GetTimeStamp(aTimestamp, sizeof(aTimestamp));
-
 			char aBuf[768];
-				str_format(aBuf, sizeof(aBuf), "INSERT IGNORE INTO %%s_race(Map, Name, Timestamp, Time, Server, cp1, cp2, cp3, cp4, cp5, cp6, cp7, cp8, cp9, cp10, cp11, cp12, cp13, cp14, cp15, cp16, cp17, cp18, cp19, cp20, cp21, cp22, cp23, cp24, cp25, GameID) VALUES ('%s', '%s', '%s', '%.2f', '%s', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%s');%s", pData->m_Map.ClrStr(), pData->m_Name.ClrStr(), aTimestamp, pData->m_Time, g_Config.m_SvSqlServerName, pData->m_aCpCurrent[0], pData->m_aCpCurrent[1], pData->m_aCpCurrent[2], pData->m_aCpCurrent[3], pData->m_aCpCurrent[4], pData->m_aCpCurrent[5], pData->m_aCpCurrent[6], pData->m_aCpCurrent[7], pData->m_aCpCurrent[8], pData->m_aCpCurrent[9], pData->m_aCpCurrent[10], pData->m_aCpCurrent[11], pData->m_aCpCurrent[12], pData->m_aCpCurrent[13], pData->m_aCpCurrent[14], pData->m_aCpCurrent[15], pData->m_aCpCurrent[16], pData->m_aCpCurrent[17], pData->m_aCpCurrent[18], pData->m_aCpCurrent[19], pData->m_aCpCurrent[20], pData->m_aCpCurrent[21], pData->m_aCpCurrent[22], pData->m_aCpCurrent[23], pData->m_aCpCurrent[24], pData->m_GameUuid.ClrStr(), pData->m_NotEligible ? " -- not eligible" : "");
+				str_format(aBuf, sizeof(aBuf), "INSERT IGNORE INTO %%s_race(Map, Name, Timestamp, Time, Server, cp1, cp2, cp3, cp4, cp5, cp6, cp7, cp8, cp9, cp10, cp11, cp12, cp13, cp14, cp15, cp16, cp17, cp18, cp19, cp20, cp21, cp22, cp23, cp24, cp25, GameID) VALUES ('%s', '%s', '%s', '%.2f', '%s', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%s');%s", pData->m_Map.ClrStr(), pData->m_Name.ClrStr(), pData->m_aTimestamp, pData->m_Time, g_Config.m_SvSqlServerName, pData->m_aCpCurrent[0], pData->m_aCpCurrent[1], pData->m_aCpCurrent[2], pData->m_aCpCurrent[3], pData->m_aCpCurrent[4], pData->m_aCpCurrent[5], pData->m_aCpCurrent[6], pData->m_aCpCurrent[7], pData->m_aCpCurrent[8], pData->m_aCpCurrent[9], pData->m_aCpCurrent[10], pData->m_aCpCurrent[11], pData->m_aCpCurrent[12], pData->m_aCpCurrent[13], pData->m_aCpCurrent[14], pData->m_aCpCurrent[15], pData->m_aCpCurrent[16], pData->m_aCpCurrent[17], pData->m_aCpCurrent[18], pData->m_aCpCurrent[19], pData->m_aCpCurrent[20], pData->m_aCpCurrent[21], pData->m_aCpCurrent[22], pData->m_aCpCurrent[23], pData->m_aCpCurrent[24], pData->m_GameUuid.ClrStr(), pData->m_NotEligible ? " -- not eligible" : "");
 				io_write(File, aBuf, str_length(aBuf));
 				io_write_newline(File);
 				io_close(File);
@@ -535,7 +533,7 @@ bool CSqlScore::SaveScoreThread(CSqlServer* pSqlServer, const CSqlData *pGameDat
 			if(pSqlServer->GetResults()->rowsCount() == 1)
 			{
 				pSqlServer->GetResults()->next();
-				int points = (int)pSqlServer->GetResults()->getInt("Points");
+				int points = pSqlServer->GetResults()->getInt("Points");
 				if (points == 1)
 					str_format(aBuf, sizeof(aBuf), "You earned %d point for finishing this map!", points);
 				else
@@ -553,7 +551,7 @@ bool CSqlScore::SaveScoreThread(CSqlServer* pSqlServer, const CSqlData *pGameDat
 		}
 
 		// if no entry found... create a new one
-		str_format(aBuf, sizeof(aBuf), "INSERT IGNORE INTO %s_race(Map, Name, Timestamp, Time, Server, cp1, cp2, cp3, cp4, cp5, cp6, cp7, cp8, cp9, cp10, cp11, cp12, cp13, cp14, cp15, cp16, cp17, cp18, cp19, cp20, cp21, cp22, cp23, cp24, cp25, GameID) VALUES ('%s', '%s', CURRENT_TIMESTAMP(), '%.2f', '%s', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%s');", pSqlServer->GetPrefix(), pData->m_Map.ClrStr(), pData->m_Name.ClrStr(), pData->m_Time, g_Config.m_SvSqlServerName, pData->m_aCpCurrent[0], pData->m_aCpCurrent[1], pData->m_aCpCurrent[2], pData->m_aCpCurrent[3], pData->m_aCpCurrent[4], pData->m_aCpCurrent[5], pData->m_aCpCurrent[6], pData->m_aCpCurrent[7], pData->m_aCpCurrent[8], pData->m_aCpCurrent[9], pData->m_aCpCurrent[10], pData->m_aCpCurrent[11], pData->m_aCpCurrent[12], pData->m_aCpCurrent[13], pData->m_aCpCurrent[14], pData->m_aCpCurrent[15], pData->m_aCpCurrent[16], pData->m_aCpCurrent[17], pData->m_aCpCurrent[18], pData->m_aCpCurrent[19], pData->m_aCpCurrent[20], pData->m_aCpCurrent[21], pData->m_aCpCurrent[22], pData->m_aCpCurrent[23], pData->m_aCpCurrent[24], pData->m_GameUuid.ClrStr());
+		str_format(aBuf, sizeof(aBuf), "INSERT IGNORE INTO %s_race(Map, Name, Timestamp, Time, Server, cp1, cp2, cp3, cp4, cp5, cp6, cp7, cp8, cp9, cp10, cp11, cp12, cp13, cp14, cp15, cp16, cp17, cp18, cp19, cp20, cp21, cp22, cp23, cp24, cp25, GameID) VALUES ('%s', '%s', '%s', '%.2f', '%s', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%.2f', '%s');", pSqlServer->GetPrefix(), pData->m_Map.ClrStr(), pData->m_Name.ClrStr(), pData->m_aTimestamp, pData->m_Time, g_Config.m_SvSqlServerName, pData->m_aCpCurrent[0], pData->m_aCpCurrent[1], pData->m_aCpCurrent[2], pData->m_aCpCurrent[3], pData->m_aCpCurrent[4], pData->m_aCpCurrent[5], pData->m_aCpCurrent[6], pData->m_aCpCurrent[7], pData->m_aCpCurrent[8], pData->m_aCpCurrent[9], pData->m_aCpCurrent[10], pData->m_aCpCurrent[11], pData->m_aCpCurrent[12], pData->m_aCpCurrent[13], pData->m_aCpCurrent[14], pData->m_aCpCurrent[15], pData->m_aCpCurrent[16], pData->m_aCpCurrent[17], pData->m_aCpCurrent[18], pData->m_aCpCurrent[19], pData->m_aCpCurrent[20], pData->m_aCpCurrent[21], pData->m_aCpCurrent[22], pData->m_aCpCurrent[23], pData->m_aCpCurrent[24], pData->m_GameUuid.ClrStr());
 		dbg_msg("sql", "%s", aBuf);
 		pSqlServer->executeSql(aBuf);
 
@@ -568,7 +566,7 @@ bool CSqlScore::SaveScoreThread(CSqlServer* pSqlServer, const CSqlData *pGameDat
 	return false;
 }
 
-void CSqlScore::SaveTeamScore(int* aClientIDs, unsigned int Size, float Time)
+void CSqlScore::SaveTeamScore(int* aClientIDs, unsigned int Size, float Time, const char *pTimestamp)
 {
 	CConsole* pCon = (CConsole*)GameServer()->Console();
 	if(pCon->m_Cheated)
@@ -583,6 +581,7 @@ void CSqlScore::SaveTeamScore(int* aClientIDs, unsigned int Size, float Time)
 	}
 	Tmp->m_Size = Size;
 	Tmp->m_Time = Time;
+	str_copy(Tmp->m_aTimestamp, pTimestamp, sizeof(Tmp->m_aTimestamp));
 
 	thread_init_and_detach(ExecSqlFunc, new CSqlExecData(SaveTeamScoreThread, Tmp, false), "save team score");
 }
@@ -606,13 +605,10 @@ bool CSqlScore::SaveTeamScoreThread(CSqlServer* pSqlServer, const CSqlData *pGam
 			io_write(File, pUUID, sizeof(pUUID) - 1);
 			io_write_newline(File);
 
-			char aTimestamp [20];
-			sqlstr::GetTimeStamp(aTimestamp, sizeof(aTimestamp));
-
 			char aBuf[2300];
 			for(unsigned int i = 0; i < pData->m_Size; i++)
 			{
-				str_format(aBuf, sizeof(aBuf), "INSERT IGNORE INTO %%s_teamrace(Map, Name, Timestamp, Time, ID, GameID) VALUES ('%s', '%s', '%s', '%.2f', @id, '%s');%s", pData->m_Map.ClrStr(), pData->m_aNames[i].ClrStr(), aTimestamp, pData->m_Time, pData->m_GameUuid.ClrStr(), pData->m_NotEligible ? " -- not eligible" : "");
+				str_format(aBuf, sizeof(aBuf), "INSERT IGNORE INTO %%s_teamrace(Map, Name, Timestamp, Time, ID, GameID) VALUES ('%s', '%s', '%s', '%.2f', @id, '%s');%s", pData->m_Map.ClrStr(), pData->m_aNames[i].ClrStr(), pData->m_aTimestamp, pData->m_Time, pData->m_GameUuid.ClrStr(), pData->m_NotEligible ? " -- not eligible" : "");
 				io_write(File, aBuf, str_length(aBuf));
 				io_write_newline(File);
 			}
@@ -699,7 +695,7 @@ bool CSqlScore::SaveTeamScoreThread(CSqlServer* pSqlServer, const CSqlData *pGam
 
 		if (aUpdateID[0])
 		{
-			str_format(aBuf, sizeof(aBuf), "UPDATE %s_teamrace SET Time='%.2f', Timestamp=CURRENT_TIMESTAMP() WHERE ID = '%s';", pSqlServer->GetPrefix(), pData->m_Time, aUpdateID);
+			str_format(aBuf, sizeof(aBuf), "UPDATE %s_teamrace SET Time='%.2f', Timestamp='%s' WHERE ID = '%s';", pSqlServer->GetPrefix(), pData->m_Time, pData->m_aTimestamp, aUpdateID);
 			dbg_msg("sql", "%s", aBuf);
 			pSqlServer->executeSql(aBuf);
 		}
@@ -710,7 +706,7 @@ bool CSqlScore::SaveTeamScoreThread(CSqlServer* pSqlServer, const CSqlData *pGam
 			for(unsigned int i = 0; i < pData->m_Size; i++)
 			{
 			// if no entry found... create a new one
-				str_format(aBuf, sizeof(aBuf), "INSERT IGNORE INTO %s_teamrace(Map, Name, Timestamp, Time, ID, GameID) VALUES ('%s', '%s', CURRENT_TIMESTAMP(), '%.2f', @id, '%s');", pSqlServer->GetPrefix(), pData->m_Map.ClrStr(), pData->m_aNames[i].ClrStr(), pData->m_Time, pData->m_GameUuid.ClrStr());
+				str_format(aBuf, sizeof(aBuf), "INSERT IGNORE INTO %s_teamrace(Map, Name, Timestamp, Time, ID, GameID) VALUES ('%s', '%s', '%s', '%.2f', @id, '%s');", pSqlServer->GetPrefix(), pData->m_Map.ClrStr(), pData->m_aNames[i].ClrStr(), pData->m_aTimestamp, pData->m_Time, pData->m_GameUuid.ClrStr());
 				dbg_msg("sql", "%s", aBuf);
 				pSqlServer->executeSql(aBuf);
 			}
@@ -768,7 +764,7 @@ bool CSqlScore::ShowRankThread(CSqlServer* pSqlServer, const CSqlData *pGameData
 			pSqlServer->GetResults()->next();
 
 			float Time = (float)pSqlServer->GetResults()->getDouble("Time");
-			int Rank = (int)pSqlServer->GetResults()->getInt("Rank");
+			int Rank = pSqlServer->GetResults()->getInt("Rank");
 			if(g_Config.m_SvHideScore)
 			{
 				str_format(aBuf, sizeof(aBuf), "Your time: %02d:%05.2f", (int)(Time/60), Time-((int)Time/60*60));
@@ -841,7 +837,7 @@ bool CSqlScore::ShowTeamRankThread(CSqlServer* pSqlServer, const CSqlData *pGame
 			pSqlServer->GetResults()->first();
 
 			float Time = (float)pSqlServer->GetResults()->getDouble("Time");
-			int Rank = (int)pSqlServer->GetResults()->getInt("Rank");
+			int Rank = pSqlServer->GetResults()->getInt("Rank");
 
 			for(int Row = 0; Row < Rows; Row++)
 			{
@@ -1109,8 +1105,8 @@ bool CSqlScore::ShowTimesThread(CSqlServer* pSqlServer, const CSqlData *pGameDat
 		while(pSqlServer->GetResults()->next())
 		{
 			char pAgoString[40] = "\0";
-			pSince = (int)pSqlServer->GetResults()->getInt("Ago");
-			pStamp = (int)pSqlServer->GetResults()->getInt("Stamp");
+			pSince = pSqlServer->GetResults()->getInt("Ago");
+			pStamp = pSqlServer->GetResults()->getInt("Stamp");
 			pTime = (float)pSqlServer->GetResults()->getDouble("Time");
 
 			sqlstr::AgoTimeToString(pSince,pAgoString);
@@ -1185,8 +1181,8 @@ bool CSqlScore::ShowPointsThread(CSqlServer* pSqlServer, const CSqlData *pGameDa
 		else
 		{
 			pSqlServer->GetResults()->next();
-			int count = (int)pSqlServer->GetResults()->getInt("Points");
-			int rank = (int)pSqlServer->GetResults()->getInt("Rank");
+			int count = pSqlServer->GetResults()->getInt("Points");
+			int rank = pSqlServer->GetResults()->getInt("Rank");
 			str_format(aBuf, sizeof(aBuf), "%d. %s Points: %d, requested by %s", rank, pSqlServer->GetResults()->getString("Name").c_str(), count, pData->m_aRequestingPlayer);
 			pData->GameServer()->SendChat(-1, CGameContext::CHAT_ALL, aBuf, pData->m_ClientID);
 		}
@@ -1454,11 +1450,8 @@ bool CSqlScore::SaveTeamThread(CSqlServer* pSqlServer, const CSqlData *pGameData
 			{
 				dbg_msg("sql", "ERROR: Could not save Teamsave, writing insert to a file now...");
 
-				char aTimestamp [20];
-				sqlstr::GetTimeStamp(aTimestamp, sizeof(aTimestamp));
-
 				char aBuf[65536];
-				str_format(aBuf, sizeof(aBuf), "INSERT IGNORE INTO %%s_saves(Savegame, Map, Code, Timestamp, Server) VALUES ('%s', '%s', '%s', '%s', '%s');", TeamString, pData->m_Map.ClrStr(), pData->m_Code.ClrStr(), aTimestamp, pData->m_Server);
+				str_format(aBuf, sizeof(aBuf), "INSERT IGNORE INTO %%s_saves(Savegame, Map, Code, Timestamp, Server) VALUES ('%s', '%s', '%s', CURRENT_TIMESTAMP(), '%s');", TeamString, pData->m_Map.ClrStr(), pData->m_Code.ClrStr(), pData->m_Server);
 				io_write(File, aBuf, str_length(aBuf));
 				io_write_newline(File);
 				io_close(File);
@@ -1561,7 +1554,7 @@ bool CSqlScore::LoadTeamThread(CSqlServer* pSqlServer, const CSqlData *pGameData
 			}
 
 			pSqlServer->GetResults()->getInt("Ago");
-			int since = (int)pSqlServer->GetResults()->getInt("Ago");
+			int since = pSqlServer->GetResults()->getInt("Ago");
 
 			if(since < g_Config.m_SvSaveGamesDelay)
 			{

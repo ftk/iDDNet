@@ -170,8 +170,7 @@ void CLayerGroup::Mapping(float *pPoints)
 {
 	m_pMap->m_pEditor->RenderTools()->MapscreenToWorld(
 		m_pMap->m_pEditor->m_WorldOffsetX, m_pMap->m_pEditor->m_WorldOffsetY,
-		m_ParallaxX/100.0f, m_ParallaxY/100.0f,
-		m_OffsetX, m_OffsetY,
+		m_ParallaxX, m_ParallaxY, m_OffsetX, m_OffsetY,
 		m_pMap->m_pEditor->Graphics()->ScreenAspect(), m_pMap->m_pEditor->m_WorldZoom, pPoints);
 
 	pPoints[0] += m_pMap->m_pEditor->m_EditorOffsetX;
@@ -605,7 +604,7 @@ int CEditor::DoButton_Editor_Common(const void *pID, const char *pText, int Chec
 	}
 
 	if(UI()->HotItem() == pID && pToolTip)
-		m_pTooltip = (const char *)pToolTip;
+		m_pTooltip = pToolTip;
 
 	return UI()->DoButtonLogic(pID, pText, Checked, pRect);
 
@@ -1389,55 +1388,68 @@ void CEditor::DoToolbar(CUIRect ToolBar)
 			m_GridFactor++;
 	}
 
-	// sound source manipulation
+	TB_Bottom.VSplitLeft(5.0f, &Button, &TB_Bottom);
+
+	// do add quad/sound button
+	TB_Bottom.VSplitLeft(60.0f, &Button, &TB_Bottom);
 	{
-		// do add button
-		TB_Bottom.VSplitLeft(5.0f, &Button, &TB_Bottom);
-		TB_Bottom.VSplitLeft(60.0f, &Button, &TB_Bottom);
-		static int s_NewButton = 0;
+		const char *pButtonText = "Add Item";
+		const char *pButtonToolTip = "[ctrl+q] Add a new item";
+		int Checked = -1;
 
-		CLayerSounds *pSoundLayer = (CLayerSounds *)GetSelectedLayerType(0, LAYERTYPE_SOUNDS);
-		if(DoButton_Editor(&s_NewButton, "Add Sound", pSoundLayer?0:-1, &Button, 0, "Adds a new sound source"))
+		CLayer *pLayer = GetSelectedLayer(0);
+		if(pLayer)
 		{
-			if(pSoundLayer)
+			if(pLayer->m_Type == LAYERTYPE_QUADS)
 			{
-				float Mapping[4];
-				CLayerGroup *g = GetSelectedGroup();
-				g->Mapping(Mapping);
-				int AddX = f2fx(Mapping[0] + (Mapping[2]-Mapping[0])/2);
-				int AddY = f2fx(Mapping[1] + (Mapping[3]-Mapping[1])/2);
-
-				CSoundSource *pSource = pSoundLayer->NewSource();
-				pSource->m_Position.x += AddX;
-				pSource->m_Position.y += AddY;
+				pButtonText = "Add Quad";
+				pButtonToolTip = "[ctrl+q] Add a new quad";
+				Checked = 0;
+			}
+			else if(pLayer->m_Type == LAYERTYPE_SOUNDS)
+			{
+				pButtonText = "Add Sound";
+				pButtonToolTip = "[ctrl+q] Add a new sound source";
+				Checked = 0;
 			}
 		}
-	}
 
-	// quad manipulation
-	{
-		// do add button
-		TB_Bottom.VSplitLeft(5.0f, &Button, &TB_Bottom);
-		TB_Bottom.VSplitLeft(60.0f, &Button, &TB_Bottom);
-		static int s_NewButton = 0;
-
-		CLayerQuads *pQLayer = (CLayerQuads *)GetSelectedLayerType(0, LAYERTYPE_QUADS);
-		//CLayerTiles *tlayer = (CLayerTiles *)get_selected_layer_type(0, LAYERTYPE_TILES);
-		if(DoButton_Editor(&s_NewButton, "Add Quad", pQLayer?0:-1, &Button, 0, "Adds a new quad"))
+		static int s_AddItemButton = 0;
+		if(DoButton_Editor(&s_AddItemButton, pButtonText, Checked, &Button, 0, pButtonToolTip) ||
+				(Input()->KeyPress(KEY_Q) && (Input()->KeyIsPressed(KEY_LCTRL) || Input()->KeyIsPressed(KEY_RCTRL))))
 		{
-			if(pQLayer)
+			if(pLayer)
 			{
-				float Mapping[4];
-				CLayerGroup *g = GetSelectedGroup();
-				g->Mapping(Mapping);
-				int AddX = f2fx(Mapping[0] + (Mapping[2]-Mapping[0])/2);
-				int AddY = f2fx(Mapping[1] + (Mapping[3]-Mapping[1])/2);
+				CLayerGroup *pGroup = GetSelectedGroup();
 
-				CQuad *q = pQLayer->NewQuad();
-				for(int i = 0; i < 5; i++)
+				float Mapping[4];
+				pGroup->Mapping(Mapping);
+				int x = Mapping[0] + (Mapping[2]-Mapping[0]) / 2;
+				int y = Mapping[1] + (Mapping[3]-Mapping[1]) / 2;
+				if(Input()->KeyPress(KEY_Q) && (Input()->KeyIsPressed(KEY_LCTRL) || Input()->KeyIsPressed(KEY_RCTRL)))
 				{
-					q->m_aPoints[i].x += AddX;
-					q->m_aPoints[i].y += AddY;
+					x += UI()->MouseWorldX() - (m_WorldOffsetX*pGroup->m_ParallaxX/100) - pGroup->m_OffsetX;
+					y += UI()->MouseWorldY() - (m_WorldOffsetY*pGroup->m_ParallaxY/100) - pGroup->m_OffsetY;
+				}
+
+				if(pLayer->m_Type == LAYERTYPE_QUADS)
+				{
+					CLayerQuads *pQuadLayer = (CLayerQuads *)pLayer;
+
+					int Width = 64;
+					int Height = 64;
+					if(pQuadLayer->m_Image >= 0)
+					{
+						Width = m_Map.m_lImages[pQuadLayer->m_Image]->m_Width;
+						Height = m_Map.m_lImages[pQuadLayer->m_Image]->m_Height;
+					}
+
+					pQuadLayer->NewQuad(x, y, Width, Height);
+				}
+				else if(pLayer->m_Type == LAYERTYPE_SOUNDS)
+				{
+					CLayerSounds *pSoundLayer = (CLayerSounds *)pLayer;
+					pSoundLayer->NewSource(x, y);
 				}
 			}
 		}
@@ -2535,7 +2547,26 @@ void CEditor::DoMapEditor(CUIRect View)
 		// brush editing
 		if(UI()->HotItem() == s_pEditorID)
 		{
-			if(m_Brush.IsEmpty())
+			int Layer = NUM_LAYERS;
+			if(m_ShowPicker)
+			{
+				CLayer *pLayer = GetSelectedLayer(0);
+				if(pLayer == m_Map.m_pGameLayer)
+					Layer = LAYER_GAME;
+				else if(pLayer == m_Map.m_pFrontLayer)
+					Layer = LAYER_FRONT;
+				else if(pLayer == m_Map.m_pSwitchLayer)
+					Layer = LAYER_SWITCH;
+				else if(pLayer == m_Map.m_pTeleLayer)
+					Layer = LAYER_TELE;
+				else if(pLayer == m_Map.m_pSpeedupLayer)
+					Layer = LAYER_SPEEDUP;
+				else if(pLayer == m_Map.m_pTuneLayer)
+					Layer = LAYER_TUNE;
+			}
+			if(m_ShowPicker && Layer != NUM_LAYERS)
+				m_pTooltip = Explain((int)wx / 32 + (int)wy / 32 * 16, Layer);
+			else if(m_Brush.IsEmpty())
 				m_pTooltip = "Use left mouse button to drag and create a brush. Hold shift to select multiple quads.";
 			else
 				m_pTooltip = "Use left mouse button to paint with the brush. Right button clears the brush.";
@@ -2861,7 +2892,7 @@ void CEditor::DoMapEditor(CUIRect View)
 
 			RenderTools()->MapscreenToWorld(
 				m_WorldOffsetX, m_WorldOffsetY,
-				1.0f, 1.0f, 0.0f, 0.0f, Aspect, 1.0f, aPoints);
+				100.0f, 100.0f, 0.0f, 0.0f, Aspect, 1.0f, aPoints);
 
 			if(i == 0)
 			{
@@ -2903,7 +2934,7 @@ void CEditor::DoMapEditor(CUIRect View)
 
 				RenderTools()->MapscreenToWorld(
 					m_WorldOffsetX, m_WorldOffsetY,
-					1.0f, 1.0f, 0.0f, 0.0f, Aspect, 1.0f, aPoints);
+					100.0f, 100.0f, 0.0f, 0.0f, Aspect, 1.0f, aPoints);
 
 				CUIRect r;
 				r.x = aPoints[0];
@@ -3750,7 +3781,7 @@ void CEditor::SortImages()
 
 	if(!Sorted)
 	{
-		array<CEditorImage*> lTemp = array<CEditorImage*>(m_Map.m_lImages);
+		array<CEditorImage*> lTemp = m_Map.m_lImages;
 		gs_pSortedIndex = new int[lTemp.size()];
 
 		qsort(m_Map.m_lImages.base_ptr(), m_Map.m_lImages.size(), sizeof(CEditorImage*), CompareImageName);
@@ -4585,14 +4616,23 @@ void CEditor::RenderStatusbar(CUIRect View)
 
 	if(m_pTooltip)
 	{
+		char aBuf[512];
 		if(ms_pUiGotContext && ms_pUiGotContext == UI()->HotItem())
-		{
-			char aBuf[512];
 			str_format(aBuf, sizeof(aBuf), "%s Right click for context menu.", m_pTooltip);
-			UI()->DoLabel(&View, aBuf, 10.0f, -1, -1);
-		}
 		else
-			UI()->DoLabel(&View, m_pTooltip, 10.0f, -1, -1);
+			str_copy(aBuf, m_pTooltip, sizeof(aBuf));
+
+		float FontSize = 10.0f;
+
+		while(TextRender()->TextWidth(0, FontSize, m_pTooltip, -1) > View.w)
+		{
+			if(FontSize > 6.0f)
+				FontSize--;
+			else
+				str_format(aBuf, sizeof(aBuf), "%.*s...", str_length(aBuf) - 4, aBuf);
+		}
+
+		UI()->DoLabel(&View, m_pTooltip, FontSize, -1, View.w);
 	}
 }
 
@@ -5666,6 +5706,28 @@ void CEditor::Render()
 		StatusBar.Margin(2.0f, &StatusBar);
 	}
 
+	// show mentions
+	if(m_GuiActive && m_Mentions)
+	{
+		char aBuf[16];
+		if(m_Mentions == 1)
+		{
+			str_copy(aBuf, Localize("1 new mention"), sizeof(aBuf));
+		}
+		else if(m_Mentions <= 9)
+		{
+			str_format(aBuf, sizeof(aBuf), Localize("%d new mentions"), m_Mentions);
+		}
+		else
+		{
+			str_copy(aBuf, Localize("9+ new mentions"), sizeof(aBuf));
+		}
+
+		TextRender()->TextColor(1.0f, 0.0f, 0.0f, 1.0f);
+		TextRender()->Text(0, 5.0f, 27.0f, 10.0f, aBuf, -1);
+		TextRender()->TextColor(1.0f, 1.0f, 1.0f, 1.0f);
+	}
+
 	// do the toolbar
 	if(m_Mode == MODE_LAYERS)
 		DoToolbar(ToolBar);
@@ -5857,7 +5919,7 @@ void CEditor::ZoomMouseTarget(float ZoomFactor)
 	float aPoints[4];
 	RenderTools()->MapscreenToWorld(
 		m_WorldOffsetX, m_WorldOffsetY,
-		1.0f, 1.0f, 0.0f, 0.0f, Graphics()->ScreenAspect(), m_WorldZoom, aPoints);
+		100.0f, 100.0f, 0.0f, 0.0f, Graphics()->ScreenAspect(), m_WorldZoom, aPoints);
 
 	float WorldWidth = aPoints[2]-aPoints[0];
 	float WorldHeight = aPoints[3]-aPoints[1];
@@ -5955,13 +6017,7 @@ void CEditorMap::CreateDefault(int EntitiesTexture)
 	pGroup->m_ParallaxY = 0;
 	CLayerQuads *pLayer = new CLayerQuads;
 	pLayer->m_pEditor = m_pEditor;
-	CQuad *pQuad = pLayer->NewQuad();
-	const int Width = 800000;
-	const int Height = 600000;
-	pQuad->m_aPoints[0].x = pQuad->m_aPoints[2].x = -Width;
-	pQuad->m_aPoints[1].x = pQuad->m_aPoints[3].x = Width;
-	pQuad->m_aPoints[0].y = pQuad->m_aPoints[1].y = -Height;
-	pQuad->m_aPoints[2].y = pQuad->m_aPoints[3].y = Height;
+	CQuad *pQuad = pLayer->NewQuad(0, 0, 1600, 1200);
 	pQuad->m_aColors[0].r = pQuad->m_aColors[1].r = 94;
 	pQuad->m_aColors[0].g = pQuad->m_aColors[1].g = 132;
 	pQuad->m_aColors[0].b = pQuad->m_aColors[1].b = 174;
@@ -6011,7 +6067,7 @@ void CEditor::Init()
 	m_TilesetPicker.m_Readonly = true;
 
 	m_QuadsetPicker.m_pEditor = this;
-	m_QuadsetPicker.NewQuad();
+	m_QuadsetPicker.NewQuad(0, 0, 64, 64);
 	m_QuadsetPicker.m_Readonly = true;
 
 	m_Brush.m_pMap = &m_Map;
@@ -6085,22 +6141,6 @@ void CEditor::UpdateAndRender()
 	float rx, ry;
 	{
 		Input()->MouseRelative(&rx, &ry);
-#if defined(__ANDROID__)
-		float tx, ty;
-		tx = s_MouseX;
-		ty = s_MouseY;
-
-		s_MouseX = (rx / (float)Graphics()->ScreenWidth()) * UI()->Screen()->w;
-		s_MouseY = (ry / (float)Graphics()->ScreenHeight()) * UI()->Screen()->h;
-
-		s_MouseX = clamp(s_MouseX, 0.0f, UI()->Screen()->w);
-		s_MouseY = clamp(s_MouseY, 0.0f, UI()->Screen()->h);
-
-		m_MouseDeltaX = s_MouseX - m_OldMouseX;
-		m_MouseDeltaY = s_MouseY - m_OldMouseY;
-		m_OldMouseX = tx;
-		m_OldMouseY = ty;
-#else
 		UI()->ConvertMouseMove(&rx, &ry);
 
 		// TODO: Why do we have to halve this?
@@ -6115,7 +6155,6 @@ void CEditor::UpdateAndRender()
 			s_MouseX = clamp(s_MouseX + rx, 0.0f, UI()->Screen()->w);
 			s_MouseY = clamp(s_MouseY + ry, 0.0f, UI()->Screen()->h);
 		}
-#endif
 
 		// update the ui
 		mx = s_MouseX;
@@ -6144,14 +6183,7 @@ void CEditor::UpdateAndRender()
 		if(Input()->KeyIsPressed(KEY_MOUSE_2)) Buttons |= 2;
 		if(Input()->KeyIsPressed(KEY_MOUSE_3)) Buttons |= 4;
 
-#if defined(__ANDROID__)
-	static int ButtonsOneFrameDelay = 0; // For Android touch input
-
-	UI()->Update(mx,my,Mwx,Mwy,ButtonsOneFrameDelay);
-	ButtonsOneFrameDelay = Buttons;
-#else
 		UI()->Update(mx,my,Mwx,Mwy,Buttons);
-#endif
 	}
 
 	// toggle gui

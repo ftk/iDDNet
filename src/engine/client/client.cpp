@@ -11,6 +11,7 @@
 #include <climits>
 #include <tuple>
 
+#include <base/hash_ctxt.h>
 #include <base/math.h>
 #include <base/vmath.h>
 #include <base/system.h>
@@ -33,8 +34,6 @@
 #include <engine/sound.h>
 #include <engine/storage.h>
 #include <engine/textrender.h>
-
-#include <engine/external/md5/md5.h>
 
 #include <engine/client/http.h>
 #include <engine/shared/config.h>
@@ -347,6 +346,8 @@ CClient::CClient() : m_DemoPlayer(&m_SnapshotDelta)
 	m_SnapshotStorage[1].Init();
 	m_ReceivedSnapshots[0] = 0;
 	m_ReceivedSnapshots[1] = 0;
+	m_SnapshotParts[0] = 0;
+	m_SnapshotParts[1] = 0;
 
 	m_VersionInfo.m_State = CVersionInfo::STATE_INIT;
 
@@ -606,7 +607,7 @@ void CClient::OnEnterGame()
 	m_aSnapshots[g_Config.m_ClDummy][SNAP_PREV] = 0;
 	m_SnapshotStorage[g_Config.m_ClDummy].PurgeAll();
 	m_ReceivedSnapshots[g_Config.m_ClDummy] = 0;
-	m_SnapshotParts = 0;
+	m_SnapshotParts[g_Config.m_ClDummy] = 0;
 	m_PredTick[g_Config.m_ClDummy] = 0;
 	m_CurrentRecvTick[g_Config.m_ClDummy] = 0;
 	m_CurGameTick[g_Config.m_ClDummy] = 0;
@@ -635,19 +636,16 @@ void CClient::EnterGame()
 
 void GenerateTimeoutCode(char *pBuffer, unsigned Size, char *pSeed, const NETADDR &Addr, bool Dummy)
 {
-	md5_state_t Md5;
-	md5_byte_t aDigest[16];
+	MD5_CTX Md5;
 	md5_init(&Md5);
-
 	const char *pDummy = Dummy ? "dummy" : "normal";
-
-	md5_append(&Md5, (unsigned char *)pDummy, str_length(pDummy) + 1);
-	md5_append(&Md5, (unsigned char *)pSeed, str_length(pSeed) + 1);
-	md5_append(&Md5, (unsigned char *)&Addr, sizeof(Addr));
-	md5_finish(&Md5, aDigest);
+	md5_update(&Md5, (unsigned char *)pDummy, str_length(pDummy) + 1);
+	md5_update(&Md5, (unsigned char *)pSeed, str_length(pSeed) + 1);
+	md5_update(&Md5, (unsigned char *)&Addr, sizeof(Addr));
+	MD5_DIGEST Digest = md5_finish(&Md5);
 
 	unsigned short Random[8];
-	mem_copy(Random, aDigest, sizeof(Random));
+	mem_copy(Random, Digest.data, sizeof(Random));
 	generate_password(pBuffer, Size, Random, 8);
 }
 
@@ -707,7 +705,11 @@ void CClient::Connect(const char *pAddress, const char *pPassword)
 	else
 		str_copy(m_Password, pPassword, sizeof(m_Password));
 
+	// Deregister Rcon commands from last connected server, might not have called
+	// DisconnectWithReason if the server was shut down
 	m_RconAuthed[0] = 0;
+	m_UseTempRconCommands = 0;
+	m_pConsole->DeregisterTempAll();
 	if(m_ServerAddress.port == 0)
 		m_ServerAddress.port = Port;
 	m_NetClient[0].Connect(&m_ServerAddress);
@@ -822,6 +824,13 @@ void CClient::DummyDisconnect(const char *pReason)
 	m_RconAuthed[1] = 0;
 	m_DummyConnected = false;
 	GameClient()->OnDummyDisconnect();
+}
+
+int CClient::GetCurrentRaceTime()
+{
+	if(GameClient()->GetLastRaceTick() < 0)
+		return 0;
+	return (GameTick() - GameClient()->GetLastRaceTick()) / 50;
 }
 
 int CClient::SendMsgExY(CMsgPacker *pMsg, int Flags, bool System, int NetClient)
@@ -1760,14 +1769,14 @@ void CClient::ProcessServerPacket(CNetChunk *pPacket)
 			{
 				if(GameTick != m_CurrentRecvTick[g_Config.m_ClDummy])
 				{
-					m_SnapshotParts = 0;
+					m_SnapshotParts[g_Config.m_ClDummy] = 0;
 					m_CurrentRecvTick[g_Config.m_ClDummy] = GameTick;
 				}
 
 				mem_copy((char*)m_aSnapshotIncomingData + Part*MAX_SNAPSHOT_PACKSIZE, pData, clamp(PartSize, 0, (int)sizeof(m_aSnapshotIncomingData) - Part*MAX_SNAPSHOT_PACKSIZE));
-				m_SnapshotParts |= 1<<Part;
+				m_SnapshotParts[g_Config.m_ClDummy] |= 1<<Part;
 
-				if(m_SnapshotParts == (unsigned)((1<<NumParts)-1))
+				if(m_SnapshotParts[g_Config.m_ClDummy] == (unsigned)((1<<NumParts)-1))
 				{
 					static CSnapshot Emptysnap;
 					CSnapshot *pDeltaShot = &Emptysnap;
@@ -1782,7 +1791,7 @@ void CClient::ProcessServerPacket(CNetChunk *pPacket)
 					CompleteSize = (NumParts-1) * MAX_SNAPSHOT_PACKSIZE + PartSize;
 
 					// reset snapshoting
-					m_SnapshotParts = 0;
+					m_SnapshotParts[g_Config.m_ClDummy] = 0;
 
 					// find snapshot that we should use as delta
 					Emptysnap.Clear();
@@ -2032,14 +2041,14 @@ void CClient::ProcessServerPacketDummy(CNetChunk *pPacket)
 			{
 				if(GameTick != m_CurrentRecvTick[!g_Config.m_ClDummy])
 				{
-					m_SnapshotParts = 0;
+					m_SnapshotParts[!g_Config.m_ClDummy] = 0;
 					m_CurrentRecvTick[!g_Config.m_ClDummy] = GameTick;
 				}
 
 				mem_copy((char*)m_aSnapshotIncomingData + Part*MAX_SNAPSHOT_PACKSIZE, pData, clamp(PartSize, 0, (int)sizeof(m_aSnapshotIncomingData) - Part*MAX_SNAPSHOT_PACKSIZE));
-				m_SnapshotParts |= 1<<Part;
+				m_SnapshotParts[!g_Config.m_ClDummy] |= 1<<Part;
 
-				if(m_SnapshotParts == (unsigned)((1<<NumParts)-1))
+				if(m_SnapshotParts[!g_Config.m_ClDummy] == (unsigned)((1<<NumParts)-1))
 				{
 					static CSnapshot Emptysnap;
 					CSnapshot *pDeltaShot = &Emptysnap;
@@ -2054,7 +2063,7 @@ void CClient::ProcessServerPacketDummy(CNetChunk *pPacket)
 					CompleteSize = (NumParts-1) * MAX_SNAPSHOT_PACKSIZE + PartSize;
 
 					// reset snapshoting
-					m_SnapshotParts = 0;
+					m_SnapshotParts[!g_Config.m_ClDummy] = 0;
 
 					// find snapshot that we should use as delta
 					Emptysnap.Clear();
@@ -2712,7 +2721,6 @@ void CClient::InitInterfaces()
 void CClient::Run()
 {
 	m_LocalStartTime = time_get();
-	m_SnapshotParts = 0;
 
 	if(m_GenerateTimeoutSeed)
 	{
@@ -2744,7 +2752,7 @@ void CClient::Run()
 		m_pGraphics = CreateEngineGraphicsThreaded();
 
 		bool RegisterFail = false;
-		RegisterFail = RegisterFail || !Kernel()->RegisterInterface(static_cast<IEngineGraphics*>(m_pGraphics)); // register graphics as both
+		RegisterFail = RegisterFail || !Kernel()->RegisterInterface(m_pGraphics); // IEngineGraphics
 		RegisterFail = RegisterFail || !Kernel()->RegisterInterface(static_cast<IGraphics*>(m_pGraphics), false);
 
 		if(RegisterFail || m_pGraphics->Init() != 0)
@@ -2855,6 +2863,15 @@ void CClient::Run()
 			m_aCmdConnect[0] = 0;
 		}
 
+		// handle pending demo play
+		if(m_aCmdPlayDemo[0])
+		{
+			const char *pError = DemoPlayer_Play(m_aCmdPlayDemo, IStorage::TYPE_ABSOLUTE);
+			if(pError)
+				dbg_msg("demo_player", "playing passed demo file '%s' failed: %s", m_aCmdPlayDemo, pError);
+			m_aCmdPlayDemo[0] = 0;
+		}
+
 		// progress on dummy connect if security token handshake skipped/passed
 		if(m_DummySendConnInfo && !m_NetClient[1].SecurityTokenUnknown())
 		{
@@ -2919,6 +2936,7 @@ void CClient::Run()
 				{
 					Input()->MouseModeRelative();
 					GameClient()->OnActivateEditor();
+					m_pEditor->ResetMentions();
 					m_EditorActive = true;
 				}
 			}
@@ -3501,6 +3519,28 @@ void CClient::ToggleWindowVSync()
 		g_Config.m_GfxVsync ^= 1;
 }
 
+void CClient::LoadFont()
+{
+	static CFont *pDefaultFont = 0;
+	char aFilename[512];
+	const char *pFontFile = "fonts/DejaVuSansCJKName.ttf";
+	if(str_find(g_Config.m_ClLanguagefile, "chinese") != NULL || str_find(g_Config.m_ClLanguagefile, "japanese") != NULL ||
+		str_find(g_Config.m_ClLanguagefile, "korean") != NULL)
+		pFontFile = "fonts/DejavuWenQuanYiMicroHei.ttf";
+	IOHANDLE File = Storage()->OpenFile(pFontFile, IOFLAG_READ, IStorage::TYPE_ALL, aFilename, sizeof(aFilename));
+	if(File)
+	{
+		io_close(File);
+		IEngineTextRender *pTextRender = Kernel()->RequestInterface<IEngineTextRender>();
+		pDefaultFont = pTextRender->GetFont(aFilename);
+		if(pDefaultFont == NULL)
+			pDefaultFont = pTextRender->LoadFont(aFilename);
+		Kernel()->RequestInterface<IEngineTextRender>()->SetDefaultFont(pDefaultFont);
+	}
+	if(!pDefaultFont)
+		m_pConsole->Print(IConsole::OUTPUT_LEVEL_STANDARD, "gameclient", "failed to load font. filename='%s'", pFontFile);
+}
+
 void CClient::ConchainWindowVSync(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData)
 {
 	CClient *pSelf = (CClient *)pUserData;
@@ -3595,9 +3635,14 @@ static CClient *CreateClient()
 	return new(pClient) CClient;
 }
 
-void CClient::HandleConnectLink(const char *pArg)
+void CClient::HandleConnectLink(const char *pLink)
 {
-	str_copy(m_aCmdConnect, pArg + sizeof(CONNECTLINK) - 1, sizeof(m_aCmdConnect));
+	str_copy(m_aCmdConnect, pLink + sizeof(CONNECTLINK) - 1, sizeof(m_aCmdConnect));
+}
+
+void CClient::HandleDemoPath(const char *pPath)
+{
+	str_copy(m_aCmdPlayDemo, pPath, sizeof(m_aCmdPlayDemo));
 }
 
 /*
@@ -3612,7 +3657,7 @@ void CClient::HandleConnectLink(const char *pArg)
 		Upstream latency
 */
 
-#if defined(CONF_PLATFORM_MACOSX) || defined(__ANDROID__)
+#if defined(CONF_PLATFORM_MACOSX)
 extern "C" int SDL_main(int argc, char **argv_) // ignore_convention
 {
 	const char **argv = const_cast<const char **>(argv_);
@@ -3669,19 +3714,19 @@ int main(int argc, const char **argv) // ignore_convention
 		RegisterFail = RegisterFail || !pKernel->RegisterInterface(pConsole);
 		RegisterFail = RegisterFail || !pKernel->RegisterInterface(pConfig);
 
-		RegisterFail = RegisterFail || !pKernel->RegisterInterface(static_cast<IEngineSound*>(pEngineSound)); // register as both
+		RegisterFail = RegisterFail || !pKernel->RegisterInterface(pEngineSound); // IEngineSound
 		RegisterFail = RegisterFail || !pKernel->RegisterInterface(static_cast<ISound*>(pEngineSound), false);
 
-		RegisterFail = RegisterFail || !pKernel->RegisterInterface(static_cast<IEngineInput*>(pEngineInput)); // register as both
+		RegisterFail = RegisterFail || !pKernel->RegisterInterface(pEngineInput); // IEngineInput
 		RegisterFail = RegisterFail || !pKernel->RegisterInterface(static_cast<IInput*>(pEngineInput), false);
 
-		RegisterFail = RegisterFail || !pKernel->RegisterInterface(static_cast<IEngineTextRender*>(pEngineTextRender)); // register as both
+		RegisterFail = RegisterFail || !pKernel->RegisterInterface(pEngineTextRender); // IEngineTextRender
 		RegisterFail = RegisterFail || !pKernel->RegisterInterface(static_cast<ITextRender*>(pEngineTextRender), false);
 
-		RegisterFail = RegisterFail || !pKernel->RegisterInterface(static_cast<IEngineMap*>(pEngineMap)); // register as both
+		RegisterFail = RegisterFail || !pKernel->RegisterInterface(pEngineMap); // IEngineMap
 		RegisterFail = RegisterFail || !pKernel->RegisterInterface(static_cast<IMap*>(pEngineMap), false);
 
-		RegisterFail = RegisterFail || !pKernel->RegisterInterface(static_cast<IEngineMasterServer*>(pEngineMasterServer)); // register as both
+		RegisterFail = RegisterFail || !pKernel->RegisterInterface(pEngineMasterServer); // IEngineMasterServer
 		RegisterFail = RegisterFail || !pKernel->RegisterInterface(static_cast<IMasterServer*>(pEngineMasterServer), false);
 
 		RegisterFail = RegisterFail || !pKernel->RegisterInterface(CreateEditor(), false);
@@ -3748,6 +3793,8 @@ int main(int argc, const char **argv) // ignore_convention
 	// parse the command line arguments
 	if(argc == 2 && str_startswith(argv[1], CONNECTLINK))
 		pClient->HandleConnectLink(argv[1]);
+	else if(argc == 2 && str_endswith(argv[1], ".demo"))
+		pClient->HandleDemoPath(argv[1]);
 	else if(argc > 1) // ignore_convention
 		pConsole->ParseArguments(argc-1, &argv[1]); // ignore_convention
 

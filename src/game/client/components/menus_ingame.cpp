@@ -27,37 +27,32 @@
 
 #include <base/tl/string.h>
 #include <engine/keys.h>
-#include <engine/graphics.h>
 #include <engine/storage.h>
 #include "ghost.h"
 
 void CMenus::RenderGame(CUIRect MainView)
 {
 	CUIRect Button, ButtonBar;
-#if defined(__ANDROID__)
-	MainView.HSplitTop(100.0f, &ButtonBar, &MainView);
-#else
 	MainView.HSplitTop(45.0f, &ButtonBar, &MainView);
-#endif
-	RenderTools()->DrawUIRect(&ButtonBar, ms_ColorTabbarActive, CUI::CORNER_ALL, 10.0f);
+	RenderTools()->DrawUIRect(&ButtonBar, ms_ColorTabbarActive, CUI::CORNER_B, 10.0f);
 
 	// button bar
 	ButtonBar.HSplitTop(10.0f, 0, &ButtonBar);
-#if defined(__ANDROID__)
-	ButtonBar.HSplitTop(80.0f, &ButtonBar, 0);
-#else
 	ButtonBar.HSplitTop(25.0f, &ButtonBar, 0);
-#endif
 	ButtonBar.VMargin(10.0f, &ButtonBar);
 
 	ButtonBar.VSplitRight(120.0f, &ButtonBar, &Button);
 	static int s_DisconnectButton = 0;
 	if(DoButton_Menu(&s_DisconnectButton, Localize("Disconnect"), 0, &Button))
 	{
-		if(g_Config.m_ClConfirmDisconnect)
+		if(Client()->GetCurrentRaceTime() / 60 >= g_Config.m_ClConfirmDisconnectTime && g_Config.m_ClConfirmDisconnectTime >= 0)
+		{
 			m_Popup = POPUP_DISCONNECT;
+		}
 		else
+		{
 			Client()->Disconnect();
+		}
 	}
 
 	static int s_SpectateButton = 0;
@@ -149,7 +144,14 @@ void CMenus::RenderGame(CUIRect MainView)
 		}
 		else
 		{
-			Client()->DummyDisconnect(0);
+			if(Client()->GetCurrentRaceTime() / 60 >= g_Config.m_ClConfirmDisconnectTime && g_Config.m_ClConfirmDisconnectTime >= 0)
+			{
+				m_Popup = POPUP_DISCONNECT_DUMMY;
+			}
+			else
+			{
+				Client()->DummyDisconnect(0);
+			}
 		}
 	}
 }
@@ -157,7 +159,7 @@ void CMenus::RenderGame(CUIRect MainView)
 void CMenus::RenderPlayers(CUIRect MainView)
 {
 	CUIRect Button, Button2, ButtonBar, Options, Player;
-	RenderTools()->DrawUIRect(&MainView, ms_ColorTabbarActive, CUI::CORNER_ALL, 10.0f);
+	RenderTools()->DrawUIRect(&MainView, ms_ColorTabbarActive, CUI::CORNER_B, 10.0f);
 
 	// player options
 	MainView.Margin(10.0f, &Options);
@@ -209,11 +211,7 @@ void CMenus::RenderPlayers(CUIRect MainView)
 	static float s_ScrollValue = 0;
 	CUIRect List = Options;
 	//List.HSplitTop(28.0f, 0, &List);
-#if defined(__ANDROID__)
-	UiDoListboxStart(&s_VoteList, &List, 50.0f, "", "", TotalPlayers, 1, -1, s_ScrollValue);
-#else
 	UiDoListboxStart(&s_VoteList, &List, 24.0f, "", "", TotalPlayers, 1, -1, s_ScrollValue);
-#endif
 
 	// options
 	static int s_aPlayerIDs[MAX_CLIENTS][2] = {{0}};
@@ -351,7 +349,7 @@ void CMenus::RenderServerInfo(CUIRect MainView)
 	Client()->GetServerInfo(&CurrentServerInfo);
 
 	// render background
-	RenderTools()->DrawUIRect(&MainView, ms_ColorTabbarActive, CUI::CORNER_ALL, 10.0f);
+	RenderTools()->DrawUIRect(&MainView, ms_ColorTabbarActive, CUI::CORNER_B, 10.0f);
 
 	CUIRect View, ServerInfo, GameInfo, Motd;
 
@@ -471,11 +469,7 @@ bool CMenus::RenderServerControlServer(CUIRect MainView)
 		TotalShown++;
 	}
 
-#if defined(__ANDROID__)
-	UiDoListboxStart(&s_VoteList, &List, 50.0f, "", "", TotalShown, 1, s_CurVoteOption, s_ScrollValue);
-#else
 	UiDoListboxStart(&s_VoteList, &List, 24.0f, "", "", TotalShown, 1, s_CurVoteOption, s_ScrollValue);
-#endif
 
 	int i = -1;
 	for(CVoteOptionClient *pOption = m_pClient->m_pVoting->m_pFirst; pOption; pOption = pOption->m_pNext)
@@ -526,11 +520,7 @@ bool CMenus::RenderServerControlKick(CUIRect MainView, bool FilterSpectators)
 	static int s_VoteList = 0;
 	static float s_ScrollValue = 0;
 	CUIRect List = MainView;
-#if defined(__ANDROID__)
-	UiDoListboxStart(&s_VoteList, &List, 50.0f, "", "", NumOptions, 1, Selected, s_ScrollValue);
-#else
 	UiDoListboxStart(&s_VoteList, &List, 24.0f, "", "", NumOptions, 1, Selected, s_ScrollValue);
-#endif
 
 	for(int i = 0; i < NumOptions; i++)
 	{
@@ -559,24 +549,12 @@ void CMenus::RenderServerControl(CUIRect MainView)
 
 	// render background
 	CUIRect Bottom, Extended, TabBar, Button;
-#if defined(__ANDROID__)
-	MainView.HSplitTop(50.0f, &Bottom, &MainView);
-#else
 	MainView.HSplitTop(20.0f, &Bottom, &MainView);
-#endif
-	RenderTools()->DrawUIRect(&Bottom, ms_ColorTabbarActive, CUI::CORNER_T, 10.0f);
-#if defined(__ANDROID__)
-	MainView.HSplitTop(50.0f, &TabBar, &MainView);
-#else
+	RenderTools()->DrawUIRect(&Bottom, ms_ColorTabbarActive, 0, 10.0f);
 	MainView.HSplitTop(20.0f, &TabBar, &MainView);
-#endif
 	RenderTools()->DrawUIRect(&MainView, ms_ColorTabbarActive, CUI::CORNER_B, 10.0f);
 	MainView.Margin(10.0f, &MainView);
-#if defined(__ANDROID__)
-	MainView.HSplitBottom(10.0f, &MainView, &Extended);
-#else
 	MainView.HSplitBottom(90.0f, &MainView, &Extended);
-#endif
 
 	// tab bar
 	{
@@ -768,15 +746,14 @@ void CMenus::RenderInGameNetwork(CUIRect MainView)
 	int Page = g_Config.m_UiPage;
 	int NewPage = -1;
 
-	RenderTools()->DrawUIRect(&MainView, ms_ColorTabbarActive, CUI::CORNER_ALL, 10.0f);
+	RenderTools()->DrawUIRect(&MainView, ms_ColorTabbarActive, CUI::CORNER_B, 10.0f);
 
 	Box.HSplitTop(5.0f, &MainView, &MainView);
 	Box.HSplitTop(24.0f, &Box, &MainView);
-	Box.VMargin(20.0f, &Box);
 
 	Box.VSplitLeft(100.0f, &Button, &Box);
 	static int s_InternetButton=0;
-	if(DoButton_MenuTab(&s_InternetButton, Localize("Internet"), Page==PAGE_INTERNET, &Button, CUI::CORNER_BL))
+	if(DoButton_MenuTab(&s_InternetButton, Localize("Internet"), Page==PAGE_INTERNET, &Button, 0))
 	{
 		if(Page != PAGE_INTERNET)
 			ServerBrowser()->Refresh(IServerBrowser::TYPE_INTERNET);
@@ -798,19 +775,31 @@ void CMenus::RenderInGameNetwork(CUIRect MainView)
 	{
 		if(Page != PAGE_FAVORITES)
 			ServerBrowser()->Refresh(IServerBrowser::TYPE_FAVORITES);
-		NewPage  = PAGE_FAVORITES;
+		NewPage = PAGE_FAVORITES;
 	}
 
 	Box.VSplitLeft(110.0f, &Button, &Box);
 	static int s_DDNetButton=0;
-	if(DoButton_MenuTab(&s_DDNetButton, Localize("DDNet"), Page==PAGE_DDNET, &Button, CUI::CORNER_BR) || Page < PAGE_INTERNET || Page > PAGE_DDNET)
+	if(DoButton_MenuTab(&s_DDNetButton, "DDNet", Page==PAGE_DDNET, &Button, 0) || Page < PAGE_INTERNET || Page > PAGE_KOG)
 	{
 		if(Page != PAGE_DDNET)
 		{
 			Client()->RequestDDNetInfo();
 			ServerBrowser()->Refresh(IServerBrowser::TYPE_DDNET);
 		}
-		NewPage  = PAGE_DDNET;
+		NewPage = PAGE_DDNET;
+	}
+
+	Box.VSplitLeft(110.0f, &Button, &Box);
+	static int s_KoGButton=0;
+	if(DoButton_MenuTab(&s_KoGButton, "KoG", Page==PAGE_KOG, &Button, CUI::CORNER_BR))
+	{
+		if(Page != PAGE_KOG)
+		{
+			Client()->RequestDDNetInfo();
+			ServerBrowser()->Refresh(IServerBrowser::TYPE_KOG);
+		}
+		NewPage = PAGE_KOG;
 	}
 
 	if(NewPage != -1)
@@ -903,7 +892,7 @@ void CMenus::DeleteGhostItem(int Index)
 void CMenus::RenderGhost(CUIRect MainView)
 {
 	// render background
-	RenderTools()->DrawUIRect(&MainView, ms_ColorTabbarActive, CUI::CORNER_B|CUI::CORNER_TL, 10.0f);
+	RenderTools()->DrawUIRect(&MainView, ms_ColorTabbarActive, CUI::CORNER_B, 10.0f);
 
 	MainView.HSplitTop(10.0f, 0, &MainView);
 	MainView.HSplitBottom(5.0f, &MainView, 0);

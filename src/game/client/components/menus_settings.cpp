@@ -1317,11 +1317,7 @@ void CMenus::RenderLanguageSelection(CUIRect MainView)
 
 	int OldSelected = s_SelectedLanguage;
 
-#if defined(__ANDROID__)
-	UiDoListboxStart(&s_LanguageList , &MainView, 50.0f, Localize("Language"), "", s_Languages.size(), 1, s_SelectedLanguage, s_ScrollValue);
-#else
 	UiDoListboxStart(&s_LanguageList , &MainView, 24.0f, Localize("Language"), "", s_Languages.size(), 1, s_SelectedLanguage, s_ScrollValue);
-#endif
 
 	for(sorted_array<CLanguage>::range r = s_Languages.all(); !r.empty(); r.pop_front())
 	{
@@ -1346,24 +1342,7 @@ void CMenus::RenderLanguageSelection(CUIRect MainView)
 	{
 		str_copy(g_Config.m_ClLanguagefile, s_Languages[s_SelectedLanguage].m_FileName, sizeof(g_Config.m_ClLanguagefile));
 		g_Localization.Load(s_Languages[s_SelectedLanguage].m_FileName, Storage(), Console());
-
-		// Load Font
-		static CFont *pDefaultFont = 0;
-		char aFilename[512];
-		const char *pFontFile = "fonts/DejaVuSansCJKName.ttf";
-		if(str_find(g_Config.m_ClLanguagefile, "chinese") != NULL || str_find(g_Config.m_ClLanguagefile, "japanese") != NULL ||
-			str_find(g_Config.m_ClLanguagefile, "korean") != NULL)
-			pFontFile = "fonts/DejavuWenQuanYiMicroHei.ttf";
-		IOHANDLE File = Storage()->OpenFile(pFontFile, IOFLAG_READ, IStorage::TYPE_ALL, aFilename, sizeof(aFilename));
-		if(File)
-		{
-			io_close(File);
-			if((pDefaultFont = TextRender()->GetFont(aFilename)) == NULL)
-				pDefaultFont = TextRender()->LoadFont(aFilename);
-			TextRender()->SetDefaultFont(pDefaultFont);
-		}
-		if(!pDefaultFont)
-			Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "gameclient", "failed to load font. filename='%s'", pFontFile);
+		Client()->LoadFont();
 	}
 }
 
@@ -1374,11 +1353,11 @@ void CMenus::RenderSettings(CUIRect MainView)
 	// render background
 	CUIRect Temp, TabBar, RestartWarning;
 	MainView.VSplitRight(120.0f, &MainView, &TabBar);
-	RenderTools()->DrawUIRect(&MainView, ms_ColorTabbarActive, CUI::CORNER_B|CUI::CORNER_TL, 10.0f);
+	RenderTools()->DrawUIRect(&MainView, ms_ColorTabbarActive, CUI::CORNER_B, 10.0f);
 	MainView.Margin(10.0f, &MainView);
 	MainView.HSplitBottom(15.0f, &MainView, &RestartWarning);
 	TabBar.HSplitTop(50.0f, &Temp, &TabBar);
-	RenderTools()->DrawUIRect(&Temp, ms_ColorTabbarActive, CUI::CORNER_R, 10.0f);
+	RenderTools()->DrawUIRect(&Temp, ms_ColorTabbarActive, CUI::CORNER_BR, 10.0f);
 
 	MainView.HSplitTop(10.0f, 0, &MainView);
 

@@ -871,6 +871,14 @@ void CGameContext::OnTick()
 			m_aMutes[i] = m_aMutes[m_NumMutes];
 		}
 	}
+	for(int i = 0; i < m_NumVoteMutes; i++)
+	{
+		if(m_aVoteMutes[i].m_Expire <= Server()->Tick())
+		{
+			m_NumVoteMutes--;
+			m_aVoteMutes[i] = m_aVoteMutes[m_NumVoteMutes];
+		}
+	}
 
 	if(Server()->Tick() % (g_Config.m_SvAnnouncementInterval * Server()->TickSpeed() * 60) == 0)
 	{
@@ -1044,7 +1052,7 @@ void CGameContext::OnClientEnter(int ClientID)
 	m_apPlayers[ClientID]->Respawn();
 	// init the player
 	Score()->PlayerData(ClientID)->Reset();
-	m_apPlayers[ClientID]->m_Score = -9999;
+	m_apPlayers[ClientID]->m_Score = Score()->PlayerData(ClientID)->m_BestTime ? Score()->PlayerData(ClientID)->m_BestTime : -9999;
 
 	// Can't set score here as LoadScore() is threaded, run it in
 	// LoadScoreThreaded() instead

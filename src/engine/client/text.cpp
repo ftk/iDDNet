@@ -447,7 +447,19 @@ class CTextRender : public IEngineTextRender
 		if(pFont->m_FtFace->charmap)
 			GlyphIndex = FT_Get_Char_Index(pFont->m_FtFace, (FT_ULong)Chr);
 
-		if(GlyphIndex != 0 && FT_Load_Glyph(pFont->m_FtFace, GlyphIndex, FT_LOAD_RENDER|FT_LOAD_NO_BITMAP))
+		if(GlyphIndex == 0)
+		{
+			const int ReplacementChr = 0x25a1; // White square to indicate missing glyph
+			GlyphIndex = FT_Get_Char_Index(pFont->m_FtFace, (FT_ULong)ReplacementChr);
+
+			if(GlyphIndex == 0)
+			{
+				dbg_msg("pFont", "font has no glyph for either %d or replacement char %d", Chr, ReplacementChr);
+				return;
+			}
+		}
+
+		if(FT_Load_Glyph(pFont->m_FtFace, GlyphIndex, FT_LOAD_RENDER|FT_LOAD_NO_BITMAP))
 		{
 			dbg_msg("pFont", "error loading glyph %d", Chr);
 			return;
@@ -887,7 +899,7 @@ public:
 					Cutter.m_Flags &= ~TEXTFLAG_RENDER;
 					Cutter.m_Flags |= TEXTFLAG_STOP_AT_END;
 
-					TextEx(&Cutter, (const char *)pCurrent, Wlen);
+					TextEx(&Cutter, pCurrent, Wlen);
 					Wlen = Cutter.m_CharCount;
 					NewLine = 1;
 
@@ -1192,7 +1204,7 @@ public:
 					Cutter.m_Flags &= ~TEXTFLAG_RENDER;
 					Cutter.m_Flags |= TEXTFLAG_STOP_AT_END;
 
-					TextEx(&Cutter, (const char *)pCurrent, Wlen);
+					TextEx(&Cutter, pCurrent, Wlen);
 					Wlen = Cutter.m_CharCount;
 					NewLine = 1;
 
@@ -1473,7 +1485,7 @@ public:
 					Cutter.m_Flags &= ~TEXTFLAG_RENDER;
 					Cutter.m_Flags |= TEXTFLAG_STOP_AT_END;
 
-					TextEx(&Cutter, (const char *)pCurrent, Wlen);
+					TextEx(&Cutter, pCurrent, Wlen);
 					Wlen = Cutter.m_CharCount;
 					NewLine = 1;
 
@@ -1779,7 +1791,7 @@ public:
 				int MaxSizeWidth = (MaxWidth - WidthLastChars);
 				if(MaxSizeWidth > 0)
 				{
-					int SlotW = ((((unsigned int)MaxSizeWidth) < (unsigned int)pBitmap->width) ? MaxSizeWidth : pBitmap->width);
+					int SlotW = ((((unsigned int)MaxSizeWidth) < pBitmap->width) ? MaxSizeWidth : pBitmap->width);
 					int SlotH = pBitmap->rows;
 					int SlotSize = SlotW*SlotH;
 					
