@@ -54,7 +54,6 @@ public:
 
 	void SetWeapon(int W);
 	void SetSolo(bool Solo);
-	bool m_Solo;
 	void HandleWeaponSwitch();
 	void DoWeaponSwitch();
 
@@ -150,6 +149,7 @@ public:
 
 	bool m_SetSavePos;
 	vec2 m_PrevSavePos;
+	bool m_Solo;
 
 	// these are non-heldback inputs
 	CNetObj_PlayerInput m_LatestPrevInput;

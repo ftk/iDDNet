@@ -28,7 +28,7 @@ static void ConAutoHook(IConsole::IResult *pResult, void *pUserData);
 
 CControls::CControls()
 {
-	mem_zero(&m_LastData, sizeof(m_LastData));
+  mem_zero(&m_LastData, sizeof(m_LastData));
 	m_LastDummy = 0;
 	m_OtherFire = 0;
 
@@ -611,12 +611,13 @@ void CControls::AutoHook()
 			int TeleNr = 0;
 			Hit = Collision()->IntersectLineTeleHook(OldPos, NewPos, &FinishPos, 0x0, &TeleNr);
 
-			if(!DoBreak && Hit) {
+			if(!DoBreak && Hit)
+                        {
 				if(Hit != TILE_NOHOOK)
 					Result = 1;
 			}
 
-			if(m_pClient->m_Tuning[g_Config.m_ClDummy].m_PlayerHooking && m_pClient->IntersectCharacter(OldPos, FinishPos, FinishPos, ClientID, i * g_Config.m_ClAutoHookPredict / 1000.f) != -1)
+			if(m_pClient->IntersectCharacter(OldPos, FinishPos, FinishPos, ClientID, i * g_Config.m_ClAutoHookPredict / 1000.f) != -1)
 			{
 				Result = 2;
 				break;
