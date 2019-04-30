@@ -1878,7 +1878,7 @@ int CGameClient::IntersectCharacter(vec2 HookPos, vec2 NewPos, vec2& NewPos2, in
 		CNetObj_Character Prev = m_Snap.m_aCharacters[i].m_Prev;
 		CNetObj_Character Player = m_Snap.m_aCharacters[i].m_Cur;
 
-		vec2 Position = mix(vec2(Prev.m_X, Prev.m_Y), vec2(Player.m_X, Player.m_Y), Client()->IntraGameTick() + Extrapolation);
+		vec2 Position = GetSmoothPos(i, Extrapolation);
 
 		bool IsOneSuper = cData.m_Super || OwncData.m_Super;
 		bool IsOneSolo = cData.m_Solo || OwncData.m_Solo;
@@ -2151,10 +2151,10 @@ void CGameClient::DetectStrongHook()
 	}
 }
 
-vec2 CGameClient::GetSmoothPos(int ClientID)
+vec2 CGameClient::GetSmoothPos(int ClientID, float Extrapolation)
 {
-	vec2 Pos = mix(m_aClients[ClientID].m_PrevPredicted.m_Pos, m_aClients[ClientID].m_Predicted.m_Pos, Client()->PredIntraGameTick());
-	int64 Now = time_get();
+	vec2 Pos = mix(m_aClients[ClientID].m_PrevPredicted.m_Pos, m_aClients[ClientID].m_Predicted.m_Pos, Client()->PredIntraGameTick() + Extrapolation);
+	int64 Now = time_get() + Extrapolation * time_freq() / Client()->GameTickSpeed();
 	for(int i = 0; i < 2; i++)
 	{
 		int64 Len = clamp(m_aClients[ClientID].m_SmoothLen[i], (int64) 1, time_freq());

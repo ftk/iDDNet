@@ -395,7 +395,7 @@ private:
 	void UpdatePrediction();
 	void UpdateRenderedCharacters();
 	void DetectStrongHook();
-	vec2 GetSmoothPos(int ClientID);
+	vec2 GetSmoothPos(int ClientID, float Extrapolation = 0.f);
 
 	CCharOrder m_CharOrder;
 	class CCharacter m_aLastWorldCharacters[MAX_CLIENTS];
