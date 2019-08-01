@@ -74,6 +74,7 @@ public:
 	bool m_Super;
 	bool m_SuperJump;
 	bool m_Jetpack;
+	bool m_NinjaJetpack;
 	int m_FreezeTime;
 	int m_FreezeTick;
 	bool m_DeepFreeze;
@@ -88,6 +89,8 @@ public:
 	};
 	int m_Hit;
 	vec2 m_PrevPos;
+	vec2 m_PrevPrevPos;
+	int m_TeleCheckpoint;
 
 	int m_TileIndex;
 	int m_TileFlags;
@@ -139,6 +142,8 @@ public:
 	int GetCID() { return m_ID; }
 	void SetInput(CNetObj_PlayerInput *pNewInput) { m_LatestInput = m_Input = *pNewInput; };
 	int GetJumped() { return m_Core.m_Jumped; }
+	int GetAttackTick() { return m_AttackTick; }
+	int GetStrongWeakID() { return m_StrongWeakID; }
 
 	CCharacter(CGameWorld *pGameWorld, int ID, CNetObj_Character *pChar, CNetObj_DDNetCharacter *pExtended = 0);
 	void Read(CNetObj_Character *pChar, CNetObj_DDNetCharacter *pExtended, bool IsLocal);
@@ -148,8 +153,10 @@ public:
 	int m_LastJetpackStrength;
 	bool m_KeepHooked;
 	int m_GameTeam;
+	bool m_CanMoveInFreeze;
 
 	bool Match(CCharacter *pChar);
+	void ResetPrediction();
 	CCharacter() { m_Alive = false; }
 
 private:
@@ -169,6 +176,7 @@ private:
 	int m_QueuedWeapon;
 
 	int m_ReloadTimer;
+	int m_AttackTick;
 
 	// these are non-heldback inputs
 	CNetObj_PlayerInput m_LatestPrevInput;
@@ -199,6 +207,8 @@ private:
 	void HandleSkippableTiles(int Index);
 	void DDRaceTick();
 	void DDRacePostCoreTick();
+
+	int m_StrongWeakID;
 };
 
 enum

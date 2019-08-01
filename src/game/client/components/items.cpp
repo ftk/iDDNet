@@ -53,7 +53,7 @@ void CItems::RenderProjectile(const CNetObj_Projectile *pCurrent, int ItemID)
 		s_LastGameTickTime = Client()->GameTickTime();
 
 	float Ct;
-	if(m_pClient->AntiPingGrenade() && LocalPlayerInGame && !(Client()->State() == IClient::STATE_DEMOPLAYBACK))
+	if(m_pClient->Predict() && m_pClient->AntiPingGrenade() && LocalPlayerInGame && !(Client()->State() == IClient::STATE_DEMOPLAYBACK))
 		Ct = ((float)(Client()->PredGameTick() - 1 - pCurrent->m_StartTick) + Client()->PredIntraGameTick())/(float)SERVER_TICK_SPEED;
 	else
 		Ct = (Client()->PrevGameTick() - pCurrent->m_StartTick)/(float)SERVER_TICK_SPEED + s_LastGameTickTime;
@@ -68,8 +68,17 @@ void CItems::RenderProjectile(const CNetObj_Projectile *pCurrent, int ItemID)
 	vec2 Pos = CalcPos(StartPos, StartVel, Curvature, Speed, Ct);
 	vec2 PrevPos = CalcPos(StartPos, StartVel, Curvature, Speed, Ct-0.001f);
 
+	float Alpha = 1.f;
+	if(UseExtraInfo(pCurrent))
+	{
+		int Owner;
+		ExtractExtraInfo(pCurrent, &Owner, 0, 0, 0);
+		if(Owner >= 0 && m_pClient->IsOtherTeam(Owner))
+			Alpha = g_Config.m_ClShowOthersAlpha / 100.0f;
+	}
+
 	Graphics()->TextureSet(g_pData->m_aImages[IMAGE_GAME].m_Id);
-	Graphics()->SetColor(1.f, 1.f, 1.f, 1.f);
+	Graphics()->SetColor(1.f, 1.f, 1.f, Alpha);
 
 	int QuadOffset = 2 + 4 + NUM_WEAPONS + clamp(pCurrent->m_Type, 0, NUM_WEAPONS - 1);
 
@@ -79,7 +88,7 @@ void CItems::RenderProjectile(const CNetObj_Projectile *pCurrent, int ItemID)
 	// add particle for this projectile
 	if(pCurrent->m_Type == WEAPON_GRENADE)
 	{
-		m_pClient->m_pEffects->SmokeTrail(Pos, Vel*-1);
+		m_pClient->m_pEffects->SmokeTrail(Pos, Vel*-1, Alpha);
 		static float s_Time = 0.0f;
 		static float s_LastLocalTime = Client()->LocalTime();
 
@@ -100,7 +109,7 @@ void CItems::RenderProjectile(const CNetObj_Projectile *pCurrent, int ItemID)
 	}
 	else
 	{
-		m_pClient->m_pEffects->BulletTrail(Pos);
+		m_pClient->m_pEffects->BulletTrail(Pos, Alpha);
 
 		if(length(Vel) > 0.00001f)
 			Graphics()->QuadsSetRotation(GetAngle(Vel));
@@ -112,7 +121,7 @@ void CItems::RenderProjectile(const CNetObj_Projectile *pCurrent, int ItemID)
 	Graphics()->RenderQuadContainerAsSprite(m_ItemsQuadContainerIndex, QuadOffset, Pos.x, Pos.y);
 }
 
-void CItems::RenderPickup(const CNetObj_Pickup *pPrev, const CNetObj_Pickup *pCurrent)
+void CItems::RenderPickup(const CNetObj_Pickup *pPrev, const CNetObj_Pickup *pCurrent, bool IsPredicted)
 {
 	Graphics()->TextureSet(g_pData->m_aImages[IMAGE_GAME].m_Id);
 	Graphics()->QuadsSetRotation(0);
@@ -120,7 +129,8 @@ void CItems::RenderPickup(const CNetObj_Pickup *pPrev, const CNetObj_Pickup *pCu
 
 	int QuadOffset = 2;
 
-	vec2 Pos = mix(vec2(pPrev->m_X, pPrev->m_Y), vec2(pCurrent->m_X, pCurrent->m_Y), Client()->IntraGameTick());
+	float IntraTick = IsPredicted ? Client()->PredIntraGameTick() : Client()->IntraGameTick();
+	vec2 Pos = mix(vec2(pPrev->m_X, pPrev->m_Y), vec2(pCurrent->m_X, pCurrent->m_Y), IntraTick);
 	float Angle = 0.0f;
 	if(pCurrent->m_Type == POWERUP_WEAPON)
 	{
@@ -225,7 +235,7 @@ void CItems::RenderLaser(const struct CNetObj_Laser *pCurrent, bool IsPredicted)
 	Graphics()->QuadsBegin();
 
 	// do outline
-	RGB = color_cast<ColorRGBA>(ColorHSLA(g_Config.m_ClLaserOutlineCol));
+	RGB = color_cast<ColorRGBA>(ColorHSLA(g_Config.m_ClLaserOutlineColor));
 	ColorRGBA OuterColor(RGB.r, RGB.g, RGB.b, 1.0f);
 	Graphics()->SetColor(OuterColor.r, OuterColor.g, OuterColor.b, 1.0f);
 	Out = vec2(Dir.y, -Dir.x) * (7.0f*Ia);
@@ -238,7 +248,7 @@ void CItems::RenderLaser(const struct CNetObj_Laser *pCurrent, bool IsPredicted)
 	Graphics()->QuadsDrawFreeform(&Freeform, 1);
 
 	// do inner
-	RGB = color_cast<ColorRGBA>(ColorHSLA(g_Config.m_ClLaserInnerCol));
+	RGB = color_cast<ColorRGBA>(ColorHSLA(g_Config.m_ClLaserInnerColor));
 	ColorRGBA InnerColor(RGB.r, RGB.g, RGB.b, 1.0f);
 	Out = vec2(Dir.y, -Dir.x) * (5.0f*Ia);
 	Graphics()->SetColor(InnerColor.r, InnerColor.g, InnerColor.b, 1.0f); // center
@@ -270,7 +280,7 @@ void CItems::OnRender()
 	if(Client()->State() < IClient::STATE_ONLINE)
 		return;
 
-	bool UsePredicted = (GameClient()->Predict() && GameClient()->AntiPingWeapons() && GameClient()->AntiPingGrenade());
+	bool UsePredicted = GameClient()->Predict() && GameClient()->AntiPingGunfire();
 	if(UsePredicted)
 	{
 		for(auto *pProj = (CProjectile*) GameClient()->m_PredictedWorld.FindFirst(CGameWorld::ENTTYPE_PROJECTILE); pProj; pProj = (CProjectile*) pProj->NextEntity())
@@ -297,7 +307,7 @@ void CItems::OnRender()
 				CNetObj_Pickup Data, Prev;
 				pPickup->FillInfo(&Data);
 				pPrev->FillInfo(&Prev);
-				RenderPickup(&Prev, &Data);
+				RenderPickup(&Prev, &Data, true);
 			}
 		}
 	}
@@ -439,7 +449,7 @@ void CItems::ReconstructSmokeTrail(const CNetObj_Projectile *pCurrent, int ItemI
 
 	if(m_pClient->m_Snap.m_pLocalInfo)
 		LocalPlayerInGame = m_pClient->m_aClients[m_pClient->m_Snap.m_pLocalInfo->m_ClientID].m_Team != -1;
-	if(!m_pClient->AntiPingGrenade() || !m_pClient->AntiPingWeapons() || !LocalPlayerInGame)
+	if(!m_pClient->AntiPingGunfire() || !LocalPlayerInGame)
 		return;
 	if(Client()->PredGameTick() == pCurrent->m_StartTick)
 		return;
@@ -474,6 +484,15 @@ void CItems::ReconstructSmokeTrail(const CNetObj_Projectile *pCurrent, int ItemI
 
 	ExtractInfo(pCurrent, &StartPos, &StartVel);
 
+	float Alpha = 1.f;
+	if(UseExtraInfo(pCurrent))
+	{
+		int Owner;
+		ExtractExtraInfo(pCurrent, &Owner, 0, 0, 0);
+		if(Owner >= 0 && m_pClient->IsOtherTeam(Owner))
+			Alpha = g_Config.m_ClShowOthersAlpha / 100.0f;
+	}
+
 	float T = Pt;
 	if(DestroyTick >= 0)
 		T = minimum(Pt, ((float)(DestroyTick - 1 - pCurrent->m_StartTick) + Client()->PredIntraGameTick())/(float)SERVER_TICK_SPEED);
@@ -492,8 +511,8 @@ void CItems::ReconstructSmokeTrail(const CNetObj_Projectile *pCurrent, int ItemI
 			TimePassed = minimum(TimePassed, (TimePassed-MinTrailSpan)/(Pt - MinTrailSpan)*(MinTrailSpan * 0.5f) + MinTrailSpan);
 		// add particle for this projectile
 		if(pCurrent->m_Type == WEAPON_GRENADE)
-			m_pClient->m_pEffects->SmokeTrail(Pos, Vel*-1, TimePassed);
+			m_pClient->m_pEffects->SmokeTrail(Pos, Vel*-1, Alpha, TimePassed);
 		else
-			m_pClient->m_pEffects->BulletTrail(Pos, TimePassed);
+			m_pClient->m_pEffects->BulletTrail(Pos, Alpha, TimePassed);
 	}
 }

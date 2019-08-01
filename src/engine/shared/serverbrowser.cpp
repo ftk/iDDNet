@@ -60,10 +60,9 @@ bool IsBlockWorlds(const CServerInfo *pInfo)
 
 bool IsDDNet(const CServerInfo *pInfo)
 {
-	return (str_find_nocase(pInfo->m_aGameType, "ddracenet")
+	return str_find_nocase(pInfo->m_aGameType, "ddracenet")
 	    || str_find_nocase(pInfo->m_aGameType, "ddnet")
-	    || IsBlockWorlds(pInfo))
-	    && !IsBlockInfectionZ(pInfo);
+	    || IsBlockInfectionZ(pInfo);
 }
 
 // other
@@ -73,7 +72,8 @@ bool Is64Player(const CServerInfo *pInfo)
 	return str_find(pInfo->m_aGameType, "64")
 	    || str_find(pInfo->m_aName, "64")
 	    || IsDDNet(pInfo)
-	    || IsBlockInfectionZ(pInfo);
+	    || IsBlockInfectionZ(pInfo)
+	    || IsBlockWorlds(pInfo);
 }
 
 bool IsPlus(const CServerInfo *pInfo)

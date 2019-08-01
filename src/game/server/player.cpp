@@ -12,7 +12,6 @@
 #include "gamemodes/DDRace.h"
 #include <time.h>
 
-
 MACRO_ALLOC_POOL_ID_IMPL(CPlayer, MAX_CLIENTS)
 
 IServer *CPlayer::Server() const { return m_pGameServer->Server(); }
@@ -37,6 +36,7 @@ CPlayer::~CPlayer()
 void CPlayer::Reset()
 {
 	m_DieTick = Server()->Tick();
+	m_PreviousDieTick = m_DieTick;
 	m_JoinTick = Server()->Tick();
 	delete m_pCharacter;
 	m_pCharacter = 0;
@@ -203,7 +203,9 @@ void CPlayer::Tick()
 
 	if(!GameServer()->m_World.m_Paused)
 	{
-		if(!m_pCharacter && m_DieTick+Server()->TickSpeed()*3 <= Server()->Tick())
+		int EarliestRespawnTick = m_PreviousDieTick+Server()->TickSpeed()*3;
+		int RespawnTick = maximum(m_DieTick, EarliestRespawnTick);
+		if(!m_pCharacter && RespawnTick <= Server()->Tick())
 			m_Spawning = true;
 
 		if(m_pCharacter)
@@ -226,6 +228,7 @@ void CPlayer::Tick()
 	else
 	{
 		++m_DieTick;
+		++m_PreviousDieTick;
 		++m_JoinTick;
 		++m_LastActionTick;
 		++m_TeamChangeTick;
@@ -289,42 +292,35 @@ void CPlayer::Snap(int SnappingClient)
 	StrToInts(&pClientInfo->m_Name0, 4, Server()->ClientName(m_ClientID));
 	StrToInts(&pClientInfo->m_Clan0, 3, Server()->ClientClan(m_ClientID));
 	pClientInfo->m_Country = Server()->ClientCountry(m_ClientID);
-	if (m_StolenSkin && SnappingClient != m_ClientID && g_Config.m_SvSkinStealAction == 1)
-	{
-		StrToInts(&pClientInfo->m_Skin0, 6, "pinky");
-		pClientInfo->m_UseCustomColor = 0;
-		pClientInfo->m_ColorBody = m_TeeInfos.m_ColorBody;
-		pClientInfo->m_ColorFeet = m_TeeInfos.m_ColorFeet;
-	} else
-	{
-		StrToInts(&pClientInfo->m_Skin0, 6, m_TeeInfos.m_SkinName);
-		pClientInfo->m_UseCustomColor = m_TeeInfos.m_UseCustomColor;
-		pClientInfo->m_ColorBody = m_TeeInfos.m_ColorBody;
-		pClientInfo->m_ColorFeet = m_TeeInfos.m_ColorFeet;
-	}
+	StrToInts(&pClientInfo->m_Skin0, 6, m_TeeInfos.m_SkinName);
+	pClientInfo->m_UseCustomColor = m_TeeInfos.m_UseCustomColor;
+	pClientInfo->m_ColorBody = m_TeeInfos.m_ColorBody;
+	pClientInfo->m_ColorFeet = m_TeeInfos.m_ColorFeet;
 
 	CNetObj_PlayerInfo *pPlayerInfo = static_cast<CNetObj_PlayerInfo *>(Server()->SnapNewItem(NETOBJTYPE_PLAYERINFO, id, sizeof(CNetObj_PlayerInfo)));
 	if(!pPlayerInfo)
 		return;
 
 	pPlayerInfo->m_Latency = SnappingClient == -1 ? m_Latency.m_Min : GameServer()->m_apPlayers[SnappingClient]->m_aActLatency[m_ClientID];
-	pPlayerInfo->m_Local = 0;
+	pPlayerInfo->m_Local = (int)(m_ClientID == SnappingClient && (m_Paused != PAUSE_PAUSED || m_ClientVersion >= VERSION_DDNET_OLD));
 	pPlayerInfo->m_ClientID = id;
-	pPlayerInfo->m_Score = abs(m_Score) * -1;
 	pPlayerInfo->m_Team = (m_ClientVersion < VERSION_DDNET_OLD || m_Paused != PAUSE_PAUSED || m_ClientID != SnappingClient) && m_Paused < PAUSE_SPEC ? m_Team : TEAM_SPECTATORS;
 
 	if(m_ClientID == SnappingClient && m_Paused == PAUSE_PAUSED && m_ClientVersion < VERSION_DDNET_OLD)
 		pPlayerInfo->m_Team = TEAM_SPECTATORS;
 
-	if(m_ClientID == SnappingClient && (m_Paused != PAUSE_PAUSED || m_ClientVersion >= VERSION_DDNET_OLD))
-		pPlayerInfo->m_Local = 1;
-		
+
 	// iDDNet : by Pikotee : show aim in /cd mode
 	if(GameServer()->m_apPlayers[SnappingClient]->m_DummyID == m_ClientID && m_DummyCopiesMove)
 	{
 		if(GameServer()->m_apPlayers[SnappingClient]->IsPaused())
 			pPlayerInfo->m_Local = 1;
 	}
+	// send 0 if times of others are not shown
+	if(SnappingClient != m_ClientID && g_Config.m_SvHideScore)
+		pPlayerInfo->m_Score = -9999;
+	else
+		pPlayerInfo->m_Score = abs(m_Score) * -1;
 
 	if(m_ClientID == SnappingClient && (m_Team == TEAM_SPECTATORS || m_Paused))
 	{
@@ -337,17 +333,12 @@ void CPlayer::Snap(int SnappingClient)
 		pSpectatorInfo->m_Y = m_ViewPos.y;
 	}
 
-	// send 0 if times of others are not shown
-	if(SnappingClient != m_ClientID && g_Config.m_SvHideScore)
-		pPlayerInfo->m_Score = -9999;
-	else
-		pPlayerInfo->m_Score = abs(m_Score) * -1;
-
-	CNetObj_AuthInfo *pAuthInfo = static_cast<CNetObj_AuthInfo *>(Server()->SnapNewItem(NETOBJTYPE_AUTHINFO, id, sizeof(CNetObj_AuthInfo)));
-	if(!pAuthInfo)
+	CNetObj_DDNetPlayer *pDDNetPlayer = static_cast<CNetObj_DDNetPlayer *>(Server()->SnapNewItem(NETOBJTYPE_DDNETPLAYER, id, sizeof(CNetObj_DDNetPlayer)));
+	if(!pDDNetPlayer)
 		return;
 
-	pAuthInfo->m_AuthLevel = Server()->GetAuthedState(id);
+	pDDNetPlayer->m_AuthLevel = Server()->GetAuthedState(id);
+	pDDNetPlayer->m_Flags = m_Afk ? EXPLAYERFLAG_AFK : 0;
 }
 
 void CPlayer::FakeSnap()
@@ -642,6 +633,7 @@ void CPlayer::TryRespawn()
 			NewTeam = 0;
 
 		Controller->m_Teams.SetForceCharacterTeam(GetCID(), NewTeam);
+		m_pCharacter->SetSolo(true);
 	}
 }
 
@@ -807,28 +799,6 @@ bool CPlayer::IsPlaying()
 	if(m_pCharacter && m_pCharacter->IsAlive())
 		return true;
 	return false;
-}
-
-void CPlayer::FindDuplicateSkins()
-{
-	if (m_TeeInfos.m_UseCustomColor == 0 && !m_StolenSkin) return;
-	m_StolenSkin = 0;
-	for(int i = 0; i < MAX_CLIENTS; ++i)
-	{
-		if(i == m_ClientID) continue;
-		if(GameServer()->m_apPlayers[i])
-		{
-			if(GameServer()->m_apPlayers[i]->m_StolenSkin) continue;
-			if((GameServer()->m_apPlayers[i]->m_TeeInfos.m_UseCustomColor == m_TeeInfos.m_UseCustomColor) &&
-			(GameServer()->m_apPlayers[i]->m_TeeInfos.m_ColorFeet == m_TeeInfos.m_ColorFeet) &&
-			(GameServer()->m_apPlayers[i]->m_TeeInfos.m_ColorBody == m_TeeInfos.m_ColorBody) &&
-			!str_comp(GameServer()->m_apPlayers[i]->m_TeeInfos.m_SkinName, m_TeeInfos.m_SkinName))
-			{
-				m_StolenSkin = 1;
-				return;
-			}
-		}
-	}
 }
 
 void CPlayer::SpectatePlayerName(const char *pName)

@@ -59,7 +59,7 @@ void CFileScore::MapInfo(int ClientID, const char* MapName)
 	// TODO: implement
 }
 
-void CFileScore::MapVote(int ClientID, const char* MapName)
+void CFileScore::MapVote(std::shared_ptr<CMapVoteResult> *ppResult, int ClientID, const char* MapName)
 {
 	// TODO: implement
 }
@@ -266,7 +266,7 @@ void CFileScore::ShowTop5(IConsole::IResult *pResult, int ClientID,
 void CFileScore::ShowRank(int ClientID, const char* pName, bool Search)
 {
 	CPlayerScore *pScore;
-	int Pos = -1;
+	int Pos = -2;
 	char aBuf[512];
 
 	if (!Search)
@@ -329,18 +329,20 @@ void CFileScore::ShowPoints(int ClientID, const char* pName, bool Search)
 	GameServer()->SendChatTarget(ClientID, aBuf);
 }
 
-void CFileScore::RandomMap(int ClientID, int stars)
+void CFileScore::RandomMap(std::shared_ptr<CRandomMapResult> *ppResult, int ClientID, int stars)
 {
 	char aBuf[512];
 	str_format(aBuf, sizeof(aBuf), "Random map not supported in file based servers");
 	GameServer()->SendChatTarget(ClientID, aBuf);
+	*ppResult = NULL;
 }
 
-void CFileScore::RandomUnfinishedMap(int ClientID, int stars)
+void CFileScore::RandomUnfinishedMap(std::shared_ptr<CRandomMapResult> *ppResult, int ClientID, int stars)
 {
 	char aBuf[512];
 	str_format(aBuf, sizeof(aBuf), "Random unfinished map not supported in file based servers");
 	GameServer()->SendChatTarget(ClientID, aBuf);
+	*ppResult = NULL;
 }
 
 void CFileScore::SaveTeam(int Team, const char* Code, int ClientID, const char* Server)

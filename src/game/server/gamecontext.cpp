@@ -61,6 +61,9 @@ void CGameContext::Construct(int Resetting)
 		m_aSwapRequest[i] = -1;
 	}
 	m_TeeHistorianActive = false;
+
+	m_pRandomMapResult = nullptr;
+	m_pMapVoteResult = nullptr;
 }
 
 CGameContext::CGameContext(int Resetting)
@@ -771,15 +774,15 @@ void CGameContext::OnTick()
 						(m_VoteKick || m_VoteSpec))
 					Total = g_Config.m_SvVoteMaxTotal;
 
-				if((Yes > Total / (100.0 / g_Config.m_SvVoteYesPercentage)) && !Veto)
+				if((Yes > Total / (100.0f / g_Config.m_SvVoteYesPercentage)) && !Veto)
 					m_VoteEnforce = VOTE_ENFORCE_YES;
-				else if(No >= Total - Total / (100.0 / g_Config.m_SvVoteYesPercentage))
+				else if(No >= Total - Total / (100.0f / g_Config.m_SvVoteYesPercentage))
 					m_VoteEnforce = VOTE_ENFORCE_NO;
 
 				if(VetoStop)
 					m_VoteEnforce = VOTE_ENFORCE_NO;
 
-				m_VoteWillPass = Yes > (Yes + No) / (100.0 / g_Config.m_SvVoteYesPercentage);
+				m_VoteWillPass = Yes > (Yes + No) / (100.0f / g_Config.m_SvVoteYesPercentage);
 			}
 
 			if(time_get() > m_VoteCloseTime && !g_Config.m_SvVoteMajority)
@@ -874,6 +877,29 @@ void CGameContext::OnTick()
 				}
 			}
 		}
+
+	if(m_pRandomMapResult && m_pRandomMapResult->m_Done)
+	{
+		str_copy(g_Config.m_SvMap, m_pRandomMapResult->m_aMap, sizeof(g_Config.m_SvMap));
+		m_pRandomMapResult = NULL;
+	}
+
+	if(m_pMapVoteResult && m_pMapVoteResult->m_Done)
+	{
+		m_VoteKick = false;
+		m_VoteSpec = false;
+		m_LastMapVote = time_get();
+
+		char aCmd[256];
+		str_format(aCmd, sizeof(aCmd), "sv_reset_file types/%s/flexreset.cfg; change_map \"%s\"", m_pMapVoteResult->m_aServer, m_pMapVoteResult->m_aMap);
+
+		char aChatmsg[512];
+		str_format(aChatmsg, sizeof(aChatmsg), "'%s' called vote to change server option '%s' (%s)", Server()->ClientName(m_pMapVoteResult->m_ClientID), m_pMapVoteResult->m_aMap, "/map");
+
+		CallVote(m_pMapVoteResult->m_ClientID, m_pMapVoteResult->m_aMap, aCmd, "/map", aChatmsg);
+
+		m_pMapVoteResult = NULL;
+	}
 
 #ifdef CONF_DEBUG
 	if(g_Config.m_DbgDummies)
@@ -1294,7 +1320,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 				}
 				else
 				{
-					if(g_Config.m_SvSpamprotection && str_comp_nocase_num(pMsg->m_pMessage+1, "timeout ", 8) != 0
+					if(g_Config.m_SvSpamprotection && !str_startswith(pMsg->m_pMessage+1, "timeout ")
 						&& pPlayer->m_LastCommands[0] && pPlayer->m_LastCommands[0]+Server()->TickSpeed() > Server()->Tick()
 						&& pPlayer->m_LastCommands[1] && pPlayer->m_LastCommands[1]+Server()->TickSpeed() > Server()->Tick()
 						&& pPlayer->m_LastCommands[2] && pPlayer->m_LastCommands[2]+Server()->TickSpeed() > Server()->Tick()
@@ -1868,7 +1894,6 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			pPlayer->m_TeeInfos.m_UseCustomColor = pMsg->m_UseCustomColor;
 			pPlayer->m_TeeInfos.m_ColorBody = pMsg->m_ColorBody;
 			pPlayer->m_TeeInfos.m_ColorFeet = pMsg->m_ColorFeet;
-			pPlayer->FindDuplicateSkins();
 		}
 		else if (MsgID == NETMSGTYPE_CL_EMOTICON && !m_World.m_Paused)
 		{
@@ -2019,7 +2044,7 @@ void CGameContext::ConToggleTuneParam(IConsole::IResult *pResult, void *pUserDat
 		return;
 	}
 
-	float NewValue = fabs(OldValue - pResult->GetFloat(1)) < 0.0001
+	float NewValue = fabs(OldValue - pResult->GetFloat(1)) < 0.0001f
 		? pResult->GetFloat(2)
 		: pResult->GetFloat(1);
 
@@ -2208,11 +2233,11 @@ void CGameContext::ConRandomMap(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 
-	int stars = 0;
-	if (pResult->NumArguments())
-		stars = pResult->GetInteger(0);
+	int Stars = 0;
+	if(pResult->NumArguments())
+		Stars = pResult->GetInteger(0);
 
-	pSelf->m_pScore->RandomMap(pSelf->m_VoteCreator, stars);
+	pSelf->m_pScore->RandomMap(&pSelf->m_pRandomMapResult, pSelf->m_VoteCreator, Stars);
 }
 
 void CGameContext::ConRandomUnfinishedMap(IConsole::IResult *pResult, void *pUserData)
@@ -2223,7 +2248,7 @@ void CGameContext::ConRandomUnfinishedMap(IConsole::IResult *pResult, void *pUse
 	if (pResult->NumArguments())
 		stars = pResult->GetInteger(0);
 
-	pSelf->m_pScore->RandomUnfinishedMap(pSelf->m_VoteCreator, stars);
+	pSelf->m_pScore->RandomUnfinishedMap(&pSelf->m_pRandomMapResult, pSelf->m_VoteCreator, stars);
 }
 
 void CGameContext::ConRestart(IConsole::IResult *pResult, void *pUserData)
@@ -2805,7 +2830,7 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 			else if(Index == TILE_EHOOK)
 			{
 				g_Config.m_SvEndlessDrag = 1;
-				dbg_msg("game layer", "found no unlimited hook time tile");
+				dbg_msg("game layer", "found unlimited hook time tile");
 			}
 			else if(Index == TILE_NOHIT)
 			{
@@ -2841,7 +2866,7 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 				else if(Index == TILE_EHOOK)
 				{
 					g_Config.m_SvEndlessDrag = 1;
-					dbg_msg("front layer", "found no unlimited hook time tile");
+					dbg_msg("front layer", "found unlimited hook time tile");
 				}
 				else if(Index == TILE_NOHIT)
 				{
@@ -3189,14 +3214,14 @@ bool CGameContext::PlayerCollision()
 {
 	float Temp;
 	m_Tuning.Get("player_collision", &Temp);
-	return Temp != 0.0;
+	return Temp != 0.0f;
 }
 
 bool CGameContext::PlayerHooking()
 {
 	float Temp;
 	m_Tuning.Get("player_hooking", &Temp);
-	return Temp != 0.0;
+	return Temp != 0.0f;
 }
 
 float CGameContext::PlayerJetpack()

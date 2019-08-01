@@ -272,11 +272,14 @@ bool CSqlScore::LoadScoreThread(CSqlServer* pSqlServer, const CSqlData *pGameDat
 	return false;
 }
 
-void CSqlScore::MapVote(int ClientID, const char* MapName)
+void CSqlScore::MapVote(std::shared_ptr<CMapVoteResult> *ppResult, int ClientID, const char* MapName)
 {
-	CSqlMapData *Tmp = new CSqlMapData();
+	*ppResult = std::make_shared<CMapVoteResult>();
+
+	CSqlMapVoteData *Tmp = new CSqlMapVoteData();
 	Tmp->m_ClientID = ClientID;
 	Tmp->m_RequestedMap = MapName;
+	Tmp->m_pResult = *ppResult;
 	str_copy(Tmp->m_aFuzzyMap, MapName, sizeof(Tmp->m_aFuzzyMap));
 	sqlstr::ClearString(Tmp->m_aFuzzyMap, sizeof(Tmp->m_aFuzzyMap));
 	sqlstr::FuzzyString(Tmp->m_aFuzzyMap, sizeof(Tmp->m_aFuzzyMap));
@@ -286,7 +289,7 @@ void CSqlScore::MapVote(int ClientID, const char* MapName)
 
 bool CSqlScore::MapVoteThread(CSqlServer* pSqlServer, const CSqlData *pGameData, bool HandleFailure)
 {
-	const CSqlMapData *pData = dynamic_cast<const CSqlMapData *>(pGameData);
+	const CSqlMapVoteData *pData = dynamic_cast<const CSqlMapVoteData *>(pGameData);
 
 	if (HandleFailure)
 		return true;
@@ -333,23 +336,15 @@ bool CSqlScore::MapVoteThread(CSqlServer* pSqlServer, const CSqlData *pGameData,
 		else
 		{
 			pSqlServer->GetResults()->next();
-			char aMap[128];
-			strcpy(aMap, pSqlServer->GetResults()->getString("Map").c_str());
-			char aServer[32];
-			strcpy(aServer, pSqlServer->GetResults()->getString("Server").c_str());
+			str_copy(pData->m_pResult->m_aMap, pSqlServer->GetResults()->getString("Map").c_str(), sizeof(pData->m_pResult->m_aMap));
+			str_copy(pData->m_pResult->m_aServer, pSqlServer->GetResults()->getString("Server").c_str(), sizeof(pData->m_pResult->m_aServer));
 
-			for(char *p = aServer; *p; p++)
+			for(char *p = pData->m_pResult->m_aServer; *p; p++)
 				*p = tolower(*p);
 
-			char aCmd[256];
-			str_format(aCmd, sizeof(aCmd), "sv_reset_file types/%s/flexreset.cfg; change_map \"%s\"", aServer, aMap);
-			char aChatmsg[512];
-			str_format(aChatmsg, sizeof(aChatmsg), "'%s' called vote to change server option '%s' (%s)", pData->GameServer()->Server()->ClientName(pData->m_ClientID), aMap, "/map");
+			pData->m_pResult->m_ClientID = pData->m_ClientID;
 
-			pData->GameServer()->m_VoteKick = false;
-			pData->GameServer()->m_VoteSpec = false;
-			pData->GameServer()->m_LastMapVote = time_get();
-			pData->GameServer()->CallVote(pData->m_ClientID, aMap, aCmd, "/map", aChatmsg);
+			pData->m_pResult->m_Done = true;
 		}
 		end:
 		return true;
@@ -1259,19 +1254,22 @@ bool CSqlScore::ShowTopPointsThread(CSqlServer* pSqlServer, const CSqlData *pGam
 	return false;
 }
 
-void CSqlScore::RandomMap(int ClientID, int stars)
+void CSqlScore::RandomMap(std::shared_ptr<CRandomMapResult> *ppResult, int ClientID, int Stars)
 {
-	CSqlScoreData *Tmp = new CSqlScoreData();
-	Tmp->m_Num = stars;
+	*ppResult = std::make_shared<CRandomMapResult>();
+
+	CSqlRandomMap *Tmp = new CSqlRandomMap();
+	Tmp->m_Num = Stars;
 	Tmp->m_ClientID = ClientID;
 	Tmp->m_Name = GameServer()->Server()->ClientName(ClientID);
+	Tmp->m_pResult = *ppResult;
 
 	thread_init_and_detach(ExecSqlFunc, new CSqlExecData(RandomMapThread, Tmp), "random map");
 }
 
 bool CSqlScore::RandomMapThread(CSqlServer* pSqlServer, const CSqlData *pGameData, bool HandleFailure)
 {
-	const CSqlScoreData *pData = dynamic_cast<const CSqlScoreData *>(pGameData);
+	const CSqlRandomMap *pData = dynamic_cast<const CSqlRandomMap *>(pGameData);
 
 	if (HandleFailure)
 		return true;
@@ -1293,11 +1291,9 @@ bool CSqlScore::RandomMapThread(CSqlServer* pSqlServer, const CSqlData *pGameDat
 		else
 		{
 			pSqlServer->GetResults()->next();
-			char aMap[128];
-			strcpy(aMap, pSqlServer->GetResults()->getString("Map").c_str());
-
-			str_format(aBuf, sizeof(aBuf), "change_map \"%s\"", aMap);
-			pData->GameServer()->Console()->ExecuteLine(aBuf);
+			std::string Map = pSqlServer->GetResults()->getString("Map");
+			str_copy(pData->m_pResult->m_aMap, Map.c_str(), sizeof(pData->m_pResult->m_aMap));
+			pData->m_pResult->m_Done = true;
 		}
 
 		dbg_msg("sql", "voting random map done");
@@ -1316,19 +1312,22 @@ bool CSqlScore::RandomMapThread(CSqlServer* pSqlServer, const CSqlData *pGameDat
 	return false;
 }
 
-void CSqlScore::RandomUnfinishedMap(int ClientID, int stars)
+void CSqlScore::RandomUnfinishedMap(std::shared_ptr<CRandomMapResult> *ppResult, int ClientID, int Stars)
 {
-	CSqlScoreData *Tmp = new CSqlScoreData();
-	Tmp->m_Num = stars;
+	*ppResult = std::make_shared<CRandomMapResult>();
+
+	CSqlRandomMap *Tmp = new CSqlRandomMap();
+	Tmp->m_Num = Stars;
 	Tmp->m_ClientID = ClientID;
 	Tmp->m_Name = GameServer()->Server()->ClientName(ClientID);
+	Tmp->m_pResult = *ppResult;
 
 	thread_init_and_detach(ExecSqlFunc, new CSqlExecData(RandomUnfinishedMapThread, Tmp), "random unfinished map");
 }
 
 bool CSqlScore::RandomUnfinishedMapThread(CSqlServer* pSqlServer, const CSqlData *pGameData, bool HandleFailure)
 {
-	const CSqlScoreData *pData = dynamic_cast<const CSqlScoreData *>(pGameData);
+	const CSqlRandomMap *pData = dynamic_cast<const CSqlRandomMap *>(pGameData);
 
 	if (HandleFailure)
 		return true;
@@ -1350,11 +1349,9 @@ bool CSqlScore::RandomUnfinishedMapThread(CSqlServer* pSqlServer, const CSqlData
 		else
 		{
 			pSqlServer->GetResults()->next();
-			char aMap[128];
-			strcpy(aMap, pSqlServer->GetResults()->getString("Map").c_str());
-
-			str_format(aBuf, sizeof(aBuf), "change_map \"%s\"", aMap);
-			pData->GameServer()->Console()->ExecuteLine(aBuf);
+			std::string Map = pSqlServer->GetResults()->getString("Map");
+			str_copy(pData->m_pResult->m_aMap, Map.c_str(), sizeof(pData->m_pResult->m_aMap));
+			pData->m_pResult->m_Done = true;
 		}
 
 		dbg_msg("sql", "voting random unfinished map done");

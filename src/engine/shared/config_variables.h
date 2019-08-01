@@ -140,8 +140,8 @@ MACRO_CONFIG_INT(SvRconVote, sv_rcon_vote, 0, 0, 1, CFGFLAG_SERVER, "Only allow 
 
 MACRO_CONFIG_INT(SvPlayerDemoRecord, sv_player_demo_record, 0, 0, 1, CFGFLAG_SERVER, "Automatically record demos for each player")
 MACRO_CONFIG_INT(SvDemoChat, sv_demo_chat, 0, 0, 1, CFGFLAG_SERVER, "Record chat for demos")
-MACRO_CONFIG_INT(SvServerInfoPerSecond, sv_server_info_per_second, 50, 1, 1000, CFGFLAG_SERVER, "Maximum number of complete server info responses that are sent out per second")
-MACRO_CONFIG_INT(SvVanConnPerSecond, sv_van_conn_per_second, 10, 1, 1000, CFGFLAG_SERVER, "Antispoof specific ratelimit")
+MACRO_CONFIG_INT(SvServerInfoPerSecond, sv_server_info_per_second, 50, 0, 10000, CFGFLAG_SERVER, "Maximum number of complete server info responses that are sent out per second (0 for no limit)")
+MACRO_CONFIG_INT(SvVanConnPerSecond, sv_van_conn_per_second, 10, 0, 10000, CFGFLAG_SERVER, "Antispoof specific ratelimit (0 for no limit)")
 
 MACRO_CONFIG_STR(EcBindaddr, ec_bindaddr, 128, "localhost", CFGFLAG_ECON, "Address to bind the external console to. Anything but 'localhost' is dangerous")
 MACRO_CONFIG_INT(EcPort, ec_port, 0, 0, 0, CFGFLAG_ECON, "Port to use for the external console")
@@ -247,22 +247,25 @@ MACRO_CONFIG_INT(SvRejoinTeam0, sv_rejoin_team_0, 1, 0, 1, CFGFLAG_SERVER, "Make
 MACRO_CONFIG_INT(ClReconnectTimeout, cl_reconnect_timeout, 120, 0, 600, CFGFLAG_CLIENT | CFGFLAG_SAVE, "How many seconds to wait before reconnecting (after timeout, 0 for off)")
 MACRO_CONFIG_INT(ClReconnectFull, cl_reconnect_full, 5, 0, 600, CFGFLAG_CLIENT | CFGFLAG_SAVE, "How many seconds to wait before reconnecting (when server is full, 0 for off)")
 
-MACRO_CONFIG_COL(ClMessageSystemCol, cl_message_system_col, 2817983, 0, 0xFFFFFF, CFGFLAG_CLIENT | CFGFLAG_SAVE, "System message color")
-MACRO_CONFIG_COL(ClMessageClientCol, cl_message_client_col, 65472, 0, 0xFFFFFF, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Client message color")
-MACRO_CONFIG_COL(ClMessageHighlightCol, cl_message_highlight_col, 65471, 0, 0xFFFFFF, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Highlighted message color")
-MACRO_CONFIG_COL(ClMessageTeamCol, cl_message_team_col, 5636050, 0, 0xFFFFFF, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Team message color")
-MACRO_CONFIG_COL(ClMessageCol, cl_message_col, 255, 0, 0xFFFFFF, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Message color")
-MACRO_CONFIG_COL(ClLaserInnerCol, cl_laser_inner_col, 11206591, 0, 0xFFFFFF, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Laser inner color")
-MACRO_CONFIG_COL(ClLaserOutlineCol, cl_laser_outline_col, 11176233, 0, 0xFFFFFF, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Laser outline color")
+
+MACRO_CONFIG_COL(ClMessageSystemColor, cl_message_system_color, 2817983, CFGFLAG_CLIENT | CFGFLAG_SAVE, "System message color")
+MACRO_CONFIG_COL(ClMessageClientColor, cl_message_client_color, 9633471, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Client message color")
+MACRO_CONFIG_COL(ClMessageHighlightColor, cl_message_highlight_color, 65471, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Highlighted message color")
+MACRO_CONFIG_COL(ClMessageTeamColor, cl_message_team_color, 5636050, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Team message color")
+MACRO_CONFIG_COL(ClMessageColor, cl_message_color, 255, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Message color")
+MACRO_CONFIG_COL(ClLaserInnerColor, cl_laser_inner_color, 11206591, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Laser inner color")
+MACRO_CONFIG_COL(ClLaserOutlineColor, cl_laser_outline_color, 11176233, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Laser outline color")
 
 MACRO_CONFIG_INT(ClMessageFriend, cl_message_friend, 1, 0, 1, CFGFLAG_SAVE|CFGFLAG_CLIENT, "Enable coloring and the heart for friends")
-MACRO_CONFIG_COL(ClMessageFriendCol, cl_message_friend_col, 65425, 0, 0xFFFFFF, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Friend message color")
+MACRO_CONFIG_COL(ClMessageFriendColor, cl_message_friend_color, 65425, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Friend message color")
 
 MACRO_CONFIG_INT(ConnTimeout, conn_timeout, 100, 5, 1000, CFGFLAG_SAVE|CFGFLAG_CLIENT|CFGFLAG_SERVER, "Network timeout")
 MACRO_CONFIG_INT(ConnTimeoutProtection, conn_timeout_protection, 1000, 5, 10000, CFGFLAG_SERVER, "Network timeout protection")
 MACRO_CONFIG_INT(ClShowIDs, cl_show_ids, 0, 0, 1, CFGFLAG_SAVE|CFGFLAG_CLIENT, "Whether to show client ids in scoreboard")
 MACRO_CONFIG_INT(ClScoreboardOnDeath, cl_scoreboard_on_death, 1, 0, 1, CFGFLAG_SAVE|CFGFLAG_CLIENT, "Whether to show scoreboard after death or not")
 MACRO_CONFIG_INT(ClAutoRaceRecord, cl_auto_race_record, 1, 0, 1, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Save the best demo of each race")
+MACRO_CONFIG_INT(ClReplays, cl_replays, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Enable/disable replays")
+MACRO_CONFIG_INT(ClReplayLength, cl_replay_length, 30, 10, 0, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Set the default length of the replays")
 MACRO_CONFIG_INT(ClRaceRecordServerControl, cl_race_record_server_control, 1, 0, 1, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Let the server start the race recorder")
 MACRO_CONFIG_INT(ClDemoName, cl_demo_name, 1, 0, 1, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Save the player name within the demo")
 MACRO_CONFIG_INT(ClDemoAssumeRace, cl_demo_assume_race, 1, 0, 1, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Assume that demos are race demos")
@@ -278,8 +281,8 @@ MACRO_CONFIG_INT(ClShowOthersAlpha, cl_show_others_alpha, 40, 0, 100, CFGFLAG_CL
 MACRO_CONFIG_INT(ClOverlayEntities, cl_overlay_entities, 0, 0, 100, CFGFLAG_CLIENT, "Overlay game tiles with a percentage of opacity")
 MACRO_CONFIG_INT(ClShowQuads, cl_show_quads, 1, 0, 1, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Show quads")
 MACRO_CONFIG_INT(ClZoomBackgroundLayers, cl_zoom_background_layers, 0, 0, 1, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Zoom background layers")
-MACRO_CONFIG_COL(ClBackgroundCol, cl_background_col, 128, 0, 0xFFFFFF, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Background color") //0 0 128
-MACRO_CONFIG_COL(ClBackgroundEntitiesCol, cl_background_entities_col, 128, 0, 0xFFFFFF, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Background (entities) color") //0 0 128
+MACRO_CONFIG_COL(ClBackgroundColor, cl_background_color, 128, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Background color") //0 0 128
+MACRO_CONFIG_COL(ClBackgroundEntitiesColor, cl_background_entities_color, 128, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Background (entities) color") //0 0 128
 MACRO_CONFIG_STR(ClBackgroundEntities, cl_background_entities, 100, "", CFGFLAG_CLIENT|CFGFLAG_SAVE, "Background (entities)")
 MACRO_CONFIG_INT(ClBackgroundShowTilesLayers, cl_background_show_tiles_layers, 0, 0, 1, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Whether draw tiles layers when using custom background (entities)")
 MACRO_CONFIG_INT(SvShowOthers, sv_show_others, 1, 0, 1, CFGFLAG_SERVER, "Whether players can user the command showothers or not")
@@ -348,7 +351,7 @@ MACRO_CONFIG_STR(SvConnLoggingServer, sv_conn_logging_server, 128, "", CFGFLAG_S
 
 MACRO_CONFIG_INT(ClUnpredictedShadow, cl_unpredicted_shadow, 0, 0, 1, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Show unpredicted shadow tee to estimate your delay")
 MACRO_CONFIG_INT(ClPredictDDRace, cl_predict_ddrace, 1, 0, 1, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Predict some DDRace tiles")
-MACRO_CONFIG_INT(ClPredictFreeze, cl_predict_freeze, 1, 0, 1, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Predict freeze tiles")
+MACRO_CONFIG_INT(ClPredictFreeze, cl_predict_freeze, 1, 0, 2, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Predict freeze tiles (0 = off, 1 = on, 2 = partial (allow a small amount of movement in freeze)")
 MACRO_CONFIG_INT(ClShowNinja, cl_show_ninja, 1, 0, 1, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Show ninja skin")
 MACRO_CONFIG_INT(ClShowHookCollOther, cl_show_hook_coll_other, 1, 0, 1, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Show other players' hook collision line")
 MACRO_CONFIG_INT(ClShowHookCollOwn, cl_show_hook_coll_own, 1, 0, 1, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Show own players' hook collision line")
@@ -364,7 +367,9 @@ MACRO_CONFIG_STR(ClTimeoutCode, cl_timeout_code, 64, "", CFGFLAG_SAVE|CFGFLAG_CL
 MACRO_CONFIG_STR(ClDummyTimeoutCode, cl_dummy_timeout_code, 64, "", CFGFLAG_SAVE|CFGFLAG_CLIENT, "Dummy Timeout code to use")
 MACRO_CONFIG_STR(ClTimeoutSeed, cl_timeout_seed, 64, "", CFGFLAG_SAVE|CFGFLAG_CLIENT, "Timeout seed")
 MACRO_CONFIG_STR(ClInputFifo, cl_input_fifo, 128, "", CFGFLAG_SAVE|CFGFLAG_CLIENT, "Fifo file to use as input for client console")
+#if defined(CONF_FAMILY_WINDOWS)
 MACRO_CONFIG_INT(ClShowConsole, cl_show_console, 0, 0, 1, CFGFLAG_SAVE|CFGFLAG_CLIENT, "Show console window (Windows only)")
+#endif
 MACRO_CONFIG_INT(InpJoystick, inp_joystick, 0, 0, 1, CFGFLAG_SAVE|CFGFLAG_CLIENT, "Try to use a joystick as input")
 MACRO_CONFIG_INT(ClConfigVersion, cl_config_version, 0, 0, 0, CFGFLAG_CLIENT|CFGFLAG_SAVE, "The config version. Helps newer clients fix bugs with older configs.")
 

@@ -84,6 +84,8 @@ option(DOWNLOAD_GTEST "Download and compile GTest" ${AUTO_DEPENDENCIES_DEFAULT})
 option(PREFER_BUNDLED_LIBS "Prefer bundled libraries over system libraries" ${AUTO_DEPENDENCIES_DEFAULT})
 option(DEV "Don't generate stuff necessary for packaging" OFF)
 
+set(OpenGL_GL_PREFERENCE LEGACY)
+
 # Set the default build type to Release
 if(NOT(CMAKE_BUILD_TYPE))
   if(NOT(DEV))
@@ -294,7 +296,7 @@ endif()
 find_package(ZLIB)
 find_package(Crypto)
 find_package(Curl)
-find_package(Freetype)
+find_package(OwnFreetype)
 if(DOWNLOAD_GTEST)
   find_package(Git)
 endif()
@@ -781,6 +783,8 @@ if(CLIENT)
     backend_sdl.h
     client.cpp
     client.h
+    demoedit.cpp
+    demoedit.h
     friends.cpp
     friends.h
     graphics_threaded.cpp
@@ -1413,6 +1417,10 @@ if(NOT DEV)
   install(TARGETS ${TARGET_CLIENT} DESTINATION bin COMPONENT client)
   install(TARGETS ${TARGET_SERVER} DESTINATION bin COMPONENT server)
   install(TARGETS ${TARGETS_TOOLS} DESTINATION lib/ddnet COMPONENT tools)
+  install(FILES other/ddnet.desktop DESTINATION share/applications COMPONENT client)
+  foreach(SIZE 16 32 48 128 256 512)
+    install(FILES other/icons/DDNet_${SIZE}x${SIZE}x32.png DESTINATION share/icons/hicolor/${SIZE}x${SIZE}/apps RENAME ddnet.png COMPONENT client)
+  endforeach()
 endif()
 
 if(DEV)

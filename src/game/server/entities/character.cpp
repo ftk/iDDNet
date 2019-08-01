@@ -24,6 +24,7 @@ CCharacter::CCharacter(CGameWorld *pWorld)
 	m_ProximityRadius = ms_PhysSize;
 	m_Health = 0;
 	m_Armor = 0;
+	m_StrongWeakID = 0;
 }
 
 void CCharacter::Reset()
@@ -476,8 +477,7 @@ void CCharacter::FireWeapon()
 						0,//Freeze
 						0,//Explosive
 						0,//Force
-						-1,//SoundImpact
-						WEAPON_GUN//Weapon
+						-1//SoundImpact
 						);
 
 				// pack the Projectile and send it to the client Directly
@@ -513,7 +513,7 @@ void CCharacter::FireWeapon()
 					ProjStartPos,
 					vec2(cosf(a), sinf(a))*Speed,
 					(int)(Server()->TickSpeed()*GameServer()->Tuning()->m_ShotgunLifetime),
-					1, 0, 0, -1, WEAPON_SHOTGUN);
+					1, 0, 0, -1);
 
 				// pack the Projectile and send it to the client Directly
 				CNetObj_Projectile p;
@@ -555,8 +555,7 @@ void CCharacter::FireWeapon()
 					0,//Freeze
 					true,//Explosive
 					0,//Force
-					SOUND_GRENADE_EXPLODE,//SoundImpact
-					WEAPON_GRENADE//Weapon
+					SOUND_GRENADE_EXPLODE//SoundImpact
 					);//SoundImpact
 
 			// pack the Projectile and send it to the client Directly
@@ -922,7 +921,8 @@ void CCharacter::Die(int Killer, int Weapon)
 	// a nice sound
 	GameServer()->CreateSound(m_Pos, SOUND_PLAYER_DIE, Teams()->TeamMask(Team(), -1, m_pPlayer->GetCID()));
 
-	// this is for auto respawn after 3 secs
+	// this is to rate limit respawning to 3 secs
+	m_pPlayer->m_PreviousDieTick = m_pPlayer->m_DieTick;
 	m_pPlayer->m_DieTick = Server()->Tick();
 
 	m_Alive = false;
@@ -1219,8 +1219,23 @@ void CCharacter::Snap(int SnappingClient)
 		pDDNetCharacter->m_Flags |= CHARACTERFLAG_TELEGUN_GRENADE;
 	if(m_HasTeleLaser)
 		pDDNetCharacter->m_Flags |= CHARACTERFLAG_TELEGUN_LASER;
+	if(m_aWeapons[WEAPON_HAMMER].m_Got)
+		pDDNetCharacter->m_Flags |= CHARACTERFLAG_WEAPON_HAMMER;
+	if(m_aWeapons[WEAPON_GUN].m_Got)
+		pDDNetCharacter->m_Flags |= CHARACTERFLAG_WEAPON_GUN;
+	if(m_aWeapons[WEAPON_SHOTGUN].m_Got)
+		pDDNetCharacter->m_Flags |= CHARACTERFLAG_WEAPON_SHOTGUN;
+	if(m_aWeapons[WEAPON_GRENADE].m_Got)
+		pDDNetCharacter->m_Flags |= CHARACTERFLAG_WEAPON_GRENADE;
+	if(m_aWeapons[WEAPON_RIFLE].m_Got)
+		pDDNetCharacter->m_Flags |= CHARACTERFLAG_WEAPON_LASER;
+	if(m_Core.m_ActiveWeapon == WEAPON_NINJA)
+		pDDNetCharacter->m_Flags |= CHARACTERFLAG_WEAPON_NINJA;
 
-	pDDNetCharacter->m_FreezeEnd = m_DeepFreeze ? -1 : m_FreezeTick + m_FreezeTime;
+	pDDNetCharacter->m_FreezeEnd = m_DeepFreeze ? -1 : m_FreezeTime == 0 ? 0 : Server()->Tick() + m_FreezeTime;
+	pDDNetCharacter->m_Jumps = m_Core.m_Jumps;
+	pDDNetCharacter->m_TeleCheckpoint = m_TeleCheckpoint;
+	pDDNetCharacter->m_StrongWeakID = m_StrongWeakID;
 }
 
 int CCharacter::NetworkClipped(int SnappingClient)

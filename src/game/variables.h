@@ -12,8 +12,10 @@ MACRO_CONFIG_INT(ClAntiPingPlayers, cl_antiping_players, 1, 0, 1, CFGFLAG_CLIENT
 MACRO_CONFIG_INT(ClAntiPingGrenade, cl_antiping_grenade, 1, 0, 1, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Predict grenades (only enabled if cl_antiping is set to 1)")
 MACRO_CONFIG_INT(ClAntiPingWeapons, cl_antiping_weapons, 1, 0, 1, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Predict weapon projectiles (only enabled if cl_antiping is set to 1)")
 MACRO_CONFIG_INT(ClAntiPingSmooth, cl_antiping_smooth, 0, 0, 1, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Make the prediction of other player's movement smoother")
+MACRO_CONFIG_INT(ClAntiPingGunfire, cl_antiping_gunfire, 1, 0, 1, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Predict gunfire and show predicted weapon physics (with cl_antiping_grenade 1 and cl_antiping_weapons 1)")
 
 MACRO_CONFIG_INT(ClNameplates, cl_nameplates, 1, 0, 1, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Show name plates")
+MACRO_CONFIG_INT(ClAfkEmote, cl_afk_emote, 1, 0, 1, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Show zzz emote next to afk players")
 MACRO_CONFIG_INT(ClNameplatesAlways, cl_nameplates_always, 1, 0, 1, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Always show name plates disregarding of distance")
 MACRO_CONFIG_INT(ClNameplatesTeamcolors, cl_nameplates_teamcolors, 1, 0, 1, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Use team colors for name plates")
 MACRO_CONFIG_INT(ClNameplatesSize, cl_nameplates_size, 50, 0, 100, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Size of the name plates from 0 to 100%")
@@ -21,8 +23,11 @@ MACRO_CONFIG_INT(ClNameplatesClan, cl_nameplates_clan, 0, 0, 1, CFGFLAG_CLIENT|C
 MACRO_CONFIG_INT(ClNameplatesClanSize, cl_nameplates_clan_size, 30, 0, 100, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Size of the clan plates from 0 to 100%")
 MACRO_CONFIG_INT(ClNameplatesOwn, cl_nameplates_own, 0, 0, 1, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Show own name plate (useful for demo recording)")
 MACRO_CONFIG_INT(ClTextEntities, cl_text_entities, 1, 0, 1, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Render textual entity data")
-MACRO_CONFIG_COL(ClAuthedPlayerColor, cl_authed_player_color, 5898211, 0, 0xFFFFFF, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Color of name of authenticated player in scoreboard")
-MACRO_CONFIG_COL(ClSameClanColor, cl_same_clan_color, 5898211, 0, 0xFFFFFF, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Clan color of players with the same clan as you in scoreboard.")
+MACRO_CONFIG_INT(ClTextEntitiesSize, cl_text_entities_size, 100, 0, 100, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Size of textual entity data from 0 to 100%")
+
+MACRO_CONFIG_COL(ClAuthedPlayerColor, cl_authed_player_color, 5898211, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Color of name of authenticated player in scoreboard")
+MACRO_CONFIG_COL(ClSameClanColor, cl_same_clan_color, 5898211, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Clan color of players with the same clan as you in scoreboard.")
+
 MACRO_CONFIG_INT(ClEnablePingColor, cl_enable_ping_color, 1, 0, 1, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Whether ping is colored in scoreboard.")
 MACRO_CONFIG_INT(ClAutoswitchWeapons, cl_autoswitch_weapons, 0, 0, 1, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Auto switch weapon on pickup")
 MACRO_CONFIG_INT(ClAutoswitchWeaponsOutOfAmmo, cl_autoswitch_weapons_out_of_ammo, 0, 0, 1, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Auto switch weapon when out of ammo")
@@ -77,8 +82,8 @@ MACRO_CONFIG_INT(ClAutoStatboardScreenshotMax, cl_auto_statboard_screenshot_max,
 MACRO_CONFIG_INT(ClDefaultZoom, cl_default_zoom, 10, 0, 20, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Default zoom level (10 default, min 0, max 20)")
 
 MACRO_CONFIG_INT(ClPlayerUseCustomColor, player_use_custom_color, 0, 0, 1, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Toggles usage of custom colors")
-MACRO_CONFIG_COL(ClPlayerColorBody, player_color_body, 65408, 0, 0xFFFFFF, CFGFLAG_CLIENT|CFGFLAG_SAVE|CFGFLAG_COLLIGHT, "Player body color")
-MACRO_CONFIG_COL(ClPlayerColorFeet, player_color_feet, 65408, 0, 0xFFFFFF, CFGFLAG_CLIENT|CFGFLAG_SAVE|CFGFLAG_COLLIGHT, "Player feet color")
+MACRO_CONFIG_COL(ClPlayerColorBody, player_color_body, 65408, CFGFLAG_CLIENT|CFGFLAG_SAVE|CFGFLAG_COLLIGHT, "Player body color")
+MACRO_CONFIG_COL(ClPlayerColorFeet, player_color_feet, 65408, CFGFLAG_CLIENT|CFGFLAG_SAVE|CFGFLAG_COLLIGHT, "Player feet color")
 MACRO_CONFIG_STR(ClPlayerSkin, player_skin, 24, "default", CFGFLAG_CLIENT|CFGFLAG_SAVE, "Player skin")
 MACRO_CONFIG_STR(ClSkinPrefix, cl_skin_prefix, 100, "", CFGFLAG_CLIENT|CFGFLAG_SAVE, "Replace the skins by skins with this prefix (e.g. kitty, coala, santa)")
 MACRO_CONFIG_INT(ClFatSkins, cl_fat_skins, 0, 0, 1, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Enable fat skins")
@@ -89,7 +94,7 @@ MACRO_CONFIG_STR(UiServerAddress, ui_server_address, 64, "localhost:8303", CFGFL
 MACRO_CONFIG_INT(UiScale, ui_scale, 100, 50, 150, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Interface scale")
 MACRO_CONFIG_INT(UiMousesens, ui_mousesens, 200, 1, 100000, CFGFLAG_SAVE|CFGFLAG_CLIENT, "Mouse sensitivity for menus/editor")
 
-MACRO_CONFIG_COL(UiColor, ui_color, (int)0xE4A046AF, 0, (int)0xFFFFFFFF, CFGFLAG_CLIENT|CFGFLAG_SAVE|CFGFLAG_COLALPHA, "Interface color") // 160 70 175 228 hasalpha
+MACRO_CONFIG_COL(UiColor, ui_color, 0xE4A046AF, CFGFLAG_CLIENT|CFGFLAG_SAVE|CFGFLAG_COLALPHA, "Interface color") // 160 70 175 228 hasalpha
 
 MACRO_CONFIG_INT(UiColorizePing, ui_colorize_ping, 1, 0, 1, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Highlight ping")
 MACRO_CONFIG_INT(UiColorizeGametype, ui_colorize_gametype, 1, 0, 1, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Highlight gametype")
@@ -104,12 +109,13 @@ MACRO_CONFIG_STR(ClDummyName, dummy_name, 16, "brainless tee", CFGFLAG_SAVE|CFGF
 MACRO_CONFIG_STR(ClDummyClan, dummy_clan, 12, "", CFGFLAG_SAVE|CFGFLAG_CLIENT, "Clan of the Dummy")
 MACRO_CONFIG_INT(ClDummyCountry, dummy_country, -1, -1, 1000, CFGFLAG_SAVE|CFGFLAG_CLIENT, "Country of the Dummy")
 MACRO_CONFIG_INT(ClDummyUseCustomColor, dummy_use_custom_color, 0, 0, 1, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Toggles usage of custom colors")
-MACRO_CONFIG_COL(ClDummyColorBody, dummy_color_body, 65408, 0, 0xFFFFFF, CFGFLAG_CLIENT|CFGFLAG_SAVE|CFGFLAG_COLLIGHT, "Dummy body color")
-MACRO_CONFIG_COL(ClDummyColorFeet, dummy_color_feet, 65408, 0, 0xFFFFFF, CFGFLAG_CLIENT|CFGFLAG_SAVE|CFGFLAG_COLLIGHT, "Dummy feet color")
+MACRO_CONFIG_COL(ClDummyColorBody, dummy_color_body, 65408, CFGFLAG_CLIENT|CFGFLAG_SAVE|CFGFLAG_COLLIGHT, "Dummy body color")
+MACRO_CONFIG_COL(ClDummyColorFeet, dummy_color_feet, 65408, CFGFLAG_CLIENT|CFGFLAG_SAVE|CFGFLAG_COLLIGHT, "Dummy feet color")
 MACRO_CONFIG_STR(ClDummySkin, dummy_skin, 24, "default", CFGFLAG_CLIENT|CFGFLAG_SAVE, "Dummy skin")
 MACRO_CONFIG_INT(ClDummy, cl_dummy, 0, 0, 1, CFGFLAG_CLIENT, "0 - player / 1 - dummy")
 MACRO_CONFIG_INT(ClDummyHammer, cl_dummy_hammer, 0, 0, 1, CFGFLAG_CLIENT, "Whether dummy is hammering for a hammerfly")
 MACRO_CONFIG_INT(ClDummyResetOnSwitch, cl_dummy_resetonswitch, 0, 0, 1, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Whether dummy should stop pressing keys when you switch")
+MACRO_CONFIG_INT(ClDummyRestoreWeapon, cl_dummy_restore_weapon, 1, 0, 1, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Whether dummy should switch to last weapon after hammerfly")
 MACRO_CONFIG_INT(ClDummyCopyMoves, cl_dummy_copy_moves, 0, 0, 1, CFGFLAG_CLIENT, "Whether dummy should copy your moves")
 
 // more controlable dummy command
@@ -152,8 +158,6 @@ MACRO_CONFIG_INT(SvDestroyBulletsOnDeath, sv_destroy_bullets_on_death, 1, 0, 1, 
 MACRO_CONFIG_INT(SvDestroyLasersOnDeath, sv_destroy_lasers_on_death, 0, 0, 1, CFGFLAG_SERVER|CFGFLAG_GAME, "Destroy lasers when their owner dies")
 
 MACRO_CONFIG_INT(SvMapUpdateRate, sv_mapupdaterate, 5, 1, 100, CFGFLAG_SERVER, "64 player id <-> vanilla id players map update rate")
-
-MACRO_CONFIG_INT(SvSkinStealAction, sv_skinstealaction, 0, 0, 1, CFGFLAG_SERVER, "How to punish skin stealing (currently only 1 = force pinky)")
 
 MACRO_CONFIG_STR(SvServerType, sv_server_type, 64, "none", CFGFLAG_SERVER, "Type of the server (novice, moderate, ...)")
 

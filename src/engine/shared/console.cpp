@@ -54,14 +54,14 @@ ColorHSLA CConsole::CResult::GetColor(unsigned Index, bool Light)
 		int Len = str_length(pStr);
 		if(Len == 4)
 		{
-			unsigned Num = str_toint_base(pStr + 1, 16);
+			unsigned Num = str_toulong_base(pStr + 1, 16);
 			rgb.r = (((Num >> 8) & 0x0F) + ((Num >> 4) & 0xF0)) / 255.0f;
 			rgb.g = (((Num >> 4) & 0x0F) + ((Num >> 0) & 0xF0)) / 255.0f;
 			rgb.b = (((Num >> 0) & 0x0F) + ((Num << 4) & 0xF0)) / 255.0f;
 		}
 		else if(Len == 7)
 		{
-			unsigned Num = str_toint_base(pStr + 1, 16);
+			unsigned Num = str_toulong_base(pStr + 1, 16);
 			rgb.r = ((Num >> 16) & 0xFF) / 255.0f;
 			rgb.g = ((Num >> 8) & 0xFF) / 255.0f;
 			rgb.b = ((Num >> 0) & 0xFF) / 255.0f;
@@ -705,11 +705,13 @@ struct CIntVariableData
 	int m_OldValue;
 };
 
-struct CColVariableData : public CIntVariableData
+struct CColVariableData
 {
-	template<class... T> CColVariableData(bool l, bool a, T... t) : CIntVariableData{t...}, m_Light(l), m_Alpha(a) {}
+	IConsole *m_pConsole;
+	unsigned *m_pVariable;
 	bool m_Light;
 	bool m_Alpha;
+	unsigned m_OldValue;
 };
 
 struct CStrVariableData
@@ -755,7 +757,7 @@ static void ColVariableCommand(IConsole::IResult *pResult, void *pUserData)
 
 	if(pResult->NumArguments())
 	{
-		int Val = pResult->GetColor(0, pData->m_Light).Pack() & (pData->m_Alpha ? 0xFFFFFFFF : 0xFFFFFF);
+		int Val = pResult->GetColor(0, pData->m_Light).Pack(pData->m_Alpha);
 
 		*(pData->m_pVariable) = Val;
 		if(pResult->m_ClientID != IConsole::CLIENT_ID_GAME)
@@ -764,16 +766,22 @@ static void ColVariableCommand(IConsole::IResult *pResult, void *pUserData)
 	else
 	{
 		char aBuf[256];
-		str_format(aBuf, sizeof(aBuf), "Value: %d", *(pData->m_pVariable));
+		str_format(aBuf, sizeof(aBuf), "Value: %u", *(pData->m_pVariable));
 		pData->m_pConsole->Print(IConsole::OUTPUT_LEVEL_STANDARD, "console", aBuf);
 
 		ColorHSLA hsl(*(pData->m_pVariable), true);
-		str_format(aBuf, sizeof(aBuf), "H: %d deg, S: %d, L: %d A: %d", round_truncate(hsl.h * 360), round_truncate(hsl.s * 100), round_truncate(hsl.l * 100), round_truncate(hsl.a * 100));
+		str_format(aBuf, sizeof(aBuf), "H: %d°, S: %d%%, L: %d%%", round_truncate(hsl.h * 360), round_truncate(hsl.s * 100), round_truncate(hsl.l * 100));
 		pData->m_pConsole->Print(IConsole::OUTPUT_LEVEL_STANDARD, "console", aBuf);
 
 		ColorRGBA rgb = color_cast<ColorRGBA>(hsl);
-		str_format(aBuf, sizeof(aBuf), "R: %d, G: %d, B: %d", round_truncate(rgb.r * 255), round_truncate(rgb.g * 255), round_truncate(rgb.b * 255));
+		str_format(aBuf, sizeof(aBuf), "R: %d, G: %d, B: %d, #%06X", round_truncate(rgb.r * 255), round_truncate(rgb.g * 255), round_truncate(rgb.b * 255), rgb.Pack(false));
 		pData->m_pConsole->Print(IConsole::OUTPUT_LEVEL_STANDARD, "console", aBuf);
+
+		if(pData->m_Alpha)
+		{
+			str_format(aBuf, sizeof(aBuf), "A: %d%%", round_truncate(hsl.a * 100));
+			pData->m_pConsole->Print(IConsole::OUTPUT_LEVEL_STANDARD, "console", aBuf);
+		}
 	}
 }
 
@@ -851,6 +859,20 @@ void CConsole::ConToggle(IConsole::IResult *pResult, void *pUser)
 			char *pDst = aBuf + str_length(aBuf);
 			str_escape(&pDst, pStr, aBuf + sizeof(aBuf));
 			str_append(aBuf, "\"", sizeof(aBuf));
+			pConsole->ExecuteLine(aBuf);
+			aBuf[0] = 0;
+		}
+		else if(pfnCallback == ColVariableCommand)
+		{
+			CColVariableData *pData = static_cast<CColVariableData *>(pUserData);
+			bool Light = pData->m_Light;
+			bool Alpha = pData->m_Alpha;
+			unsigned Cur = *pData->m_pVariable;
+			ColorHSLA Val = Cur == pResult->GetColor(1, Light).Pack(Alpha) ? pResult->GetColor(2, Light) : pResult->GetColor(1, Light);
+			if(Light)
+				Val = Val.Lighten();
+
+			str_format(aBuf, sizeof(aBuf), "%s %u", pResult->GetString(0), Val.Pack(Alpha));
 			pConsole->ExecuteLine(aBuf);
 			aBuf[0] = 0;
 		}
@@ -934,9 +956,10 @@ CConsole::CConsole(int FlagMask)
 		Register(#ScriptName, "?i", Flags, IntVariableCommand, &Data, Desc); \
 	}
 
-	#define MACRO_CONFIG_COL(Name,ScriptName,Def,Min,Max,Flags,Desc) \
+	#define MACRO_CONFIG_COL(Name,ScriptName,Def,Flags,Desc) \
 	{ \
-		static CColVariableData Data = { static_cast<bool>((Flags) & CFGFLAG_COLLIGHT), static_cast<bool>((Flags) & CFGFLAG_COLALPHA), this, &g_Config.m_##Name, Min, Max, Def }; \
+		static CColVariableData Data = { this, &g_Config.m_##Name, static_cast<bool>((Flags) & CFGFLAG_COLLIGHT), \
+			static_cast<bool>((Flags) & CFGFLAG_COLALPHA), Def}; \
 		Register(#ScriptName, "?i", Flags, ColVariableCommand, &Data, Desc); \
 	}
 
@@ -1214,7 +1237,7 @@ void CConsole::ResetServerGameSettings()
 		} \
 	}
 
-	#define MACRO_CONFIG_COL(Name,ScriptName,Def,Min,Max,Save,Desc) MACRO_CONFIG_INT(Name,ScriptName,Def,Min,Max,Save,Desc)
+	#define MACRO_CONFIG_COL(Name,ScriptName,Def,Save,Desc) MACRO_CONFIG_INT(Name,ScriptName,Def,0,0,Save,Desc)
 
 	#define MACRO_CONFIG_STR(Name,ScriptName,Len,Def,Flags,Desc) \
 	{ \

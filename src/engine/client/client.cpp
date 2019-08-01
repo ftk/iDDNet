@@ -57,6 +57,7 @@
 #include <mastersrv/mastersrv.h>
 
 #include <engine/client/serverbrowser.h>
+#include <engine/client/demoedit.h>
 
 #if defined(CONF_FAMILY_WINDOWS)
 	#define WIN32_LEAN_AND_MEAN
@@ -263,9 +264,8 @@ void CSmoothTime::Update(CGraph *pGraph, int64 Target, int TimeLeft, int AdjustD
 
 CClient::CClient() : m_DemoPlayer(&m_SnapshotDelta)
 {
-	m_DemoRecorder[0] = CDemoRecorder(&m_SnapshotDelta);
-	m_DemoRecorder[1] = CDemoRecorder(&m_SnapshotDelta);
-	m_DemoRecorder[2] = CDemoRecorder(&m_SnapshotDelta);
+	for (int i = 0; i < RECORDER_MAX; i++)
+		m_DemoRecorder[i] = CDemoRecorder(&m_SnapshotDelta);
 
 	m_pEditor = 0;
 	m_pInput = 0;
@@ -725,8 +725,6 @@ void CClient::Connect(const char *pAddress, const char *pPassword)
 	m_GametimeMarginGraph.Init(-150.0f, 150.0f);
 
 	GenerateTimeoutCodes();
-
-	GameClient()->OnTimeScore(1, false);
 }
 
 void CClient::DisconnectWithReason(const char *pReason)
@@ -742,6 +740,8 @@ void CClient::DisconnectWithReason(const char *pReason)
 
 	//
 	m_RconAuthed[0] = 0;
+	m_CanReceiveServerCapabilities = true;
+	m_ServerSentCapabilities = false;
 	m_UseTempRconCommands = 0;
 	m_pConsole->DeregisterTempAll();
 	m_NetClient[0].Disconnect(pReason);
@@ -778,6 +778,12 @@ void CClient::Disconnect()
 		DummyDisconnect(0);
 	if(m_State != IClient::STATE_OFFLINE)
 		DisconnectWithReason(0);
+
+	// make sure to remove replay tmp demo
+	if(g_Config.m_ClReplays)
+	{
+		Storage()->RemoveFile((&m_DemoRecorder[RECORDER_REPLAYS])->GetCurrentFilename(), IStorage::TYPE_SAVE);
+	}
 }
 
 bool CClient::DummyConnected()
@@ -812,8 +818,6 @@ void CClient::DummyConnect()
 
 	//connecting to the server
 	m_NetClient[1].Connect(&m_ServerAddress);
-
-	GameClient()->OnTimeScore(1, true);
 }
 
 void CClient::DummyDisconnect(const char *pReason)
@@ -895,6 +899,12 @@ void *CClient::SnapGetItem(int SnapID, int Index, CSnapItem *pItem)
 	pItem->m_Type = m_aSnapshots[g_Config.m_ClDummy][SnapID]->m_pAltSnap->GetItemType(Index);
 	pItem->m_ID = i->ID();
 	return (void *)i->Data();
+}
+
+int CClient::SnapItemSize(int SnapID, int Index)
+{
+	dbg_assert(SnapID >= 0 && SnapID < NUM_SNAPSHOT_TYPES, "invalid SnapID");
+	return m_aSnapshots[g_Config.m_ClDummy][SnapID]->m_pAltSnap->GetItemSize(Index);
 }
 
 void CClient::SnapInvalidateItem(int SnapID, int Index)
@@ -1053,12 +1063,12 @@ void CClient::Render()
 {
 	if(g_Config.m_ClOverlayEntities)
 	{
-		ColorRGBA bg = color_cast<ColorRGBA>(ColorHSLA(g_Config.m_ClBackgroundEntitiesCol));
+		ColorRGBA bg = color_cast<ColorRGBA>(ColorHSLA(g_Config.m_ClBackgroundEntitiesColor));
 		Graphics()->Clear(bg.r, bg.g, bg.b);
 	}
 	else
 	{
-		ColorRGBA bg = color_cast<ColorRGBA>(ColorHSLA(g_Config.m_ClBackgroundCol));
+		ColorRGBA bg = color_cast<ColorRGBA>(ColorHSLA(g_Config.m_ClBackgroundColor));
 		Graphics()->Clear(bg.r, bg.g, bg.b);
 	}
 
@@ -1478,6 +1488,15 @@ void CClient::ProcessServerInfo(int RawType, NETADDR *pFrom, const void *pData, 
 	#undef GET_INT
 }
 
+bool CClient::ShouldSendChatTimeoutCodeHeuristic()
+{
+	if(m_ServerSentCapabilities)
+	{
+		return false;
+	}
+	return IsDDNet(&m_CurrentServerInfo);
+}
+
 static void FormatMapDownloadFilename(const char *pName, SHA256_DIGEST *pSha256, int Crc, bool Temp, char *pBuffer, int BufferSize)
 {
 	char aSha256[SHA256_MAXSTRSIZE + 1];
@@ -1493,6 +1512,22 @@ static void FormatMapDownloadFilename(const char *pName, SHA256_DIGEST *pSha256,
 		Crc,
 		aSha256,
 		Temp ? ".tmp" : "");
+}
+
+static CServerCapabilities GetServerCapabilities(int Version, int Flags)
+{
+	CServerCapabilities Result;
+	bool DDNet = false;
+	if(Version >= 1)
+	{
+		DDNet = Flags&SERVERCAPFLAG_DDNET;
+	}
+	Result.m_ChatTimeoutCode = DDNet;
+	if(Version >= 1)
+	{
+		Result.m_ChatTimeoutCode = Flags&SERVERCAPFLAG_CHATTIMEOUTCODE;
+	}
+	return Result;
 }
 
 void CClient::ProcessServerPacket(CNetChunk *pPacket)
@@ -1535,8 +1570,29 @@ void CClient::ProcessServerPacket(CNetChunk *pPacket)
 			m_MapDetailsSha256 = *pMapSha256;
 			m_MapDetailsCrc = MapCrc;
 		}
+		else if((pPacket->m_Flags&NET_CHUNKFLAG_VITAL) != 0 && Msg == NETMSG_CAPABILITIES)
+		{
+			if(!m_CanReceiveServerCapabilities)
+			{
+				return;
+			}
+			int Version = Unpacker.GetInt();
+			int Flags = Unpacker.GetInt();
+			if(Version <= 0)
+			{
+				return;
+			}
+			m_ServerCapabilities = GetServerCapabilities(Version, Flags);
+			m_CanReceiveServerCapabilities = false;
+			m_ServerSentCapabilities = true;
+		}
 		else if((pPacket->m_Flags&NET_CHUNKFLAG_VITAL) != 0 && Msg == NETMSG_MAP_CHANGE)
 		{
+			if(m_CanReceiveServerCapabilities)
+			{
+				m_ServerCapabilities = GetServerCapabilities(0, 0);
+				m_CanReceiveServerCapabilities = false;
+			}
 			bool MapDetailsWerePresent = m_MapDetailsPresent;
 			m_MapDetailsPresent = false;
 
@@ -1921,7 +1977,7 @@ void CClient::ProcessServerPacket(CNetChunk *pPacket)
 
 					if(m_ReceivedSnapshots[g_Config.m_ClDummy] > 50 && !m_aTimeoutCodeSent[g_Config.m_ClDummy])
 					{
-						if(IsDDNet(&m_CurrentServerInfo))
+						if(m_ServerCapabilities.m_ChatTimeoutCode || ShouldSendChatTimeoutCodeHeuristic())
 						{
 							m_aTimeoutCodeSent[g_Config.m_ClDummy] = true;
 							CNetMsg_Cl_Say Msg;
@@ -1944,13 +2000,6 @@ void CClient::ProcessServerPacket(CNetChunk *pPacket)
 		{
 			bool UsernameReq = Unpacker.GetInt() & 1;
 			GameClient()->OnRconType(UsernameReq);
-		}
-		else if(Msg == NETMSG_TIME_SCORE)
-		{
-			int NewTimeScore = Unpacker.GetInt();
-			if (Unpacker.Error())
-				return;
-			GameClient()->OnTimeScore(NewTimeScore, g_Config.m_ClDummy);
 		}
 	}
 	else
@@ -2179,13 +2228,6 @@ void CClient::ProcessServerPacketDummy(CNetChunk *pPacket)
 					m_AckGameTick[!g_Config.m_ClDummy] = GameTick;
 				}
 			}
-		}
-		else if(Msg == NETMSG_TIME_SCORE)
-		{
-			int NewTimeScore = Unpacker.GetInt();
-			if (Unpacker.Error())
-				return;
-			GameClient()->OnTimeScore(NewTimeScore, true);
 		}
 	}
 	else
@@ -2647,6 +2689,24 @@ void CClient::Update()
 		else if(m_pDDNetInfoTask->State() == HTTP_ABORTED)
 		{
 			m_pDDNetInfoTask = NULL;
+		}
+	}
+
+	if(State() == IClient::STATE_ONLINE)
+	{
+		if(m_EditJobs.size() > 0)
+		{
+			std::shared_ptr<CDemoEdit> e = m_EditJobs.front();
+			if(e->Status() == IJob::STATE_DONE)
+			{
+				char aBuf[256];
+				str_format(aBuf, sizeof(aBuf), "Successfully saved the replay to %s!", e->Destination());
+				m_pConsole->Print(IConsole::OUTPUT_LEVEL_STANDARD, "replay", aBuf);
+
+				GameClient()->Echo(Localize("Successfully saved the replay!"));
+
+				m_EditJobs.pop_front();
+			}
 		}
 	}
 
@@ -3272,6 +3332,63 @@ void CClient::Con_DemoSliceEnd(IConsole::IResult *pResult, void *pUserData)
 	pSelf->DemoSliceEnd();
 }
 
+void CClient::Con_SaveReplay(IConsole::IResult *pResult, void *pUserData)
+{
+	CClient *pSelf = (CClient *)pUserData;
+	if(pResult->NumArguments())
+	{
+		int Length = pResult->GetInteger(0);
+		if(Length <= 0)
+			pSelf->m_pConsole->Print(IConsole::OUTPUT_LEVEL_STANDARD, "replay", "Error: length must be greater than 0 second.");
+		else
+			pSelf->SaveReplay(Length);
+	}
+	else
+		pSelf->SaveReplay(g_Config.m_ClReplayLength);
+}
+
+void CClient::SaveReplay(const int Length)
+{
+	if(!g_Config.m_ClReplays)
+	{
+		m_pConsole->Print(IConsole::OUTPUT_LEVEL_STANDARD, "replay", "Feature is disabled. Please enable it via configuration.");
+		GameClient()->Echo(Localize("Replay feature is disabled!"));
+		return;
+	}
+	
+	if(!DemoRecorder(RECORDER_REPLAYS)->IsRecording())
+		m_pConsole->Print(IConsole::OUTPUT_LEVEL_STANDARD, "replay", "Error: demorecorder isn't recording. Try to rejoin to fix that.");
+	else if(DemoRecorder(RECORDER_REPLAYS)->Length() < 1)
+		m_pConsole->Print(IConsole::OUTPUT_LEVEL_STANDARD, "replay", "Error: demorecorder isn't recording for at least 1 second.");
+	else
+	{
+		// First we stop the recorder to slice correctly the demo after
+		DemoRecorder_Stop(RECORDER_REPLAYS);
+		char aFilename[256];
+
+		char aDate[64];
+		str_timestamp(aDate, sizeof(aDate));
+
+		str_format(aFilename, sizeof(aFilename), "demos/replays/%s_%s (replay).demo", m_aCurrentMap, aDate);
+		char *pSrc = (&m_DemoRecorder[RECORDER_REPLAYS])->GetCurrentFilename();
+
+		// Slice the demo to get only the last cl_replay_length seconds
+		const int EndTick = GameTick();
+		const int StartTick = EndTick - Length * GameTickSpeed();
+
+		m_pConsole->Print(IConsole::OUTPUT_LEVEL_STANDARD, "replay", "Saving replay...");
+
+		// Create a job to do this slicing in background because it can be a bit long depending on the file size
+		std::shared_ptr<CDemoEdit> pDemoEditTask = std::make_shared<CDemoEdit>(GameClient()->NetVersion(), &m_SnapshotDelta, m_pStorage, pSrc, aFilename, StartTick, EndTick);
+		Engine()->AddJob(pDemoEditTask);
+		m_EditJobs.push_back(pDemoEditTask);
+
+		// And we restart the recorder
+		DemoRecorder_StartReplayRecorder();
+	}
+	
+}
+
 void CClient::DemoSlice(const char *pDstPath, CLIENTFUNC_FILTER pfnFilter, void *pUser)
 {
 	if(m_DemoPlayer.IsPlaying())
@@ -3395,11 +3512,31 @@ void CClient::DemoRecorder_HandleAutoStart()
 			AutoDemos.Init(Storage(), "demos/auto", "" /* empty for wild card */, ".demo", g_Config.m_ClAutoDemoMax);
 		}
 	}
+	if(!DemoRecorder(RECORDER_REPLAYS)->IsRecording())
+	{
+		DemoRecorder_StartReplayRecorder();
+	}
 }
 
-void CClient::DemoRecorder_Stop(int Recorder)
+void CClient::DemoRecorder_StartReplayRecorder()
+{
+	if(g_Config.m_ClReplays)
+	{
+		DemoRecorder_Stop(RECORDER_REPLAYS);
+		char aBuf[512];
+		str_format(aBuf, sizeof(aBuf), "replays/replay_tmp-%s", m_aCurrentMap);
+		DemoRecorder_Start(aBuf, true, RECORDER_REPLAYS);
+	}
+}
+
+void CClient::DemoRecorder_Stop(int Recorder, bool RemoveFile)
 {
 	m_DemoRecorder[Recorder].Stop();
+	if(RemoveFile)
+	{
+		const char *pFilename = (&m_DemoRecorder[RECORDER_REPLAYS])->GetCurrentFilename();
+		Storage()->RemoveFile(pFilename, IStorage::TYPE_SAVE);
+	}
 }
 
 void CClient::DemoRecorder_AddDemoMarker(int Recorder)
@@ -3433,6 +3570,7 @@ void CClient::Con_AddDemoMarker(IConsole::IResult *pResult, void *pUserData)
 	pSelf->DemoRecorder_AddDemoMarker(RECORDER_MANUAL);
 	pSelf->DemoRecorder_AddDemoMarker(RECORDER_RACE);
 	pSelf->DemoRecorder_AddDemoMarker(RECORDER_AUTO);
+	pSelf->DemoRecorder_AddDemoMarker(RECORDER_REPLAYS);
 }
 
 void CClient::ServerBrowserUpdate()
@@ -3568,6 +3706,26 @@ void CClient::ConchainPassword(IConsole::IResult *pResult, void *pUserData, ICon
 		pSelf->m_SendPassword = true;
 }
 
+void CClient::ConchainReplays(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData)
+{
+	CClient *pSelf = (CClient *)pUserData;
+	pfnCallback(pResult, pCallbackUserData);
+	if(pResult->NumArguments())
+	{
+		int Status = pResult->GetInteger(0);
+		if(Status == 0)
+		{
+			// stop recording and remove the tmp demo file
+			pSelf->DemoRecorder_Stop(RECORDER_REPLAYS, true);
+		}
+		else
+		{
+			// start recording
+			pSelf->DemoRecorder_HandleAutoStart();
+		}
+	}
+}
+
 void CClient::RegisterCommands()
 {
 	m_pConsole = Kernel()->RequestInterface<IConsole>();
@@ -3606,7 +3764,10 @@ void CClient::RegisterCommands()
 	m_pConsole->Register("demo_play", "", CFGFLAG_CLIENT, Con_DemoPlay, this, "Play demo");
 	m_pConsole->Register("demo_speed", "i[speed]", CFGFLAG_CLIENT, Con_DemoSpeed, this, "Set demo speed");
 
+	m_pConsole->Register("save_replay", "?i[length]", CFGFLAG_CLIENT, Con_SaveReplay, this, "Save a replay of the last defined amount of seconds");
+
 	m_pConsole->Chain("cl_timeout_seed", ConchainTimeoutSeed, this);
+	m_pConsole->Chain("cl_replays", ConchainReplays, this);
 
 	m_pConsole->Chain("password", ConchainPassword, this);
 

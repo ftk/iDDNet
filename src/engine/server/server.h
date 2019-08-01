@@ -223,7 +223,6 @@ public:
 
 	int m_RconRestrict;
 
-	bool m_ServerInfoHighLoad;
 	int64 m_ServerInfoFirstRequest;
 	int m_ServerInfoNumRequests;
 
@@ -280,6 +279,7 @@ public:
 	static int ClientRejoinCallback(int ClientID, void *pUser);
 
 	void SendRconType(int ClientID, bool UsernameReq);
+	void SendCapabilities(int ClientID);
 	void SendMap(int ClientID);
 	void SendMapData(int ClientID, int Chunk);
 	void SendConnectionReady(int ClientID);

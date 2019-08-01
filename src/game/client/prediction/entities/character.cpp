@@ -457,6 +457,8 @@ void CCharacter::FireWeapon()
 
 	}
 
+	m_AttackTick = GameWorld()->GameTick();
+
 	if(!m_ReloadTimer)
 	{
 		float FireDelay;
@@ -553,6 +555,7 @@ void CCharacter::Tick()
 	// Previnput
 	m_PrevInput = m_Input;
 
+	m_PrevPrevPos = m_PrevPos;
 	m_PrevPos = m_Core.m_Pos;
 	return;
 }
@@ -689,6 +692,42 @@ void CCharacter::HandleTiles(int Index)
 	m_TileSFlagsB = (Collision()->m_pSwitchers && Collision()->m_pSwitchers[Collision()->GetDTileNumber(MapIndexB)].m_Status[Team()])?(Team() != TEAM_SUPER)? Collision()->GetDTileFlags(MapIndexB) : 0 : 0;
 	m_TileSIndexT = (Collision()->m_pSwitchers && Collision()->m_pSwitchers[Collision()->GetDTileNumber(MapIndexT)].m_Status[Team()])?(Team() != TEAM_SUPER)? Collision()->GetDTileIndex(MapIndexT) : 0 : 0;
 	m_TileSFlagsT = (Collision()->m_pSwitchers && Collision()->m_pSwitchers[Collision()->GetDTileNumber(MapIndexT)].m_Status[Team()])?(Team() != TEAM_SUPER)? Collision()->GetDTileFlags(MapIndexT) : 0 : 0;
+
+	// stopper
+	if(((m_TileIndex == TILE_STOP && m_TileFlags == ROTATION_270) || (m_TileIndexL == TILE_STOP && m_TileFlagsL == ROTATION_270) || (m_TileIndexL == TILE_STOPS && (m_TileFlagsL == ROTATION_90 || m_TileFlagsL ==ROTATION_270)) || (m_TileIndexL == TILE_STOPA) || (m_TileFIndex == TILE_STOP && m_TileFFlags == ROTATION_270) || (m_TileFIndexL == TILE_STOP && m_TileFFlagsL == ROTATION_270) || (m_TileFIndexL == TILE_STOPS && (m_TileFFlagsL == ROTATION_90 || m_TileFFlagsL == ROTATION_270)) || (m_TileFIndexL == TILE_STOPA) || (m_TileSIndex == TILE_STOP && m_TileSFlags == ROTATION_270) || (m_TileSIndexL == TILE_STOP && m_TileSFlagsL == ROTATION_270) || (m_TileSIndexL == TILE_STOPS && (m_TileSFlagsL == ROTATION_90 || m_TileSFlagsL == ROTATION_270)) || (m_TileSIndexL == TILE_STOPA)) && m_Core.m_Vel.x > 0)
+	{
+		if((int)Collision()->GetPos(MapIndexL).x)
+			if((int)Collision()->GetPos(MapIndexL).x < (int)m_Core.m_Pos.x)
+				m_Core.m_Pos = m_PrevPos;
+		m_Core.m_Vel.x = 0;
+	}
+	if(((m_TileIndex == TILE_STOP && m_TileFlags == ROTATION_90) || (m_TileIndexR == TILE_STOP && m_TileFlagsR == ROTATION_90) || (m_TileIndexR == TILE_STOPS && (m_TileFlagsR == ROTATION_90 || m_TileFlagsR == ROTATION_270)) || (m_TileIndexR == TILE_STOPA) || (m_TileFIndex == TILE_STOP && m_TileFFlags == ROTATION_90) || (m_TileFIndexR == TILE_STOP && m_TileFFlagsR == ROTATION_90) || (m_TileFIndexR == TILE_STOPS && (m_TileFFlagsR == ROTATION_90 || m_TileFFlagsR == ROTATION_270)) || (m_TileFIndexR == TILE_STOPA) || (m_TileSIndex == TILE_STOP && m_TileSFlags == ROTATION_90) || (m_TileSIndexR == TILE_STOP && m_TileSFlagsR == ROTATION_90) || (m_TileSIndexR == TILE_STOPS && (m_TileSFlagsR == ROTATION_90 || m_TileSFlagsR == ROTATION_270)) || (m_TileSIndexR == TILE_STOPA)) && m_Core.m_Vel.x < 0)
+	{
+		if((int)Collision()->GetPos(MapIndexR).x)
+			if((int)Collision()->GetPos(MapIndexR).x > (int)m_Core.m_Pos.x)
+				m_Core.m_Pos = m_PrevPos;
+		m_Core.m_Vel.x = 0;
+	}
+	if(((m_TileIndex == TILE_STOP && m_TileFlags == ROTATION_180) || (m_TileIndexB == TILE_STOP && m_TileFlagsB == ROTATION_180) || (m_TileIndexB == TILE_STOPS && (m_TileFlagsB == ROTATION_0 || m_TileFlagsB == ROTATION_180)) || (m_TileIndexB == TILE_STOPA) || (m_TileFIndex == TILE_STOP && m_TileFFlags == ROTATION_180) || (m_TileFIndexB == TILE_STOP && m_TileFFlagsB == ROTATION_180) || (m_TileFIndexB == TILE_STOPS && (m_TileFFlagsB == ROTATION_0 || m_TileFFlagsB == ROTATION_180)) || (m_TileFIndexB == TILE_STOPA) || (m_TileSIndex == TILE_STOP && m_TileSFlags == ROTATION_180) || (m_TileSIndexB == TILE_STOP && m_TileSFlagsB == ROTATION_180) || (m_TileSIndexB == TILE_STOPS && (m_TileSFlagsB == ROTATION_0 || m_TileSFlagsB == ROTATION_180)) || (m_TileSIndexB == TILE_STOPA)) && m_Core.m_Vel.y < 0)
+	{
+		if((int)Collision()->GetPos(MapIndexB).y)
+			if((int)Collision()->GetPos(MapIndexB).y > (int)m_Core.m_Pos.y)
+				m_Core.m_Pos = m_PrevPos;
+		m_Core.m_Vel.y = 0;
+	}
+	if(((m_TileIndex == TILE_STOP && m_TileFlags == ROTATION_0) || (m_TileIndexT == TILE_STOP && m_TileFlagsT == ROTATION_0) || (m_TileIndexT == TILE_STOPS && (m_TileFlagsT == ROTATION_0 || m_TileFlagsT == ROTATION_180)) || (m_TileIndexT == TILE_STOPA) || (m_TileFIndex == TILE_STOP && m_TileFFlags == ROTATION_0) || (m_TileFIndexT == TILE_STOP && m_TileFFlagsT == ROTATION_0) || (m_TileFIndexT == TILE_STOPS && (m_TileFFlagsT == ROTATION_0 || m_TileFFlagsT == ROTATION_180)) || (m_TileFIndexT == TILE_STOPA) || (m_TileSIndex == TILE_STOP && m_TileSFlags == ROTATION_0) || (m_TileSIndexT == TILE_STOP && m_TileSFlagsT == ROTATION_0) || (m_TileSIndexT == TILE_STOPS && (m_TileSFlagsT == ROTATION_0 || m_TileSFlagsT == ROTATION_180)) || (m_TileSIndexT == TILE_STOPA)) && m_Core.m_Vel.y > 0)
+	{
+		if((int)Collision()->GetPos(MapIndexT).y)
+			if((int)Collision()->GetPos(MapIndexT).y < (int)m_Core.m_Pos.y)
+				m_Core.m_Pos = m_PrevPos;
+		m_Core.m_Vel.y = 0;
+		m_Core.m_Jumped = 0;
+		m_Core.m_JumpedTotal = 0;
+	}
+
+	if(!GameWorld()->m_WorldConfig.m_PredictTiles)
+		return;
+
 	if(Index < 0)
 	{
 		m_LastRefillJumps = false;
@@ -798,38 +837,6 @@ void CCharacter::HandleTiles(int Index)
 		m_LastRefillJumps = false;
 	}
 
-	// stopper
-	if(((m_TileIndex == TILE_STOP && m_TileFlags == ROTATION_270) || (m_TileIndexL == TILE_STOP && m_TileFlagsL == ROTATION_270) || (m_TileIndexL == TILE_STOPS && (m_TileFlagsL == ROTATION_90 || m_TileFlagsL ==ROTATION_270)) || (m_TileIndexL == TILE_STOPA) || (m_TileFIndex == TILE_STOP && m_TileFFlags == ROTATION_270) || (m_TileFIndexL == TILE_STOP && m_TileFFlagsL == ROTATION_270) || (m_TileFIndexL == TILE_STOPS && (m_TileFFlagsL == ROTATION_90 || m_TileFFlagsL == ROTATION_270)) || (m_TileFIndexL == TILE_STOPA) || (m_TileSIndex == TILE_STOP && m_TileSFlags == ROTATION_270) || (m_TileSIndexL == TILE_STOP && m_TileSFlagsL == ROTATION_270) || (m_TileSIndexL == TILE_STOPS && (m_TileSFlagsL == ROTATION_90 || m_TileSFlagsL == ROTATION_270)) || (m_TileSIndexL == TILE_STOPA)) && m_Core.m_Vel.x > 0)
-	{
-		if((int)Collision()->GetPos(MapIndexL).x)
-			if((int)Collision()->GetPos(MapIndexL).x < (int)m_Core.m_Pos.x)
-				m_Core.m_Pos = m_PrevPos;
-		m_Core.m_Vel.x = 0;
-	}
-	if(((m_TileIndex == TILE_STOP && m_TileFlags == ROTATION_90) || (m_TileIndexR == TILE_STOP && m_TileFlagsR == ROTATION_90) || (m_TileIndexR == TILE_STOPS && (m_TileFlagsR == ROTATION_90 || m_TileFlagsR == ROTATION_270)) || (m_TileIndexR == TILE_STOPA) || (m_TileFIndex == TILE_STOP && m_TileFFlags == ROTATION_90) || (m_TileFIndexR == TILE_STOP && m_TileFFlagsR == ROTATION_90) || (m_TileFIndexR == TILE_STOPS && (m_TileFFlagsR == ROTATION_90 || m_TileFFlagsR == ROTATION_270)) || (m_TileFIndexR == TILE_STOPA) || (m_TileSIndex == TILE_STOP && m_TileSFlags == ROTATION_90) || (m_TileSIndexR == TILE_STOP && m_TileSFlagsR == ROTATION_90) || (m_TileSIndexR == TILE_STOPS && (m_TileSFlagsR == ROTATION_90 || m_TileSFlagsR == ROTATION_270)) || (m_TileSIndexR == TILE_STOPA)) && m_Core.m_Vel.x < 0)
-	{
-		if((int)Collision()->GetPos(MapIndexR).x)
-			if((int)Collision()->GetPos(MapIndexR).x > (int)m_Core.m_Pos.x)
-				m_Core.m_Pos = m_PrevPos;
-		m_Core.m_Vel.x = 0;
-	}
-	if(((m_TileIndex == TILE_STOP && m_TileFlags == ROTATION_180) || (m_TileIndexB == TILE_STOP && m_TileFlagsB == ROTATION_180) || (m_TileIndexB == TILE_STOPS && (m_TileFlagsB == ROTATION_0 || m_TileFlagsB == ROTATION_180)) || (m_TileIndexB == TILE_STOPA) || (m_TileFIndex == TILE_STOP && m_TileFFlags == ROTATION_180) || (m_TileFIndexB == TILE_STOP && m_TileFFlagsB == ROTATION_180) || (m_TileFIndexB == TILE_STOPS && (m_TileFFlagsB == ROTATION_0 || m_TileFFlagsB == ROTATION_180)) || (m_TileFIndexB == TILE_STOPA) || (m_TileSIndex == TILE_STOP && m_TileSFlags == ROTATION_180) || (m_TileSIndexB == TILE_STOP && m_TileSFlagsB == ROTATION_180) || (m_TileSIndexB == TILE_STOPS && (m_TileSFlagsB == ROTATION_0 || m_TileSFlagsB == ROTATION_180)) || (m_TileSIndexB == TILE_STOPA)) && m_Core.m_Vel.y < 0)
-	{
-		if((int)Collision()->GetPos(MapIndexB).y)
-			if((int)Collision()->GetPos(MapIndexB).y > (int)m_Core.m_Pos.y)
-				m_Core.m_Pos = m_PrevPos;
-		m_Core.m_Vel.y = 0;
-	}
-	if(((m_TileIndex == TILE_STOP && m_TileFlags == ROTATION_0) || (m_TileIndexT == TILE_STOP && m_TileFlagsT == ROTATION_0) || (m_TileIndexT == TILE_STOPS && (m_TileFlagsT == ROTATION_0 || m_TileFlagsT == ROTATION_180)) || (m_TileIndexT == TILE_STOPA) || (m_TileFIndex == TILE_STOP && m_TileFFlags == ROTATION_0) || (m_TileFIndexT == TILE_STOP && m_TileFFlagsT == ROTATION_0) || (m_TileFIndexT == TILE_STOPS && (m_TileFFlagsT == ROTATION_0 || m_TileFFlagsT == ROTATION_180)) || (m_TileFIndexT == TILE_STOPA) || (m_TileSIndex == TILE_STOP && m_TileSFlags == ROTATION_0) || (m_TileSIndexT == TILE_STOP && m_TileSFlagsT == ROTATION_0) || (m_TileSIndexT == TILE_STOPS && (m_TileSFlagsT == ROTATION_0 || m_TileSFlagsT == ROTATION_180)) || (m_TileSIndexT == TILE_STOPA)) && m_Core.m_Vel.y > 0)
-	{
-		if((int)Collision()->GetPos(MapIndexT).y)
-			if((int)Collision()->GetPos(MapIndexT).y < (int)m_Core.m_Pos.y)
-				m_Core.m_Pos = m_PrevPos;
-		m_Core.m_Vel.y = 0;
-		m_Core.m_Jumped = 0;
-		m_Core.m_JumpedTotal = 0;
-	}
-
 	// handle switch tiles
 	if(Collision()->IsSwitch(MapIndex) == TILE_SWITCHOPEN && Team() != TEAM_SUPER)
 	{
@@ -881,8 +888,6 @@ void CCharacter::HandleTiles(int Index)
 
 void CCharacter::DDRaceTick()
 {
-	if(!GameWorld()->m_WorldConfig.m_PredictTiles || !GameWorld()->m_WorldConfig.m_PredictWeapons)
-		return;
 	mem_copy(&m_Input, &m_SavedInput, sizeof(m_Input));
 	if(m_FreezeTime > 0 || m_FreezeTime == -1)
 	{
@@ -890,9 +895,12 @@ void CCharacter::DDRaceTick()
 			m_FreezeTime--;
 		else
 			m_Ninja.m_ActivationTick = GameWorld()->GameTick();
-		m_Input.m_Direction = 0;
-		m_Input.m_Jump = 0;
-		m_Input.m_Hook = 0;
+		if(!m_CanMoveInFreeze)
+		{
+			m_Input.m_Direction = 0;
+			m_Input.m_Jump = 0;
+			m_Input.m_Hook = 0;
+		}
 		if (m_FreezeTime == 1)
 			UnFreeze();
 	}
@@ -900,7 +908,7 @@ void CCharacter::DDRaceTick()
 
 void CCharacter::DDRacePostCoreTick()
 {
-	if(!GameWorld()->m_WorldConfig.m_PredictTiles)
+	if(!GameWorld()->m_WorldConfig.m_PredictDDRace)
 		return;
 
 	if (m_EndlessHook)
@@ -997,158 +1005,75 @@ CCharacter::CCharacter(CGameWorld *pGameWorld, int ID, CNetObj_Character *pChar,
 	m_LastWeapon = WEAPON_HAMMER;
 	m_QueuedWeapon = -1;
 	m_LastRefillJumps = false;
-	m_Pos = vec2(pChar->m_X, pChar->m_Y);
-	m_PrevPos = m_Pos;
+	m_PrevPrevPos = m_PrevPos = m_Pos = vec2(pChar->m_X, pChar->m_Y);
 	m_Core.Reset();
 	m_Core.Init(&GameWorld()->m_Core, GameWorld()->Collision(), GameWorld()->Teams());
 	m_Core.m_Id = ID;
-	SetSolo(false);
-	m_EndlessHook = false;
-	m_Hit = HIT_ALL;
-	m_SuperJump = false;
-	m_Jetpack = false;
-	m_Core.m_Jumps = 2;
 	mem_zero(&m_Ninja, sizeof(m_Ninja));
 	mem_zero(&m_SavedInput, sizeof(m_SavedInput));
 	m_LatestInput = m_LatestPrevInput = m_PrevInput = m_Input = m_SavedInput;
 	m_ProximityRadius = ms_PhysSize;
 	m_Core.m_LeftWall = 1;
-	m_NumInputs = 0;
-	m_FreezeTime = 0;
-	m_FreezeTick = 0;
-	m_DeepFreeze = 0;
 	m_ReloadTimer = 0;
-	//GiveAllWeapons();
-	//GiveWeapon(WEAPON_HAMMER, -1);
 	m_NumObjectsHit = 0;
 	m_LastRefillJumps = false;
-	m_LastJetpackStrength = 400.0;
+	m_LastJetpackStrength = 400.0f;
 	m_Super = false;
+	m_CanMoveInFreeze = false;
 	m_Alive = true;
+	m_TeleCheckpoint = 0;
+	m_StrongWeakID = 0;
 
+	ResetPrediction();
 	Read(pChar, pExtended, false);
 
 	GameWorld()->InsertEntity(this);
 }
 
+void CCharacter::ResetPrediction()
+{
+	SetSolo(false);
+	m_EndlessHook = false;
+	m_Hit = HIT_ALL;
+	m_SuperJump = false;
+	m_Jetpack = false;
+	m_NinjaJetpack = false;
+	m_Core.m_Jumps = 2;
+	m_NumInputs = 0;
+	m_FreezeTime = 0;
+	m_FreezeTick = 0;
+	m_DeepFreeze = 0;
+	m_Super = false;
+	for(int w = 0; w < NUM_WEAPONS; w++)
+	{
+		SetWeaponGot(w, false);
+		SetWeaponAmmo(w, -1);
+	}
+	if(m_Core.m_HookedPlayer >= 0)
+	{
+		m_Core.m_HookedPlayer = -1;
+		m_Core.m_HookState = HOOK_IDLE;
+	}
+}
+
 void CCharacter::Read(CNetObj_Character *pChar, CNetObj_DDNetCharacter *pExtended, bool IsLocal)
 {
-	vec2 PosBefore = m_Pos;
-
 	m_Core.Read((CNetObj_CharacterCore*) pChar);
-	m_Pos = m_Core.m_Pos;
-
-	if(distance(PosBefore, m_Pos) > 2.f) // misprediction, don't use prevpos
-		m_PrevPos = m_Pos;
-
-	if(distance(m_PrevPos, m_Pos) > 10.f * 32.f) // reset prevpos if the distance is high
-		m_PrevPos = m_Pos;
-
-	// remove weapons that are unavailable. if the current weapon is ninja just set ammo to zero in case the player is frozen
-	if(pChar->m_Weapon != m_Core.m_ActiveWeapon)
-	{
-		if(pChar->m_Weapon == WEAPON_NINJA)
-			m_aWeapons[m_Core.m_ActiveWeapon].m_Ammo = 0;
-		else
-		{
-			if(m_Core.m_ActiveWeapon == WEAPON_NINJA)
-			{
-				SetNinjaActivationDir(vec2(0,0));
-				SetNinjaActivationTick(-500);
-				SetNinjaCurrentMoveTime(0);
-			}
-			if(pChar->m_Weapon == m_LastSnapWeapon)
-				m_aWeapons[m_Core.m_ActiveWeapon].m_Got = false;
-		}
-	}
-	m_LastSnapWeapon = pChar->m_Weapon;
-
-	// add weapons
-	if(pChar->m_Weapon != WEAPON_NINJA)
-	{
-		m_aWeapons[pChar->m_Weapon].m_Got = true;
-		m_aWeapons[pChar->m_Weapon].m_Ammo = (GameWorld()->m_WorldConfig.m_InfiniteAmmo || GameWorld()->m_WorldConfig.m_IsDDRace || pChar->m_Weapon == WEAPON_HAMMER) ? -1 : pChar->m_AmmoCount;
-		SetActiveWeapon(pChar->m_Weapon);
-	}
-
-	if(pChar->m_Emote != EMOTE_PAIN && pChar->m_Emote != EMOTE_NORMAL)
-		m_DeepFreeze = false;
-	if(pChar->m_Weapon != WEAPON_NINJA || pChar->m_AttackTick > m_FreezeTick || absolute(pChar->m_VelX) == 256*10)
-	{
-		m_DeepFreeze = false;
-		UnFreeze();
-	}
-	if(!GameWorld()->m_WorldConfig.m_PredictFreeze)
-	{
-		m_DeepFreeze = false;
-		UnFreeze();
-	}
-
-	if(GameWorld()->m_WorldConfig.m_PredictWeapons && Tuning()->m_JetpackStrength > 0)
-	{
-		m_LastJetpackStrength = Tuning()->m_JetpackStrength;
-		m_Jetpack = true;
-	}
-	else if(pChar->m_Weapon != WEAPON_NINJA)
-		m_Jetpack = false;
-
-	if(GameWorld()->m_WorldConfig.m_PredictTiles)
-	{
-		if(pChar->m_Jumped&2)
-		{
-			m_SuperJump = false;
-			if(m_Core.m_Jumps > m_Core.m_JumpedTotal && m_Core.m_JumpedTotal > 0 && m_Core.m_Jumps > 2)
-				m_Core.m_Jumps = m_Core.m_JumpedTotal + 1;
-			else
-				m_Core.m_JumpedTotal = m_Core.m_Jumps;
-		}
-		else
-		{
-			if(m_Core.m_Jumps < 2)
-				m_Core.m_Jumps = m_Core.m_JumpedTotal + 2;
-		}
-		if(Tuning()->m_AirJumpImpulse == 0)
-		{
-			m_Core.m_Jumps = 0;
-			m_Core.m_Jumped = 3;
-		}
-	}
-
-	if(m_Core.m_HookTick != 0)
-		m_EndlessHook = false;
-
-	// reset player collision
-	if(!pExtended)
-		SetSolo(!Tuning()->m_PlayerCollision && !Tuning()->m_PlayerHooking);
-	m_Core.m_Collision = Tuning()->m_PlayerCollision;
-	m_Core.m_Hook = Tuning()->m_PlayerHooking;
-
-	// reset all input except direction and hook for non-local players (as in vanilla prediction)
-	if(!IsLocal)
-	{
-		mem_zero(&m_Input, sizeof(m_Input));
-		mem_zero(&m_SavedInput, sizeof(m_SavedInput));
-		m_Input.m_Direction = m_SavedInput.m_Direction = m_Core.m_Direction;
-		m_Input.m_Hook = m_SavedInput.m_Hook = (m_Core.m_HookState == HOOK_GRABBED);
-		m_Input.m_TargetX = cosf(pChar->m_Angle/256.0f);
-		m_Input.m_TargetY = sinf(pChar->m_Angle/256.0f);
-	}
-
-	m_Alive = true;
 
 	if(pExtended)
 	{
-		m_Super = pExtended->m_Flags & CHARACTERFLAG_SUPER;
+		m_Core.ReadDDNet(pExtended);
 
 		SetSolo(pExtended->m_Flags & CHARACTERFLAG_SOLO);
 		m_Super = pExtended->m_Flags & CHARACTERFLAG_SUPER;
 		if(m_Super)
-			TeamsCore()->Team(GetCID(), TEAM_SUPER);
+			TeamsCore()->Team(GetCID(), TeamsCore()->m_IsDDRace16 ? VANILLA_TEAM_SUPER : TEAM_SUPER);
+
 		m_EndlessHook = pExtended->m_Flags & CHARACTERFLAG_ENDLESS_HOOK;
-		m_Core.m_Collision = !(pExtended->m_Flags & CHARACTERFLAG_NO_COLLISION);
-		m_Core.m_Hook = !(pExtended->m_Flags & CHARACTERFLAG_NO_HOOK);
 		m_SuperJump = pExtended->m_Flags & CHARACTERFLAG_ENDLESS_JUMP;
 		m_Jetpack = pExtended->m_Flags & CHARACTERFLAG_JETPACK;
+		m_TeleCheckpoint = pExtended->m_TeleCheckpoint;
+		m_StrongWeakID = pExtended->m_StrongWeakID;
 
 		m_Hit = HIT_ALL;
 		if(pExtended->m_Flags & CHARACTERFLAG_NO_GRENADE_HIT)
@@ -1159,6 +1084,123 @@ void CCharacter::Read(CNetObj_Character *pChar, CNetObj_DDNetCharacter *pExtende
 			m_Hit |= DISABLE_HIT_RIFLE;
 		if(pExtended->m_Flags & CHARACTERFLAG_NO_SHOTGUN_HIT)
 			m_Hit |= DISABLE_HIT_SHOTGUN;
+
+		m_aWeapons[WEAPON_HAMMER].m_Got = (pExtended->m_Flags & CHARACTERFLAG_WEAPON_HAMMER) != 0;
+		m_aWeapons[WEAPON_GUN].m_Got = (pExtended->m_Flags & CHARACTERFLAG_WEAPON_GUN) != 0;
+		m_aWeapons[WEAPON_SHOTGUN].m_Got = (pExtended->m_Flags & CHARACTERFLAG_WEAPON_SHOTGUN) != 0;
+		m_aWeapons[WEAPON_GRENADE].m_Got = (pExtended->m_Flags & CHARACTERFLAG_WEAPON_GRENADE) != 0;
+		m_aWeapons[WEAPON_RIFLE].m_Got = (pExtended->m_Flags & CHARACTERFLAG_WEAPON_LASER) != 0;
+
+		const bool Ninja = (pExtended->m_Flags & CHARACTERFLAG_WEAPON_NINJA) != 0;
+		if(Ninja && m_Core.m_ActiveWeapon != WEAPON_NINJA)
+			GiveNinja();
+		else if(!Ninja && m_Core.m_ActiveWeapon == WEAPON_NINJA)
+			RemoveNinja();
+	}
+	else
+	{
+		// ddnetcharacter is not available, try to get some info from the tunings and the character netobject instead.
+
+		// remove weapons that are unavailable. if the current weapon is ninja just set ammo to zero in case the player is frozen
+		if(pChar->m_Weapon != m_Core.m_ActiveWeapon)
+		{
+			if(pChar->m_Weapon == WEAPON_NINJA)
+				m_aWeapons[m_Core.m_ActiveWeapon].m_Ammo = 0;
+			else
+			{
+				if(m_Core.m_ActiveWeapon == WEAPON_NINJA)
+				{
+					SetNinjaActivationDir(vec2(0,0));
+					SetNinjaActivationTick(-500);
+					SetNinjaCurrentMoveTime(0);
+				}
+				if(pChar->m_Weapon == m_LastSnapWeapon)
+					m_aWeapons[m_Core.m_ActiveWeapon].m_Got = false;
+			}
+		}
+		// add weapon
+		if(pChar->m_Weapon != WEAPON_NINJA)
+			m_aWeapons[pChar->m_Weapon].m_Got = true;
+
+		// jetpack
+		if(GameWorld()->m_WorldConfig.m_PredictWeapons && Tuning()->m_JetpackStrength > 0)
+		{
+			m_LastJetpackStrength = Tuning()->m_JetpackStrength;
+			m_Jetpack = true;
+			m_aWeapons[WEAPON_GUN].m_Got = true;
+			m_aWeapons[WEAPON_GUN].m_Ammo = -1;
+			m_NinjaJetpack = pChar->m_Weapon == WEAPON_NINJA;
+		}
+		else if(pChar->m_Weapon != WEAPON_NINJA)
+			m_Jetpack = false;
+
+		// number of jumps
+		if(GameWorld()->m_WorldConfig.m_PredictTiles)
+		{
+			if(pChar->m_Jumped&2)
+			{
+				m_SuperJump = false;
+				if(m_Core.m_Jumps > m_Core.m_JumpedTotal && m_Core.m_JumpedTotal > 0 && m_Core.m_Jumps > 2)
+					m_Core.m_Jumps = m_Core.m_JumpedTotal + 1;
+			}
+			else if(m_Core.m_Jumps < 2)
+				m_Core.m_Jumps = m_Core.m_JumpedTotal + 2;
+			if(Tuning()->m_AirJumpImpulse == 0)
+			{
+				m_Core.m_Jumps = 0;
+				m_Core.m_Jumped = 3;
+			}
+		}
+
+		// set player collision
+		SetSolo(!Tuning()->m_PlayerCollision && !Tuning()->m_PlayerHooking);
+		m_Core.m_Collision = Tuning()->m_PlayerCollision;
+		m_Core.m_Hook = Tuning()->m_PlayerHooking;
+
+		if(m_Core.m_HookTick != 0)
+			m_EndlessHook = false;
+	}
+
+	// detect unfreeze (in case the player was frozen in the tile prediction and not correclty unfrozen)
+	if(pChar->m_Emote != EMOTE_PAIN && pChar->m_Emote != EMOTE_NORMAL)
+		m_DeepFreeze = false;
+	if(pChar->m_Weapon != WEAPON_NINJA || pChar->m_AttackTick > m_FreezeTick || absolute(pChar->m_VelX) == 256*10 || !GameWorld()->m_WorldConfig.m_PredictFreeze)
+	{
+		m_DeepFreeze = false;
+		UnFreeze();
+	}
+
+	vec2 PosBefore = m_Pos;
+	m_Pos = m_Core.m_Pos;
+
+	if(distance(PosBefore, m_Pos) > 2.f) // misprediction, don't use prevpos
+		m_PrevPos = m_Pos;
+
+	if(distance(m_PrevPos, m_Pos) > 10.f * 32.f) // reset prevpos if the distance is high
+		m_PrevPos = m_Pos;
+
+	if(pChar->m_Jumped&2)
+		m_Core.m_JumpedTotal = m_Core.m_Jumps;
+	m_AttackTick = pChar->m_AttackTick;
+	m_LastSnapWeapon = pChar->m_Weapon;
+	m_Alive = true;
+
+	// set the current weapon
+	if(pChar->m_Weapon != WEAPON_NINJA)
+	{
+		m_aWeapons[pChar->m_Weapon].m_Ammo = (GameWorld()->m_WorldConfig.m_InfiniteAmmo || GameWorld()->m_WorldConfig.m_IsDDRace || pChar->m_Weapon == WEAPON_HAMMER) ? -1 : pChar->m_AmmoCount;
+		SetActiveWeapon(pChar->m_Weapon);
+	}
+
+	// reset all input except direction and hook for non-local players (as in vanilla prediction)
+	if(!IsLocal)
+	{
+		mem_zero(&m_Input, sizeof(m_Input));
+		mem_zero(&m_SavedInput, sizeof(m_SavedInput));
+		m_Input.m_Direction = m_SavedInput.m_Direction = m_Core.m_Direction;
+		m_Input.m_Hook = m_SavedInput.m_Hook = (m_Core.m_HookState != HOOK_IDLE);
+		m_Input.m_TargetX = cosf(pChar->m_Angle/256.0f);
+		m_Input.m_TargetY = sinf(pChar->m_Angle/256.0f);
 	}
 }
 

@@ -63,13 +63,18 @@ versionsrv
 
 generated
 
+# IDE project files
 .cproject
 .idea
 .project
 .settings
+.vs
 .vscode
+compile_commands.json
 cscope.files
 cscope.out
+out
+tags
 
 # bam ignores
 /.bam
@@ -108,5 +113,4 @@ cscope.out
 
 DDNet*
 *.vcxproj
-*.vs
 *.zip

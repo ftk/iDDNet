@@ -187,7 +187,6 @@ bool IGameController::OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Nu
 			true, //Explosive
 			0, //Force
 			(g_Config.m_SvShotgunBulletSound)?SOUND_GRENADE_EXPLODE:-1,//SoundImpact
-			WEAPON_SHOTGUN,//Weapon
 			Layer,
 			Number
 			);
@@ -217,7 +216,6 @@ bool IGameController::OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Nu
 			false, //Explosive
 			0,
 			SOUND_GRENADE_EXPLODE,
-			WEAPON_SHOTGUN, //Weapon
 			Layer,
 			Number
 			);
@@ -260,7 +258,7 @@ bool IGameController::OnEntity(int Index, vec2 Pos, int Layer, int Flags, int Nu
 		sides2[6]=GameServer()->Collision()->Entity(x - 2, y, Layer);
 		sides2[7]=GameServer()->Collision()->Entity(x - 2, y + 2, Layer);
 
-		float AngularSpeed = 0.0;
+		float AngularSpeed = 0.0f;
 		int Ind=Index-ENTITY_LASER_STOP;
 		int M;
 		if( Ind < 0)
@@ -536,6 +534,30 @@ void IGameController::Snap(int SnappingClient)
 			pGameInfoObj->m_GameStateFlags |= GAMESTATEFLAG_RACETIME;
 		}
 	}
+
+	CNetObj_GameInfoEx *pGameInfoEx = (CNetObj_GameInfoEx *)Server()->SnapNewItem(NETOBJTYPE_GAMEINFOEX, 0, sizeof(CNetObj_GameInfoEx));
+	if(!pGameInfoEx)
+		return;
+
+	pGameInfoEx->m_Flags = 0
+		| GAMEINFOFLAG_TIMESCORE
+		| GAMEINFOFLAG_GAMETYPE_RACE
+		| GAMEINFOFLAG_GAMETYPE_DDRACE
+		| GAMEINFOFLAG_GAMETYPE_DDNET
+		| GAMEINFOFLAG_UNLIMITED_AMMO
+		| GAMEINFOFLAG_RACE_RECORD_MESSAGE
+		| GAMEINFOFLAG_ALLOW_EYE_WHEEL
+		| GAMEINFOFLAG_ALLOW_HOOK_COLL
+		| GAMEINFOFLAG_ALLOW_ZOOM
+		| GAMEINFOFLAG_BUG_DDRACE_GHOST
+		| GAMEINFOFLAG_BUG_DDRACE_INPUT
+		| GAMEINFOFLAG_PREDICT_DDRACE
+		| GAMEINFOFLAG_PREDICT_DDRACE_TILES
+		| GAMEINFOFLAG_ENTITIES_DDNET
+		| GAMEINFOFLAG_ENTITIES_DDRACE
+		| GAMEINFOFLAG_ENTITIES_RACE
+		| GAMEINFOFLAG_RACE;
+	pGameInfoEx->m_Version = GAMEINFO_CURVERSION;
 }
 
 int IGameController::GetAutoTeam(int NotThisID)

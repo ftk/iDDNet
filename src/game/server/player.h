@@ -44,7 +44,6 @@ public:
 	void KillCharacter(int Weapon = WEAPON_GAME);
 	CCharacter *GetCharacter();
 
-	void FindDuplicateSkins();
 	void SpectatePlayerName(const char *pName);
 
 	//---------------------------------------------------------
@@ -93,11 +92,11 @@ public:
 	} m_TeeInfos;
 
 	int m_DieTick;
+	int m_PreviousDieTick;
 	int m_Score;
 	int m_JoinTick;
 	bool m_ForceBalanced;
 	int m_LastActionTick;
-	bool m_StolenSkin;
 	int m_TeamChangeTick;
 	bool m_SentSemicolonTip;
 	struct

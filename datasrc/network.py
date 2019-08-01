@@ -5,12 +5,26 @@ PlayerFlags = ["PLAYING", "IN_MENU", "CHATTING", "SCOREBOARD", "AIM"]
 GameFlags = ["TEAMS", "FLAGS"]
 GameStateFlags = ["GAMEOVER", "SUDDENDEATH", "PAUSED", "RACETIME"]
 CharacterFlags = ["SOLO", "JETPACK", "NO_COLLISION", "ENDLESS_HOOK", "ENDLESS_JUMP", "SUPER",
-				  "NO_HAMMER_HIT", "NO_SHOTGUN_HIT", "NO_GRENADE_HIT", "NO_RIFLE_HIT", "NO_HOOK",
-				  "TELEGUN_GUN", "TELEGUN_GRENADE", "TELEGUN_LASER"]
+                  "NO_HAMMER_HIT", "NO_SHOTGUN_HIT", "NO_GRENADE_HIT", "NO_RIFLE_HIT", "NO_HOOK",
+                  "TELEGUN_GUN", "TELEGUN_GRENADE", "TELEGUN_LASER",
+                  "WEAPON_HAMMER", "WEAPON_GUN", "WEAPON_SHOTGUN", "WEAPON_GRENADE", "WEAPON_LASER", "WEAPON_NINJA"]
+GameInfoFlags = [
+	"TIMESCORE", "GAMETYPE_RACE", "GAMETYPE_FASTCAP", "GAMETYPE_FNG",
+	"GAMETYPE_DDRACE", "GAMETYPE_DDNET", "GAMETYPE_BLOCK_WORLDS",
+	"GAMETYPE_VANILLA", "GAMETYPE_PLUS", "FLAG_STARTS_RACE", "RACE",
+	"UNLIMITED_AMMO", "DDRACE_RECORD_MESSAGE", "RACE_RECORD_MESSAGE",
+	"ALLOW_EYE_WHEEL", "ALLOW_HOOK_COLL", "ALLOW_ZOOM", "BUG_DDRACE_GHOST",
+	"BUG_DDRACE_INPUT", "BUG_FNG_LASER_RANGE", "BUG_VANILLA_BOUNCE",
+	"PREDICT_FNG", "PREDICT_DDRACE", "PREDICT_DDRACE_TILES", "PREDICT_VANILLA",
+	"ENTITIES_DDNET", "ENTITIES_DDRACE", "ENTITIES_RACE", "ENTITIES_FNG",
+	"ENTITIES_VANILLA", "DONT_MASK_ENTITIES",
+]
+ExPlayerFlags = ["AFK"]
 
 Emoticons = ["OOP", "EXCLAMATION", "HEARTS", "DROP", "DOTDOT", "MUSIC", "SORRY", "GHOST", "SUSHI", "SPLATTEE", "DEVILTEE", "ZOMG", "ZZZ", "WTF", "EYES", "QUESTION"]
 
 Powerups = ["HEALTH", "ARMOR", "WEAPON", "NINJA"]
+Authed = ["NO", "HELPER", "MOD", "ADMIN"]
 
 RawHeader = '''
 
@@ -38,10 +52,7 @@ enum
 
 enum
 {
-	AUTHED_NO=0,
-	AUTHED_HELPER,
-	AUTHED_MOD,
-	AUTHED_ADMIN,
+	GAMEINFO_CURVERSION=3,
 };
 '''
 
@@ -53,7 +64,8 @@ RawSource = '''
 Enums = [
 	Enum("EMOTE", Emotes),
 	Enum("POWERUP", Powerups),
-	Enum("EMOTICON", Emoticons)
+	Enum("EMOTICON", Emoticons),
+	Enum("AUTHED", Authed),
 ]
 
 Flags = [
@@ -61,6 +73,8 @@ Flags = [
 	Flags("GAMEFLAG", GameFlags),
 	Flags("GAMESTATEFLAG", GameStateFlags),
 	Flags("CHARACTERFLAG", CharacterFlags),
+	Flags("GAMEINFOFLAG", GameInfoFlags),
+	Flags("EXPLAYERFLAG", ExPlayerFlags),
 ]
 
 Objects = [
@@ -206,14 +220,23 @@ Objects = [
 		NetIntAny("m_Test"),
 	]),
 
-	NetObjectEx("AuthInfo", "auth-info@netobj.ddnet.tw", [
-		NetIntRange("m_AuthLevel", "AUTHED_NO", "AUTHED_ADMIN"),
-	]),
-
 	NetObjectEx("DDNetCharacter", "character@netobj.ddnet.tw", [
 		NetIntAny("m_Flags"),
 		NetTick("m_FreezeEnd"),
+		NetIntRange("m_Jumps", 0, 255),
+		NetIntAny("m_TeleCheckpoint"),
+		NetIntRange("m_StrongWeakID", 0, 'MAX_CLIENTS-1'),
 	]),
+
+	NetObjectEx("DDNetPlayer", "player@netobj.ddnet.tw", [
+		NetIntAny("m_Flags"),
+		NetIntRange("m_AuthLevel", "AUTHED_NO", "AUTHED_ADMIN"),
+	]),
+
+	NetObjectEx("GameInfoEx", "gameinfo@netobj.ddnet.tw", [
+		NetIntAny("m_Flags"),
+		NetIntAny("m_Version"),
+	], validate_size=False),
 
 	## Events
 
